@@ -6,6 +6,8 @@ import { signOut } from "next-auth/react";
 import { QrCode, LogOut, ShieldCheck, UserCheck, Store, ExternalLink, Loader2 } from "lucide-react";
 import { logLogoutAction } from "@/lib/actions/auth.actions";
 
+import { SiteSettingModel } from "@/types/models";
+
 interface NavbarProps {
   user: {
     id: string;
@@ -13,9 +15,10 @@ interface NavbarProps {
     email: string;
     role: string;
   };
+  siteSetting?: SiteSettingModel | null;
 }
 
-export function Navbar({ user }: NavbarProps) {
+export function Navbar({ user, siteSetting }: NavbarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -67,13 +70,21 @@ export function Navbar({ user }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-              <QrCode className="w-5 h-5" />
-            </div>
+            {siteSetting?.dashboardLogoUrl ? (
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-slate-900 border border-slate-700/80 shadow-lg group-hover:scale-105 transition-transform p-1">
+                <img src={siteSetting.dashboardLogoUrl} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                <QrCode className="w-5 h-5" />
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="font-bold text-base tracking-tight text-white flex items-center gap-1.5">
                 Smart QR <span className="text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30 font-medium">Review</span>
-                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">V 1.1.2</span>
+                <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                  {siteSetting?.appVersion || "V 1.1.2"}
+                </span>
               </span>
               <span className="text-[11px] text-slate-400">Google Review Accelerator</span>
             </div>

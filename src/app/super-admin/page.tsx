@@ -202,7 +202,7 @@ export default async function SuperAdminPage() {
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
-      <Navbar user={authUser} />
+      <Navbar user={authUser} siteSetting={siteSetting as unknown as import("@/types/models").SiteSettingModel} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <SuperAdminDashboardClient

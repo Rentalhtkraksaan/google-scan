@@ -24,7 +24,7 @@ export async function getSiteSettingAction() {
         INSERT INTO site_settings (
           id, appVersion, whatsappNumber, globalFallbackUrl, heroBadge, heroHeadline, heroSubheadline,
           ctaPrimaryText, ctaSecondaryText, ctaSecondaryUrl, step1Title, step1Desc,
-          step2Title, step2Desc, step3Title, step3Desc, footerText, updatedAt
+          step2Title, step2Desc, step3Title, step3Desc, footerText, dashboardLogoUrl, landingPageLogoUrl, updatedAt
         ) VALUES (
           'default', 'V 1.1.2', '6281234567890', 'http://localhost:3000',
           '🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis',
@@ -34,7 +34,7 @@ export async function getSiteSettingAction() {
           'Letakkan di Meja / Kasir', 'Pasang kartu akrilik di kasir.',
           'Pelanggan Scan / Tap', 'Pelanggan scan dengan mudah.',
           'Pop-up Review Langsung Terbuka', 'Pop-up ulasan bintang 5 langsung terbuka.',
-          'Smart QR Review Platform. Seluruh hak cipta dilindungi.', NOW()
+          'Smart QR Review Platform. Seluruh hak cipta dilindungi.', NULL, NULL, NOW()
         )
         ON DUPLICATE KEY UPDATE id = id;
       `;
@@ -97,6 +97,17 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
     const step3Title = (formData.get("step3Title") as string)?.trim();
     const step3Desc = (formData.get("step3Desc") as string)?.trim();
     const footerText = (formData.get("footerText") as string)?.trim();
+    
+    // Default to undefined so we don't update if not present
+    let dashboardLogoUrl: string | undefined = undefined;
+    if (formData.has("dashboardLogoUrl")) {
+      dashboardLogoUrl = (formData.get("dashboardLogoUrl") as string)?.trim() || "";
+    }
+    
+    let landingPageLogoUrl: string | undefined = undefined;
+    if (formData.has("landingPageLogoUrl")) {
+      landingPageLogoUrl = (formData.get("landingPageLogoUrl") as string)?.trim() || "";
+    }
 
     if (!whatsappNumber || !heroHeadline) {
       return { success: false, message: "Nomor WhatsApp dan Headline utama wajib diisi." };
@@ -112,56 +123,44 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
       cleanFallback = "https://" + cleanFallback;
     }
 
-    // Direct MySQL Raw Execution for 100% reliability and no DLL locking issues
-    await prisma.$executeRaw`
-      INSERT INTO site_settings (
-        id, appVersion, whatsappNumber, globalFallbackUrl, heroBadge, heroHeadline, heroSubheadline,
-        ctaPrimaryText, ctaSecondaryText, ctaSecondaryUrl, step1Title, step1Desc,
-        step2Title, step2Desc, step3Title, step3Desc, footerText, updatedAt
-      ) VALUES (
-        'default',
-        ${appVersion},
-        ${cleanWa},
-        ${cleanFallback},
-        ${heroBadge || "🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis"},
-        ${heroHeadline},
-        ${heroSubheadline || "Ubah setiap pelanggan yang puas menjadi ulasan bintang 5 resmi di Google Maps secara instan menggunakan Kartu Dynamic QR & Smart NFC."},
-        ${ctaPrimaryText || "Pesan Kartu & Konsultasi WhatsApp"},
-        ${ctaSecondaryText || "Coba Scan Demo (c-001)"},
-        ${ctaSecondaryUrl || "/c/c-001"},
-        ${step1Title || "Letakkan di Meja / Kasir"},
-        ${step1Desc || "Pasang kartu akrilik di kasir."},
-        ${step2Title || "Pelanggan Scan / Tap"},
-        ${step2Desc || "Pelanggan scan dengan mudah."},
-        ${step3Title || "Pop-up Review Langsung Terbuka"},
-        ${step3Desc || "Pop-up ulasan bintang 5 langsung terbuka."},
-        ${footerText || "Smart QR Review Platform. Seluruh hak cipta dilindungi."},
-        NOW()
-      )
-      ON DUPLICATE KEY UPDATE
-        appVersion = VALUES(appVersion),
-        whatsappNumber = VALUES(whatsappNumber),
-        globalFallbackUrl = VALUES(globalFallbackUrl),
-        heroBadge = VALUES(heroBadge),
-        heroHeadline = VALUES(heroHeadline),
-        heroSubheadline = VALUES(heroSubheadline),
-        ctaPrimaryText = VALUES(ctaPrimaryText),
-        ctaSecondaryText = VALUES(ctaSecondaryText),
-        ctaSecondaryUrl = VALUES(ctaSecondaryUrl),
-        step1Title = VALUES(step1Title),
-        step1Desc = VALUES(step1Desc),
-        step2Title = VALUES(step2Title),
-        step2Desc = VALUES(step2Desc),
-        step3Title = VALUES(step3Title),
-        step3Desc = VALUES(step3Desc),
-        footerText = VALUES(footerText),
-        updatedAt = NOW();
-    `;
+    // To dynamically handle optional logo updates, we will use Prisma's ORM method instead of raw SQL
+    // so we don't overwrite the logos with NULL if they aren't provided in the form data.
+    const updateData: any = {
+      appVersion: appVersion,
+      whatsappNumber: cleanWa,
+      globalFallbackUrl: cleanFallback,
+      heroBadge: heroBadge || "🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis",
+      heroHeadline: heroHeadline,
+      heroSubheadline: heroSubheadline || "Ubah setiap pelanggan yang puas menjadi ulasan bintang 5 resmi di Google Maps secara instan menggunakan Kartu Dynamic QR & Smart NFC.",
+      ctaPrimaryText: ctaPrimaryText || "Pesan Kartu & Konsultasi WhatsApp",
+      ctaSecondaryText: ctaSecondaryText || "Coba Scan Demo (c-001)",
+      ctaSecondaryUrl: ctaSecondaryUrl || "/c/c-001",
+      step1Title: step1Title || "Letakkan di Meja / Kasir",
+      step1Desc: step1Desc || "Pasang kartu akrilik di kasir.",
+      step2Title: step2Title || "Pelanggan Scan / Tap",
+      step2Desc: step2Desc || "Pelanggan scan dengan mudah.",
+      step3Title: step3Title || "Pop-up Review Langsung Terbuka",
+      step3Desc: step3Desc || "Pop-up ulasan bintang 5 langsung terbuka.",
+      footerText: footerText || "Smart QR Review Platform. Seluruh hak cipta dilindungi.",
+    };
 
-    const rows = await prisma.$queryRaw<Record<string, unknown>[]>`
-      SELECT * FROM site_settings WHERE id = 'default' LIMIT 1;
-    `;
-    const updated = rows?.[0] || null;
+    if (dashboardLogoUrl !== undefined) {
+      updateData.dashboardLogoUrl = dashboardLogoUrl;
+    }
+    if (landingPageLogoUrl !== undefined) {
+      updateData.landingPageLogoUrl = landingPageLogoUrl;
+    }
+
+    const updated = await prisma.siteSetting.upsert({
+      where: { id: 'default' },
+      update: updateData,
+      create: {
+        id: 'default',
+        ...updateData
+      }
+    });
+
+    // removed raw select because prisma.siteSetting.upsert returns the updated record
 
     revalidatePath("/");
     revalidatePath("/super-admin");

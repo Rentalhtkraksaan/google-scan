@@ -27,6 +27,8 @@ export interface SiteSettingModel {
   step3Title: string;
   step3Desc: string;
   footerText: string;
+  dashboardLogoUrl?: string | null;
+  landingPageLogoUrl?: string | null;
   updatedAt?: string | Date;
 }
 

@@ -76,6 +76,8 @@ model SiteSetting {
   step3Title        String   @default("Pop-up Review Langsung Terbuka")
   step3Desc         String   @default("Halaman rating bintang 5 Google resmi langsung muncul seketika di layar HP pelanggan, siap dikirim dalam 5 detik!")
   footerText        String   @default("Smart QR Review Platform. Seluruh hak cipta dilindungi.")
+  dashboardLogoUrl  String?  @db.LongText
+  landingPageLogoUrl String? @db.LongText
   printTemplates    String?  @db.LongText
   updatedAt         DateTime @updatedAt
 

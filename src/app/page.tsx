@@ -75,9 +75,15 @@ export default async function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
-              <QrCode className="w-5 h-5" />
-            </div>
+            {siteSetting?.landingPageLogoUrl ? (
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-slate-900 border border-slate-700/80 shadow-lg p-1">
+                <img src={siteSetting.landingPageLogoUrl} alt="Landing Page Logo" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+                <QrCode className="w-5 h-5" />
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="font-bold text-base tracking-tight text-white flex items-center gap-1.5">
                 Smart QR <span className="text-xs px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30 font-medium">Review</span>

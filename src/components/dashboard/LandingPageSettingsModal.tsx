@@ -59,6 +59,30 @@ export function LandingPageSettingsModal({
       "Halaman rating bintang 5 Google resmi langsung muncul seketika di layar HP pelanggan, siap dikirim dalam 5 detik!"
   );
   const [footerText, setFooterText] = useState(initialSetting?.footerText || "Smart QR Review Platform. Seluruh hak cipta dilindungi.");
+  
+  const [dashboardLogoUrl, setDashboardLogoUrl] = useState(initialSetting?.dashboardLogoUrl || "");
+  const [landingPageLogoUrl, setLandingPageLogoUrl] = useState(initialSetting?.landingPageLogoUrl || "");
+
+  const handleImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showErrorAlert("File Terlalu Besar", "Ukuran maksimal logo adalah 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setter(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   if (!isOpen) return null;
 
@@ -101,6 +125,13 @@ export function LandingPageSettingsModal({
         formData.append("step3Title", step3Title);
         formData.append("step3Desc", step3Desc);
         formData.append("footerText", footerText);
+        
+        if (dashboardLogoUrl !== initialSetting?.dashboardLogoUrl) {
+          formData.append("dashboardLogoUrl", dashboardLogoUrl);
+        }
+        if (landingPageLogoUrl !== initialSetting?.landingPageLogoUrl) {
+          formData.append("landingPageLogoUrl", landingPageLogoUrl);
+        }
 
         const res = await updateSiteSettingAction(formData);
         if (res.success) {
@@ -141,6 +172,94 @@ export function LandingPageSettingsModal({
 
         {/* Form Body with Scroll */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 flex-1">
+          {/* Section: Logos */}
+          <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4.5 space-y-4">
+            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs uppercase tracking-wider">
+              <Sparkles className="w-4 h-4" />
+              <span>Pengaturan Logo Sistem</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Dashboard Logo */}
+              <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-xl space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Logo Dashboard (Kiri Atas)</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Menggantikan teks/ikon "Super Admin" di menu samping.</p>
+                </div>
+                
+                {dashboardLogoUrl && (
+                  <div className="flex justify-center p-2 bg-slate-950 rounded-lg">
+                    <img src={dashboardLogoUrl} alt="Dashboard Logo Preview" className="h-8 object-contain" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="dashboardLogoInput"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, setDashboardLogoUrl)}
+                  />
+                  <label
+                    htmlFor="dashboardLogoInput"
+                    className="flex-1 text-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
+                  >
+                    {dashboardLogoUrl ? "Ganti Logo" : "Upload Logo"}
+                  </label>
+                  {dashboardLogoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setDashboardLogoUrl("")}
+                      className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Landing Page Logo */}
+              <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-xl space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Logo Landing Page</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Menggantikan ikon bawaan di pojok kiri atas halaman utama.</p>
+                </div>
+
+                {landingPageLogoUrl && (
+                  <div className="flex justify-center p-2 bg-slate-950 rounded-lg">
+                    <img src={landingPageLogoUrl} alt="Landing Page Logo Preview" className="h-8 object-contain" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="landingPageLogoInput"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, setLandingPageLogoUrl)}
+                  />
+                  <label
+                    htmlFor="landingPageLogoInput"
+                    className="flex-1 text-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
+                  >
+                    {landingPageLogoUrl ? "Ganti Logo" : "Upload Logo"}
+                  </label>
+                  {landingPageLogoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLandingPageLogoUrl("")}
+                      className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Section 0: App & Card Version Setting */}
           <div className="bg-slate-950/60 border border-indigo-500/30 rounded-2xl p-4.5 space-y-3">
             <div className="flex items-center justify-between">
