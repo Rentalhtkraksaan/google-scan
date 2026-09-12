@@ -21,6 +21,7 @@ async function main() {
       fullName: 'Super Administrator',
       whatsappNumber: '6281234567890',
       role: 'SUPER_ADMIN',
+      isSuperAdminMaster: true,
     },
     create: {
       email: 'admin@example.com',
@@ -28,6 +29,7 @@ async function main() {
       fullName: 'Super Administrator',
       whatsappNumber: '6281234567890',
       role: 'SUPER_ADMIN',
+      isSuperAdminMaster: true,
     },
   });
   console.log('Super Admin created:', superAdmin.email);
