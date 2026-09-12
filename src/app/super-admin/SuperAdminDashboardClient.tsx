@@ -249,6 +249,8 @@ export function SuperAdminDashboardClient({
   const totalScans = displayCards.reduce((acc, c) => acc + (c.scanCount || 0), 0);
   const totalCards = displayCards.length;
   const totalActiveCards = displayCards.filter((c) => c.status === "ACTIVE").length;
+  const connectedCards = displayCards.filter((c) => c.outletId != null).length;
+  const unconnectedCards = totalCards - connectedCards;
   const totalOutlets = displayOutlets.length;
   const totalAdmins = admins.length;
   const totalSuperAdmins = superAdmins.length;
@@ -1041,7 +1043,11 @@ export function SuperAdminDashboardClient({
             <span className="text-2xl sm:text-3xl font-bold text-white">{totalCards}</span>
             <span className="text-xs text-emerald-400 font-semibold">({totalActiveCards} Aktif)</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Tersebar di mitra & kolam</span>
+          <span className="text-[11px] text-slate-400 mt-1 flex gap-2">
+            <span className="text-indigo-400 font-medium">{connectedCards} Terhubung</span>
+            <span>&bull;</span>
+            <span className="text-slate-500">{unconnectedCards} Kosong</span>
+          </span>
         </div>
 
         {/* Total Outlet */}
