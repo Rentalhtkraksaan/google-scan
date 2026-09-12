@@ -25,9 +25,10 @@ export const metadata = {
 export default async function LandingPage() {
   const session = await auth();
 
-  // Ambil data konfigurasi landing page dari database
-  const siteSetting = await prisma.siteSetting.findUnique({
+  // Ambil data konfigurasi landing page dari database dan increment jumlah pengunjung
+  const siteSetting = await prisma.siteSetting.update({
     where: { id: "default" },
+    data: { visitorCount: { increment: 1 } },
   });
 
   const whatsappNumber = siteSetting?.whatsappNumber || "6281234567890";

@@ -44,7 +44,9 @@ export function PrintTemplateManagerModal({
   const [activeSize, setActiveSize] = useState<PrintSizeKey>("square");
   const [templates, setTemplates] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(PRINT_SIZE_PRESETS);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
+  const [customFiles, setCustomFiles] = useState<Record<PrintSizeKey, File | null>>({
+    square: null,
+  });
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
@@ -189,7 +191,7 @@ export function PrintTemplateManagerModal({
   }, [activeSize, currentConfig]);
 
   // Handle Custom Template Upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -198,43 +200,28 @@ export function PrintTemplateManagerModal({
       return;
     }
 
-    try {
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("sizeKey", activeSize);
-
-      const res = await fetch("/api/templates/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || "Gagal mengunggah file template.");
-      }
-
-      updateCurrentTemplate({ backgroundUrl: data.url });
-
-      showSuccessAlert(
-        "Template Terunggah!",
-        `Template background baru untuk ${currentConfig.name} berhasil diunggah. Silakan atur posisi QR code sesuai kebutuhan.`,
-        2000
-      );
-    } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error ? err.message : "Gagal mengunggah file template.";
-      showErrorAlert("Gagal Upload", msg);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    if (file.size > 2 * 1024 * 1024) {
+      showErrorAlert("File Terlalu Besar", "Ukuran maksimal template adalah 2MB.");
+      return;
     }
+
+    const objectUrl = URL.createObjectURL(file);
+    setCustomFiles((prev) => ({ ...prev, [activeSize]: file }));
+    updateCurrentTemplate({ backgroundUrl: objectUrl });
+
+    showSuccessAlert(
+      "Template Terunggah!",
+      `Template background baru berhasil dimuat. Silakan atur posisi QR code sesuai kebutuhan.`,
+      1500
+    );
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // Remove custom background and revert to default design
   const handleRemoveCustomBackground = () => {
     const defaultBg = PRINT_SIZE_PRESETS[activeSize].backgroundUrl;
+    setCustomFiles((prev) => ({ ...prev, [activeSize]: null }));
     updateCurrentTemplate({ backgroundUrl: defaultBg });
     showSuccessAlert("Background Direset", "Menggunakan background desain bawaan sistem.", 1200);
   };
@@ -249,6 +236,7 @@ export function PrintTemplateManagerModal({
     );
 
     if (confirmed) {
+      setCustomFiles((prev) => ({ ...prev, [activeSize]: null }));
       setTemplates((prev) => ({
         ...prev,
         [activeSize]: { ...PRINT_SIZE_PRESETS[activeSize] },
@@ -261,8 +249,21 @@ export function PrintTemplateManagerModal({
   const handleSaveAll = () => {
     startTransition(async () => {
       try {
-        const jsonString = JSON.stringify(templates);
-        const res = await updatePrintTemplatesAction(jsonString);
+        const formData = new FormData();
+        const templatesToSave = JSON.parse(JSON.stringify(templates));
+
+        // Inject placeholders for newly uploaded files to save JSON size
+        Object.keys(templatesToSave).forEach((key) => {
+          const k = key as PrintSizeKey;
+          if (customFiles[k]) {
+            formData.append(`file_${k}`, customFiles[k] as Blob);
+            templatesToSave[k].backgroundUrl = `UPLOADED:${k}`;
+          }
+        });
+
+        formData.append("templatesJson", JSON.stringify(templatesToSave));
+
+        const res = await updatePrintTemplatesAction(formData);
 
         if (res.success) {
           showSuccessAlert("Berhasil Disimpan!", res.message, 2000);
@@ -389,16 +390,10 @@ export function PrintTemplateManagerModal({
                     />
                     <label
                       htmlFor={`template-upload-${activeSize}`}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer ${
-                        isUploading ? "opacity-50 pointer-events-none" : ""
-                      }`}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
                     >
-                      {isUploading ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-white" />
-                      ) : (
-                        <Upload className="w-4 h-4" />
-                      )}
-                      <span>{isUploading ? "Mengunggah..." : "Upload Gambar Template"}</span>
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Gambar Template</span>
                     </label>
 
                     {isCustomBg && (

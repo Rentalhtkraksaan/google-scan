@@ -133,18 +133,7 @@ export default async function SmartReviewPage({
     },
   });
 
-  await recordActivityLog({
-    userId: card.outlet.ownerId,
-    userName: "Pengunjung (Scan QR)",
-    userRole: "USER",
-    action: "CARD_SCANNED",
-    title: `Scan Kartu ${card.code}`,
-    description: `Pengunjung membuka Smart Review untuk outlet "${card.outlet.name}" (Kode: ${card.code}).`,
-    targetId: card.code,
-    targetName: card.outlet.name,
-    outletId: card.outlet.id,
-    adminId: card.assignedAdminId || undefined,
-  });
+  // Log activity removed to save database storage per user request
 
   const formattedGoogleUrl = formatGoogleReviewUrl(card.outlet.googleReviewUrl);
 

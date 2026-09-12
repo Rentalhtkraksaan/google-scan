@@ -40,9 +40,10 @@ model User {
   createdUsers User[]   @relation("CreatedUsers")
 
   // Hierarki Super Admin & Granular Permission
-  isSuperAdminMaster     Boolean @default(false) // True untuk Super Admin 1 (Master)
-  canEditLandingPage     Boolean @default(false) // Izin khusus Super Admin 2 untuk edit teks & WA Landing Page
+  isSuperAdminMaster      Boolean @default(false) // True untuk Super Admin 1 (Master)
+  canEditLandingPage      Boolean @default(false) // Izin khusus Super Admin 2 untuk edit teks & WA Landing Page
   canManagePrintTemplates Boolean @default(false) // Izin khusus Super Admin 2 untuk kelola template cetak multi-ukuran
+  canDeleteCards          Boolean @default(false) // Izin khusus Super Admin 2 untuk menghapus kartu
 
   outlet Outlet?
 
@@ -75,11 +76,12 @@ model SiteSetting {
   step2Desc         String   @default("Pelanggan cukup mengarahkan kamera smartphone atau mendekatkan HP tanpa perlu mengetik atau mencari nama outlet di Google Maps.")
   step3Title        String   @default("Pop-up Review Langsung Terbuka")
   step3Desc         String   @default("Halaman rating bintang 5 Google resmi langsung muncul seketika di layar HP pelanggan, siap dikirim dalam 5 detik!")
-  footerText        String   @default("Smart QR Review Platform. Seluruh hak cipta dilindungi.")
-  dashboardLogoUrl  String?  @db.LongText
-  landingPageLogoUrl String? @db.LongText
-  printTemplates    String?  @db.LongText
-  updatedAt         DateTime @updatedAt
+  footerText         String   @default("Smart QR Review Platform. Seluruh hak cipta dilindungi.")
+  dashboardLogoUrl   String?  @db.LongText
+  landingPageLogoUrl String?  @db.LongText
+  printTemplates     String?  @db.LongText
+  visitorCount       Int      @default(0)
+  updatedAt          DateTime @updatedAt
 
   @@map("site_settings")
 }

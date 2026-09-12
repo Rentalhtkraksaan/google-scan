@@ -574,13 +574,13 @@ export async function deleteBatchCardsAction(codes: string[]): Promise<ActionRes
 
     const currentUser = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isSuperAdminMaster: true },
+      select: { isSuperAdminMaster: true, canDeleteCards: true },
     });
 
-    if (!currentUser?.isSuperAdminMaster) {
+    if (!currentUser?.isSuperAdminMaster && !currentUser?.canDeleteCards) {
       return {
         success: false,
-        message: "Akses ditolak: Hanya Super Admin 1 (Master) yang memiliki izin untuk menghapus massal.",
+        message: "Akses ditolak: Anda tidak memiliki izin untuk menghapus kartu.",
       };
     }
 

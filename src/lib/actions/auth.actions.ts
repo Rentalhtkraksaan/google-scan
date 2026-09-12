@@ -400,6 +400,7 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
       whatsappNumber: (formData.get("whatsappNumber") as string)?.trim(),
       canEditLandingPage: formData.get("canEditLandingPage") === "true",
       canManagePrintTemplates: formData.get("canManagePrintTemplates") === "true",
+      canDeleteCards: formData.get("canDeleteCards") === "true",
     };
 
     if (!raw.email || !raw.password || !raw.fullName) {
@@ -439,6 +440,7 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
         isSuperAdminMaster: false, // Super Admin 2
         canEditLandingPage: raw.canEditLandingPage,
         canManagePrintTemplates: raw.canManagePrintTemplates,
+        canDeleteCards: raw.canDeleteCards,
         createdById: session.user.id,
       },
     });
@@ -472,7 +474,7 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
 // ─── Super Admin 1: Toggle Hak Akses Super Admin 2 ──────────────────────────
 export async function toggleSuperAdminPermissionAction(
   targetUserId: string,
-  permission: "canEditLandingPage" | "canManagePrintTemplates"
+  permission: "canEditLandingPage" | "canManagePrintTemplates" | "canDeleteCards"
 ): Promise<ActionResult> {
   try {
     const session = await getSession();
@@ -512,6 +514,8 @@ export async function toggleSuperAdminPermissionAction(
     const permLabel =
       permission === "canManagePrintTemplates"
         ? "Kelola Template Cetak Multi-Ukuran"
+        : permission === "canDeleteCards"
+        ? "Hapus Kartu QR Permanen"
         : "Edit Landing Page & WhatsApp";
 
     await recordActivityLog({
@@ -531,9 +535,9 @@ export async function toggleSuperAdminPermissionAction(
     return {
       success: true,
       message: newPermValue
-        ? `Izin edit Landing Page & WhatsApp untuk "${targetUser.fullName}" berhasil DIBERIKAN.`
-        : `Izin edit Landing Page & WhatsApp untuk "${targetUser.fullName}" berhasil DICABUT.`,
-      data: { canEditLandingPage: newPermValue },
+        ? `Izin ${permLabel} untuk "${targetUser.fullName}" berhasil DIBERIKAN.`
+        : `Izin ${permLabel} untuk "${targetUser.fullName}" berhasil DICABUT.`,
+      data: { [permission]: newPermValue },
     };
   } catch (error) {
     console.error("toggleSuperAdminPermissionAction error:", error);
@@ -1477,6 +1481,7 @@ export async function updateSuperAdminUserAction(
     const newPassword = (formData.get("password") as string)?.trim();
     const canEditLandingPage = formData.get("canEditLandingPage") === "true";
     const canManagePrintTemplates = formData.get("canManagePrintTemplates") === "true";
+    const canDeleteCards = formData.get("canDeleteCards") === "true";
 
     if (!fullName || !email) {
       return { success: false, message: "Nama lengkap dan email wajib diisi." };
@@ -1508,6 +1513,7 @@ export async function updateSuperAdminUserAction(
       whatsappNumber: string | null;
       canEditLandingPage: boolean;
       canManagePrintTemplates: boolean;
+      canDeleteCards: boolean;
       password?: string;
     } = {
       fullName,
@@ -1515,6 +1521,7 @@ export async function updateSuperAdminUserAction(
       whatsappNumber: cleanWa,
       canEditLandingPage,
       canManagePrintTemplates,
+      canDeleteCards,
     };
 
     if (newPassword && newPassword.length >= 6) {

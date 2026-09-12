@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   isSuperAdminMaster?: boolean;
   canEditLandingPage?: boolean;
   canManagePrintTemplates?: boolean;
+  canDeleteCards?: boolean;
 }
 
 export interface SiteSettingModel {
@@ -29,6 +30,8 @@ export interface SiteSettingModel {
   footerText: string;
   dashboardLogoUrl?: string | null;
   landingPageLogoUrl?: string | null;
+  printTemplates?: string | null;
+  visitorCount: number;
   updatedAt?: string | Date;
 }
 
@@ -41,6 +44,7 @@ export interface SuperAdminItem {
   isSuperAdminMaster: boolean;
   canEditLandingPage: boolean;
   canManagePrintTemplates: boolean;
+  canDeleteCards: boolean;
   createdAt: string | Date;
 }
 

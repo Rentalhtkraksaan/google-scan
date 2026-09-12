@@ -993,8 +993,8 @@ export function SuperAdminDashboardClient({
         </div>
       </div>
 
-      {/* 4 Global Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 Global Stat Cards (4 for SA2) */}
+      <div className={`grid grid-cols-2 ${isMaster ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
         {/* Total Scan */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-cyan">
           <div className="flex items-center justify-between">
@@ -1055,6 +1055,23 @@ export function SuperAdminDashboardClient({
           </div>
           <span className="text-[11px] text-slate-400 mt-1 block">Struktur manajemen pengguna</span>
         </div>
+
+        {/* Total Visitor (Khusus Super Admin 1) */}
+        {isMaster && (
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-rose">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-400">Total Pengunjung</span>
+              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <Globe className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-1">
+              <span className="text-2xl sm:text-3xl font-bold text-rose-400">{siteSetting?.visitorCount || 0}</span>
+              <span className="text-xs text-slate-400 font-medium">user</span>
+            </div>
+            <span className="text-[11px] text-slate-400 mt-1 block">Kunjungan di Landing Page</span>
+          </div>
+        )}
       </div>
 
       {/* Main Tabs Container */}

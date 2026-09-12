@@ -267,7 +267,8 @@ export async function getPrintTemplatesAction(): Promise<ActionResult<Record<str
 }
 
 // ─── Super Admin: Simpan Pengaturan Template Multi-Ukuran ───────────────────
-export async function updatePrintTemplatesAction(templatesJson: string): Promise<ActionResult> {
+// ─── Super Admin: Simpan Pengaturan Template Multi-Ukuran ───────────────────
+export async function updatePrintTemplatesAction(formData: FormData): Promise<ActionResult> {
   try {
     const session = await auth();
 
@@ -289,11 +290,35 @@ export async function updatePrintTemplatesAction(templatesJson: string): Promise
         message: "Akses ditolak: Anda tidak memiliki izin untuk mengedit atau menyimpan template cetak.",
       };
     }
+    
+    const templatesJsonString = formData.get("templatesJson") as string;
+    if (!templatesJsonString) {
+      return { success: false, message: "Konfigurasi template tidak valid." };
+    }
+    
+    const templates = JSON.parse(templatesJsonString);
+    
+    // Check for uploaded files and convert them to Base64 to store in DB
+    for (const key of Object.keys(templates)) {
+      if (templates[key].backgroundUrl === `UPLOADED:${key}`) {
+        const file = formData.get(`file_${key}`) as File | null;
+        if (file && file.size > 0) {
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;
+          templates[key].backgroundUrl = base64;
+        } else {
+          // Fallback just in case
+          templates[key].backgroundUrl = "";
+        }
+      }
+    }
+    
+    const finalJson = JSON.stringify(templates);
 
     await prisma.siteSetting.upsert({
       where: { id: "default" },
-      update: { printTemplates: templatesJson },
-      create: { id: "default", printTemplates: templatesJson },
+      update: { printTemplates: finalJson },
+      create: { id: "default", printTemplates: finalJson },
     });
 
     revalidatePath("/super-admin");
