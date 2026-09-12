@@ -1,0 +1,32 @@
+# Abaikan dari Git
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Next.js
+.next/
+out/
+dist/
+
+# Node modules
+node_modules/
+
+# Prisma generated
+node_modules/.prisma/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Local database backups
+backups/

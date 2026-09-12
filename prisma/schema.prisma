@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum CardStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ─── Models ────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password       String
+  fullName       String
+  whatsappNumber String?
+  role           Role     @default(USER)
+  isActive       Boolean  @default(true)
+
+  // Self-relation: siapa yang membuat akun ini (Super Admin buat Admin, Admin buat User/Outlet)
+  createdById  String?
+  createdBy    User?    @relation("CreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers User[]   @relation("CreatedUsers")
+
+  // Hierarki Super Admin & Granular Permission
+  isSuperAdminMaster     Boolean @default(false) // True untuk Super Admin 1 (Master)
+  canEditLandingPage     Boolean @default(false) // Izin khusus Super Admin 2 untuk edit teks & WA Landing Page
+  canManagePrintTemplates Boolean @default(false) // Izin khusus Super Admin 2 untuk kelola template cetak multi-ukuran
+
+  outlet Outlet?
+
+  // Kartu QR yang dialokasikan ke Admin ini
+  assignedCards QrCard[] @relation("AssignedCards")
+
+  activityLogs  ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+  @@map("users")
+}
+
+model SiteSetting {
+  id                String   @id @default("default")
+  appVersion        String   @default("V 1.1.2")
+  whatsappNumber    String   @default("6281234567890")
+  globalFallbackUrl String   @default("http://localhost:3000")
+  heroBadge         String   @default("🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis")
+  heroHeadline      String   @default("Dapatkan Ratusan Ulasan Bintang 5 Dengan Sekali Tap")
+  heroSubheadline   String   @default("Ubah setiap pelanggan yang puas menjadi ulasan bintang 5 resmi di Google Maps secara instan menggunakan Kartu Dynamic QR & Smart NFC.")
+  ctaPrimaryText    String   @default("Pesan Kartu & Konsultasi WhatsApp")
+  ctaSecondaryText  String   @default("Coba Scan Demo (c-001)")
+  ctaSecondaryUrl   String   @default("/c/c-001")
+  step1Title        String   @default("Letakkan di Meja / Kasir")
+  step1Desc         String   @default("Pasang kartu akrilik atau standee QR pintar di meja makan, resepsionis, atau meja kasir saat pelanggan membayar.")
+  step2Title        String   @default("Pelanggan Scan / Tap")
+  step2Desc         String   @default("Pelanggan cukup mengarahkan kamera smartphone atau mendekatkan HP tanpa perlu mengetik atau mencari nama outlet di Google Maps.")
+  step3Title        String   @default("Pop-up Review Langsung Terbuka")
+  step3Desc         String   @default("Halaman rating bintang 5 Google resmi langsung muncul seketika di layar HP pelanggan, siap dikirim dalam 5 detik!")
+  footerText        String   @default("Smart QR Review Platform. Seluruh hak cipta dilindungi.")
+  printTemplates    String?  @db.LongText
+  updatedAt         DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model Outlet {
+  id              String   @id @default(cuid())
+  ownerId         String   @unique
+  owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name            String
+  googleReviewUrl String   @db.Text
+
+  qrCards         QrCard[]
+  feedbacks       CustomerFeedback[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("outlets")
+}
+
+model CustomerFeedback {
+  id           String   @id @default(cuid())
+  outletId     String
+  outlet       Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  cardCode     String?
+  rating       Int
+  customerName String?
+  phone        String?
+  message      String   @db.Text
+  isResolved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([outletId])
+  @@index([createdAt])
+  @@map("customer_feedbacks")
+}
+
+model QrCard {
+  code            String     @id
+  outletId        String?
+  outlet          Outlet?    @relation(fields: [outletId], references: [id], onDelete: SetNull)
+  status          CardStatus @default(ACTIVE)
+  scanCount       Int        @default(0)
+  fallbackUrl     String     @default("http://localhost:3000")
+
+  assignedAdminId String?
+  assignedAdmin   User?      @relation("AssignedCards", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([assignedAdminId])
+  @@map("qr_cards")
+}
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName     String
+  userRole     Role
+  action       String   // e.g. "AUTH_LOGIN", "REGISTER_OUTLET", "ASSIGN_CARD", "TOGGLE_CARD_STATUS", "UPDATE_OUTLET", "DELETE_OUTLET", "GENERATE_BATCH_CARDS", "CREATE_ADMIN", etc.
+  title        String
+  description  String   @db.Text
+  targetId     String?
+  targetName   String?
+  outletId     String?
+  adminId      String?
+  superAdminId String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([outletId])
+  @@index([adminId])
+  @@index([superAdminId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
