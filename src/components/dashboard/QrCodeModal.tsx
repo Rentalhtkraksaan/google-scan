@@ -56,6 +56,13 @@ export function QrCodeModal({
   const [isRenderingPreview, setIsRenderingPreview] = useState(false);
   const [isDownloadingCard, setIsDownloadingCard] = useState(false);
 
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
   const scanUrl = card ? getCardScanUrl(card.code) : "";
 
   // Load saved templates from DB
@@ -274,13 +281,6 @@ export function QrCodeModal({
       setIsDownloadingCard(false);
     }
   };
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, []);
 
   return (
     <div className="fixed inset-0 z-50 p-3 sm:p-4 bg-black/85 backdrop-blur-md flex items-center justify-center animate-in fade-in">

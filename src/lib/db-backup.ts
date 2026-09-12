@@ -28,7 +28,7 @@ export function ensureBackupDirExists() {
 /**
  * Helper to escape MySQL string values safely
  */
-function escapeSqlValue(val: any): string {
+function escapeSqlValue(val: unknown): string {
   if (val === null || val === undefined) {
     return "NULL";
   }
@@ -109,9 +109,9 @@ export async function generateDatabaseSqlDump(): Promise<string> {
     }
 
     // 3. Get all rows for this table
-    const rows = (await prisma.$queryRawUnsafe<Array<Record<string, any>>>(
+    const rows = (await prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
       `SELECT * FROM \`${tableName}\``
-    )) as Array<Record<string, any>>;
+    )) as Array<Record<string, unknown>>;
 
     if (rows.length > 0) {
       sqlDump += `-- Dumping data for table \`${tableName}\` (${rows.length} rows)\n`;
@@ -143,7 +143,7 @@ export async function generateDatabaseSqlDump(): Promise<string> {
 /**
  * Creates a new SQL backup file in the backups/ directory
  */
-export async function createDatabaseBackup(triggeredBy = "SYSTEM"): Promise<{
+export async function createDatabaseBackup(_triggeredBy = "SYSTEM"): Promise<{
   filename: string;
   filePath: string;
   sizeBytes: number;
