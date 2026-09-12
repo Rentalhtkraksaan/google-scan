@@ -100,12 +100,26 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
     
     // Default to undefined so we don't update if not present
     let dashboardLogoUrl: string | undefined = undefined;
-    if (formData.has("dashboardLogoUrl")) {
+    
+    // Check for File object first (new upload)
+    const dashboardLogoFile = formData.get("dashboardLogoFile") as File | null;
+    if (dashboardLogoFile && dashboardLogoFile.size > 0) {
+      const buffer = Buffer.from(await dashboardLogoFile.arrayBuffer());
+      dashboardLogoUrl = `data:${dashboardLogoFile.type};base64,${buffer.toString("base64")}`;
+    } else if (formData.has("dashboardLogoUrl")) {
+      // Fallback: check if the string was explicitly sent (e.g., deleted logo will send "")
       dashboardLogoUrl = (formData.get("dashboardLogoUrl") as string)?.trim() || "";
     }
     
     let landingPageLogoUrl: string | undefined = undefined;
-    if (formData.has("landingPageLogoUrl")) {
+    
+    // Check for File object first (new upload)
+    const landingPageLogoFile = formData.get("landingPageLogoFile") as File | null;
+    if (landingPageLogoFile && landingPageLogoFile.size > 0) {
+      const buffer = Buffer.from(await landingPageLogoFile.arrayBuffer());
+      landingPageLogoUrl = `data:${landingPageLogoFile.type};base64,${buffer.toString("base64")}`;
+    } else if (formData.has("landingPageLogoUrl")) {
+      // Fallback: check if the string was explicitly sent (e.g., deleted logo will send "")
       landingPageLogoUrl = (formData.get("landingPageLogoUrl") as string)?.trim() || "";
     }
 

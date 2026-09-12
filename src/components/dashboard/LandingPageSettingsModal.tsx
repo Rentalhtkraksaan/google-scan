@@ -61,11 +61,15 @@ export function LandingPageSettingsModal({
   const [footerText, setFooterText] = useState(initialSetting?.footerText || "Smart QR Review Platform. Seluruh hak cipta dilindungi.");
   
   const [dashboardLogoUrl, setDashboardLogoUrl] = useState(initialSetting?.dashboardLogoUrl || "");
+  const [dashboardLogoFile, setDashboardLogoFile] = useState<File | null>(null);
+
   const [landingPageLogoUrl, setLandingPageLogoUrl] = useState(initialSetting?.landingPageLogoUrl || "");
+  const [landingPageLogoFile, setLandingPageLogoFile] = useState<File | null>(null);
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
-    setter: React.Dispatch<React.SetStateAction<string>>
+    setUrlSetter: React.Dispatch<React.SetStateAction<string>>,
+    setFileSetter: React.Dispatch<React.SetStateAction<File | null>>
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -75,13 +79,9 @@ export function LandingPageSettingsModal({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setter(event.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
+    setFileSetter(file);
+    const objectUrl = URL.createObjectURL(file);
+    setUrlSetter(objectUrl);
   };
 
   if (!isOpen) return null;
@@ -126,11 +126,16 @@ export function LandingPageSettingsModal({
         formData.append("step3Desc", step3Desc);
         formData.append("footerText", footerText);
         
-        if (dashboardLogoUrl !== initialSetting?.dashboardLogoUrl) {
-          formData.append("dashboardLogoUrl", dashboardLogoUrl);
+        if (dashboardLogoFile) {
+          formData.append("dashboardLogoFile", dashboardLogoFile);
+        } else if (dashboardLogoUrl === "") {
+          formData.append("dashboardLogoUrl", ""); // User deleted the logo
         }
-        if (landingPageLogoUrl !== initialSetting?.landingPageLogoUrl) {
-          formData.append("landingPageLogoUrl", landingPageLogoUrl);
+
+        if (landingPageLogoFile) {
+          formData.append("landingPageLogoFile", landingPageLogoFile);
+        } else if (landingPageLogoUrl === "") {
+          formData.append("landingPageLogoUrl", ""); // User deleted the logo
         }
 
         const res = await updateSiteSettingAction(formData);
@@ -199,7 +204,7 @@ export function LandingPageSettingsModal({
                     accept="image/*"
                     id="dashboardLogoInput"
                     className="hidden"
-                    onChange={(e) => handleImageUpload(e, setDashboardLogoUrl)}
+                    onChange={(e) => handleImageUpload(e, setDashboardLogoUrl, setDashboardLogoFile)}
                   />
                   <label
                     htmlFor="dashboardLogoInput"
@@ -210,7 +215,10 @@ export function LandingPageSettingsModal({
                   {dashboardLogoUrl && (
                     <button
                       type="button"
-                      onClick={() => setDashboardLogoUrl("")}
+                      onClick={() => {
+                        setDashboardLogoUrl("");
+                        setDashboardLogoFile(null);
+                      }}
                       className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
                     >
                       Hapus
@@ -238,7 +246,7 @@ export function LandingPageSettingsModal({
                     accept="image/*"
                     id="landingPageLogoInput"
                     className="hidden"
-                    onChange={(e) => handleImageUpload(e, setLandingPageLogoUrl)}
+                    onChange={(e) => handleImageUpload(e, setLandingPageLogoUrl, setLandingPageLogoFile)}
                   />
                   <label
                     htmlFor="landingPageLogoInput"
@@ -249,7 +257,10 @@ export function LandingPageSettingsModal({
                   {landingPageLogoUrl && (
                     <button
                       type="button"
-                      onClick={() => setLandingPageLogoUrl("")}
+                      onClick={() => {
+                        setLandingPageLogoUrl("");
+                        setLandingPageLogoFile(null);
+                      }}
                       className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
                     >
                       Hapus
