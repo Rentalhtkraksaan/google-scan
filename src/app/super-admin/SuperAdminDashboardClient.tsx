@@ -764,6 +764,25 @@ export function SuperAdminDashboardClient({
     }
   };
 
+  // Toggle Super Admin Permission (Delete cards permission)
+  const handleToggleDeletePermission = async (targetId: string, name: string) => {
+    if (!isMaster) {
+      showErrorAlert("Akses Ditolak", "Hanya Super Admin 1 yang dapat mengubah hak akses ini.");
+      return;
+    }
+
+    try {
+      const res = await toggleSuperAdminPermissionAction(targetId, "canDeleteCards");
+      if (res.success) {
+        showSuccessAlert("Hak Akses Diperbarui", res.message, 1500);
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Kesalahan", "Gagal memperbarui hak akses.");
+    }
+  };
+
   // Delete Outlet (Validasi 2 Langkah & Proteksi Super Admin 1 / Admin binaan SA1 / Kartu > 2)
   const handleDeleteOutlet = async (userId: string, name: string, isProtectedFromSA2?: boolean) => {
     if (!isMaster && isProtectedFromSA2) {
@@ -2390,6 +2409,7 @@ export function SuperAdminDashboardClient({
                     <th className="py-3 px-4 text-center">Status Akun</th>
                     <th className="py-3 px-4 text-center">Izin Landing Page</th>
                     <th className="py-3 px-4 text-center">Izin Template Cetak</th>
+                    <th className="py-3 px-4 text-center">Izin Hapus Kartu</th>
                     <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -2528,6 +2548,34 @@ export function SuperAdminDashboardClient({
                               }
                             >
                               {sa.canManagePrintTemplates ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 group-hover:bg-indigo-500/20">
+                                  <Layers className="w-3 h-3" /> Diizinkan
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 group-hover:border-slate-600">
+                                  <Lock className="w-3 h-3 text-slate-500" /> Terkunci
+                                </span>
+                              )}
+                            </button>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          {isSaMaster ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                              <Layers className="w-3 h-3" /> Izin Penuh
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleDeletePermission(sa.id, sa.fullName)}
+                              className="inline-flex items-center gap-1.5 focus:outline-none group cursor-pointer"
+                              title={
+                                sa.canDeleteCards
+                                  ? "Klik untuk mencabut izin Hapus Kartu QR"
+                                  : "Klik untuk memberikan izin Hapus Kartu QR"
+                              }
+                            >
+                              {sa.canDeleteCards ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 group-hover:bg-indigo-500/20">
                                   <Layers className="w-3 h-3" /> Diizinkan
                                 </span>
