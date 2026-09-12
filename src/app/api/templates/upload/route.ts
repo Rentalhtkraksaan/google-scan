@@ -46,17 +46,10 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Save to public/uploads/templates/
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "templates");
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    const ext = file.name.split(".").pop() || "png";
-    const filename = `template-${sizeKey}-${Date.now()}.${ext}`;
-    const filePath = path.join(uploadDir, filename);
-
-    await fs.writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/templates/${filename}`;
+    // Convert to Base64 to bypass Vercel read-only file system
+    const base64Data = buffer.toString("base64");
+    const mimeType = file.type;
+    const publicUrl = `data:${mimeType};base64,${base64Data}`;
 
     return NextResponse.json({
       success: true,
