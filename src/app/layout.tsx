@@ -24,6 +24,19 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: faviconUrl,
     },
+    openGraph: {
+      title: "Smart QR Review — Dynamic Google Review Platform",
+      description: "Platform SaaS Dynamic QR Code & Smart Review Card untuk akselerasi ulasan bintang 5 Google Maps bisnis Anda.",
+      images: [
+        {
+          url: faviconUrl,
+          width: 800,
+          height: 800,
+          alt: "Smart QR Review Logo",
+        },
+      ],
+      type: "website",
+    },
   };
 }
 
