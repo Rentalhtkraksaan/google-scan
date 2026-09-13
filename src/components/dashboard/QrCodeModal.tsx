@@ -22,7 +22,7 @@ import {
   renderCardCanvasBySize,
   generateReviewCardDataUrl,
 } from "@/lib/card-canvas";
-import { getPrintTemplatesAction } from "@/lib/actions/site-setting.actions";
+import { getPrintTemplatesAction, getSiteSettingAction } from "@/lib/actions/site-setting.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 
 interface QrCodeModalProps {
@@ -119,10 +119,17 @@ export function QrCodeModal({
 
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [previewCardDataUrl, setPreviewCardDataUrl] = useState<string>("");
+  const [cardVersion, setCardVersion] = useState<string>(version || "V 1.1.2");
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isRenderingPreview, setIsRenderingPreview] = useState(false);
   const [isDownloadingCard, setIsDownloadingCard] = useState(false);
+
+  useEffect(() => {
+    if (version) {
+      setCardVersion(version);
+    }
+  }, [version]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -176,6 +183,18 @@ export function QrCodeModal({
         }
       })
       .catch((err) => console.error("Background template sync error:", err));
+
+    // Re-validate fresh appVersion from DB
+    getSiteSettingAction()
+      .then((res) => {
+        if (res.success && res.data) {
+          const freshVersion = (res.data as Record<string, unknown>).appVersion;
+          if (typeof freshVersion === "string" && freshVersion.trim()) {
+            setCardVersion(freshVersion.trim());
+          }
+        }
+      })
+      .catch((err) => console.error("Background siteSetting sync error:", err));
   }, []);
 
   // Generate QR Data URL
@@ -204,7 +223,7 @@ export function QrCodeModal({
 
     renderCardCanvasBySize(scanUrl, selectedSize, config, {
       code: card.code,
-      version: version,
+      version: cardVersion,
       outletName: card.outlet?.name,
       showCode: true,
     })
@@ -222,7 +241,7 @@ export function QrCodeModal({
     return () => {
       active = false;
     };
-  }, [card, scanUrl, templateConfigs, version]);
+  }, [card, scanUrl, templateConfigs, cardVersion, selectedSize]);
 
   if (!card) return null;
 
@@ -247,7 +266,7 @@ export function QrCodeModal({
         scanUrl,
         {
           code: card.code,
-          version: version,
+          version: cardVersion,
           outletName: card.outlet?.name,
           showCode: true,
         },
@@ -295,7 +314,7 @@ export function QrCodeModal({
         scanUrl,
         {
           code: card.code,
-          version: version,
+          version: cardVersion,
           outletName: card.outlet?.name,
           showCode: true,
         },

@@ -10,11 +10,12 @@ import { parsePrintTemplates } from "@/components/dashboard/QrCodeModal";
 
 interface BatchExportModalProps {
   cards: CardExportItem[];
+  version?: string;
   initialPrintTemplates?: string | Record<string, unknown> | null;
   onClose: () => void;
 }
 
-export function BatchExportModal({ cards, initialPrintTemplates, onClose }: BatchExportModalProps) {
+export function BatchExportModal({ cards, version = "V 1.1.2", initialPrintTemplates, onClose }: BatchExportModalProps) {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [exportFormat, setExportFormat] = useState<"CARDS" | "QR_ONLY" | "BOTH">("CARDS");
   const [selectedSize, setSelectedSize] = useState<PrintSizeKey>("square");
@@ -131,6 +132,7 @@ export function BatchExportModal({ cards, initialPrintTemplates, onClose }: Batc
         format: exportFormat,
         sizeKey: selectedSize,
         templateConfigs: templateConfigs,
+        version: version,
       });
       const url = URL.createObjectURL(zipBlob);
       const link = document.createElement("a");

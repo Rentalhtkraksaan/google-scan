@@ -23,26 +23,36 @@ import {
 import {
   getPrintTemplatesAction,
   updatePrintTemplatesAction,
+  getSiteSettingAction,
 } from "@/lib/actions/site-setting.actions";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 
 interface PrintTemplateManagerModalProps {
   isOpen: boolean;
+  version?: string;
   onClose: () => void;
   onSaved?: (savedJson?: string) => void;
 }
 
 export function PrintTemplateManagerModal({
   isOpen,
+  version = "V 1.1.2",
   onClose,
   onSaved,
 }: PrintTemplateManagerModalProps) {
   const activeSize: PrintSizeKey = "square";
   const [templates, setTemplates] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(PRINT_SIZE_PRESETS);
+  const [currentVersion, setCurrentVersion] = useState<string>(version || "V 1.1.2");
   const [isLoading, setIsLoading] = useState(true);
   const [customFiles, setCustomFiles] = useState<Record<PrintSizeKey, File | null>>({
     square: null,
   });
+
+  useEffect(() => {
+    if (version) {
+      setCurrentVersion(version);
+    }
+  }, [version]);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
@@ -88,64 +98,77 @@ export function PrintTemplateManagerModal({
           setTemplates(merged);
         }
       })
-      .catch((err) => console.error("Error loading print templates:", err))
+      .catch((err) => console.error("Error loading templates:", err))
       .finally(() => {
         if (isMounted) setIsLoading(false);
       });
 
+    // Fresh sync of appVersion from DB
+    getSiteSettingAction()
+      .then((res) => {
+        if (!isMounted) return;
+        if (res.success && res.data) {
+          const freshVersion = (res.data as Record<string, unknown>).appVersion;
+          if (typeof freshVersion === "string" && freshVersion.trim()) {
+            setCurrentVersion(freshVersion.trim());
+          }
+        }
+      })
+      .catch(() => {});
+
     return () => {
       isMounted = false;
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
-  // Current active template configuration
-  const currentConfig = templates[activeSize] || PRINT_SIZE_PRESETS[activeSize];
+  const currentConfig = templates[activeSize];
 
-  // Update a field in the current template
-  const updateCurrentTemplate = (patch: Partial<PrintTemplateConfig>) => {
+  // Helper update partial config for active size
+  const updateCurrentTemplate = (updates: Partial<PrintTemplateConfig>) => {
     setTemplates((prev) => ({
       ...prev,
       [activeSize]: {
         ...prev[activeSize],
-        ...patch,
+        ...updates,
       },
     }));
   };
 
-  const updateQrPosition = (patch: Partial<PrintTemplateConfig["qr"]>) => {
+  const updateQrPosition = (updates: Partial<PrintTemplateConfig["qr"]>) => {
     setTemplates((prev) => ({
       ...prev,
       [activeSize]: {
         ...prev[activeSize],
         qr: {
           ...prev[activeSize].qr,
-          ...patch,
+          ...updates,
         },
       },
     }));
   };
 
-  const updateVersionTag = (patch: Partial<PrintTemplateConfig["versionTag"]>) => {
+  const updateVersionTag = (updates: Partial<PrintTemplateConfig["versionTag"]>) => {
     setTemplates((prev) => ({
       ...prev,
       [activeSize]: {
         ...prev[activeSize],
         versionTag: {
           ...prev[activeSize].versionTag,
-          ...patch,
+          ...updates,
         },
       },
     }));
   };
 
-  const updateCodeTag = (patch: Partial<PrintTemplateConfig["codeTag"]>) => {
+  const updateCodeTag = (updates: Partial<PrintTemplateConfig["codeTag"]>) => {
     setTemplates((prev) => ({
       ...prev,
       [activeSize]: {
         ...prev[activeSize],
         codeTag: {
           ...prev[activeSize].codeTag,
-          ...patch,
+          ...updates,
         },
       },
     }));
@@ -164,7 +187,7 @@ export function PrintTemplateManagerModal({
           currentConfig,
           {
             code: "c-001",
-            version: "V 1.1.2",
+            version: currentVersion,
             outletName: "Resto & Cafe Google Review",
             showCode: currentConfig.codeTag?.show !== false,
           }
@@ -183,7 +206,7 @@ export function PrintTemplateManagerModal({
     return () => {
       active = false;
     };
-  }, [currentConfig]);
+  }, [currentConfig, currentVersion]);
 
   // Handle Custom Template Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,7 +566,7 @@ export function PrintTemplateManagerModal({
                           }`}
                         />
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Misal: V 1.1.2</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Versi: {currentVersion}</p>
                     </button>
 
                     {/* Toggle Code Tag */}

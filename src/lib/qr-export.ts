@@ -116,6 +116,7 @@ export interface ZipExportOptions {
   format?: "CARDS" | "QR_ONLY" | "BOTH";
   sizeKey?: PrintSizeKey;
   templateConfigs?: Record<PrintSizeKey, PrintTemplateConfig>;
+  version?: string;
 }
 
 /**
@@ -129,6 +130,7 @@ export async function generateQrZipBlob(
   const format = typeof options === "object" && options?.format ? options.format : "CARDS";
   const sizeKey: PrintSizeKey =
     typeof options === "object" && options?.sizeKey ? options.sizeKey : "square";
+  const version = typeof options === "object" && options?.version ? options.version : undefined;
   const templateConfig =
     typeof options === "object" && options?.templateConfigs?.[sizeKey]
       ? options.templateConfigs[sizeKey]
@@ -149,6 +151,7 @@ export async function generateQrZipBlob(
           scanUrl,
           {
             code: card.code,
+            version: version,
             outletName: card.outlet?.name,
             showCode: true,
           },

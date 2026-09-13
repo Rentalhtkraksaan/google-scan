@@ -129,9 +129,16 @@ export function SuperAdminDashboardClient({
 }: SuperAdminDashboardClientProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [localSiteSetting, setLocalSiteSetting] = useState<SiteSettingModel>(siteSetting);
   const [currentPrintTemplates, setCurrentPrintTemplates] = useState<string | null>(
     siteSetting?.printTemplates || null
   );
+
+  useEffect(() => {
+    if (siteSetting) {
+      setLocalSiteSetting(siteSetting);
+    }
+  }, [siteSetting]);
 
   useEffect(() => {
     if (siteSetting?.printTemplates) {
@@ -1346,7 +1353,7 @@ export function SuperAdminDashboardClient({
                   {activeTab === "ACTIVITY_LOGS" && "Log Audit Sistem"}
                 </h1>
                 <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20">
-                  {siteSetting?.appVersion || "V 1.1.2"}
+                  {localSiteSetting?.appVersion || "V 1.1.2"}
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
@@ -3267,14 +3274,21 @@ export function SuperAdminDashboardClient({
       {isLandingPageModalOpen && (
         <LandingPageSettingsModal
           isOpen={isLandingPageModalOpen}
-          initialSetting={siteSetting}
+          initialSetting={localSiteSetting}
           onClose={() => setIsLandingPageModalOpen(false)}
+          onSaved={(updated) => {
+            if (updated) {
+              setLocalSiteSetting((prev) => ({ ...prev, ...updated }));
+            }
+            router.refresh();
+          }}
         />
       )}
 
       {isPrintTemplateModalOpen && (
         <PrintTemplateManagerModal
           isOpen={isPrintTemplateModalOpen}
+          version={localSiteSetting?.appVersion || "V 1.1.2"}
           onClose={() => setIsPrintTemplateModalOpen(false)}
           onSaved={(savedJson) => {
             if (savedJson) {
@@ -3346,7 +3360,8 @@ export function SuperAdminDashboardClient({
       {isBatchExportOpen && (
         <BatchExportModal
           cards={displayCards as unknown as CardExportItem[]}
-          initialPrintTemplates={currentPrintTemplates || siteSetting?.printTemplates}
+          version={localSiteSetting?.appVersion || "V 1.1.2"}
+          initialPrintTemplates={currentPrintTemplates || localSiteSetting?.printTemplates}
           onClose={() => setIsBatchExportOpen(false)}
         />
       )}
@@ -3365,8 +3380,8 @@ export function SuperAdminDashboardClient({
       {previewCard && (
         <QrCodeModal
           card={previewCard}
-          version={siteSetting?.appVersion || "V 1.1.2"}
-          initialPrintTemplates={currentPrintTemplates || siteSetting?.printTemplates}
+          version={localSiteSetting?.appVersion || "V 1.1.2"}
+          initialPrintTemplates={currentPrintTemplates || localSiteSetting?.printTemplates}
           onClose={() => setPreviewCard(null)}
         />
       )}

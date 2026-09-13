@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { X, Sparkles, MessageCircle, Globe, Loader2, Save, Info, Search } from "lucide-react";
 import { updateSiteSettingAction } from "@/lib/actions/site-setting.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -9,14 +10,17 @@ import { SiteSettingModel } from "@/types/models";
 interface LandingPageSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSaved?: (updatedSetting?: Partial<SiteSettingModel>) => void;
   initialSetting: SiteSettingModel;
 }
 
 export function LandingPageSettingsModal({
   isOpen,
   onClose,
+  onSaved,
   initialSetting,
 }: LandingPageSettingsModalProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -159,6 +163,10 @@ export function LandingPageSettingsModal({
         const res = await updateSiteSettingAction(formData);
         if (res.success) {
           showSuccessAlert("Tersimpan!", res.message, 1800);
+          if (onSaved) {
+            onSaved((res.data as Partial<SiteSettingModel>) || { appVersion });
+          }
+          router.refresh();
           onClose();
         } else {
           showErrorAlert("Gagal Menyimpan", res.message);
