@@ -3,11 +3,11 @@ import path from "path";
 import os from "os";
 import { prisma } from "./prisma";
 
-// Vercel only allows writing to /tmp
-const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV || process.env.NODE_ENV === "production";
-const BACKUP_DIR = isVercel 
-  ? path.join(os.tmpdir(), "backups") 
-  : path.join(process.cwd(), "backups");
+// Use a function to ensure this is evaluated at RUNTIME, not build time
+function getBackupDir() {
+  const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV || process.cwd().includes("/var/task");
+  return isVercel ? path.join(os.tmpdir(), "backups") : path.join(process.cwd(), "backups");
+}
 
 /**
  * Format bytes into human readable format (KB, MB, GB)
@@ -25,8 +25,9 @@ export function formatBytes(bytes: number, decimals = 2): string {
  * Ensure the backups directory exists
  */
 export function ensureBackupDirExists() {
-  if (!fs.existsSync(BACKUP_DIR)) {
-    fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  const dir = getBackupDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
 
@@ -161,7 +162,8 @@ export async function createDatabaseBackup(_triggeredBy = "SYSTEM"): Promise<{
   const pad = (n: number) => String(n).padStart(2, "0");
   const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
   const filename = `saas_qr_review_backup_${dateStr}.sql`;
-  const filePath = path.join(BACKUP_DIR, filename);
+  const dir = getBackupDir();
+  const filePath = path.join(dir, filename);
 
   const sqlContent = await generateDatabaseSqlDump();
   fs.writeFileSync(filePath, sqlContent, "utf-8");
@@ -192,13 +194,14 @@ export async function listBackupFiles(): Promise<
     isAutoMidnight: boolean;
   }>
 > {
-  ensureBackupDirExists();
+  const dir = getBackupDir();
+  if (!fs.existsSync(dir)) return [];
 
-  const files = fs.readdirSync(BACKUP_DIR);
+  const files = fs.readdirSync(dir);
   const sqlFiles = files.filter((f) => f.endsWith(".sql"));
 
   const results = sqlFiles.map((filename) => {
-    const fullPath = path.join(BACKUP_DIR, filename);
+    const fullPath = path.join(dir, filename);
     const stat = fs.statSync(fullPath);
     // Check if filename indicates a midnight backup (e.g. 00-00 or _00- or system auto)
     const isAutoMidnight = filename.includes("_00-") || filename.includes("midnight");
@@ -226,7 +229,8 @@ export async function deleteBackupFile(filename: string): Promise<boolean> {
   const safeFilename = path.basename(filename);
   if (!safeFilename.endsWith(".sql")) return false;
 
-  const filePath = path.join(BACKUP_DIR, safeFilename);
+  const dir = getBackupDir();
+  const filePath = path.join(dir, safeFilename);
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
     return true;
@@ -241,7 +245,8 @@ export function getBackupFilePath(filename: string): string | null {
   const safeFilename = path.basename(filename);
   if (!safeFilename.endsWith(".sql")) return null;
 
-  const filePath = path.join(BACKUP_DIR, safeFilename);
+  const dir = getBackupDir();
+  const filePath = path.join(dir, safeFilename);
   if (fs.existsSync(filePath)) {
     return filePath;
   }
@@ -253,14 +258,16 @@ export function getBackupFilePath(filename: string): string | null {
  */
 export function cleanupOldBackups(maxDays = 30) {
   try {
-    ensureBackupDirExists();
-    const files = fs.readdirSync(BACKUP_DIR);
+    const dir = getBackupDir();
+    if (!fs.existsSync(dir)) return;
+
+    const files = fs.readdirSync(dir);
     const now = Date.now();
     const maxAgeMs = maxDays * 24 * 60 * 60 * 1000;
 
     for (const file of files) {
       if (!file.endsWith(".sql")) continue;
-      const fullPath = path.join(BACKUP_DIR, file);
+      const fullPath = path.join(dir, file);
       const stat = fs.statSync(fullPath);
       if (now - stat.mtimeMs > maxAgeMs) {
         fs.unlinkSync(fullPath);
