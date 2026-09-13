@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { recordActivityLog } from "@/lib/actions/activity.actions";
 import {
   TrendingUp,
   Layers,
@@ -30,6 +32,11 @@ import {
   History,
   Camera,
   Database,
+  Menu,
+  LogOut,
+  LayoutDashboard,
+  QrCode,
+  Loader2,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
@@ -190,7 +197,27 @@ export function SuperAdminDashboardClient({
     return false;
   };
 
-  const [activeTab, setActiveTab] = useState<"ADMINS" | "CARDS" | "OUTLETS" | "SUPER_ADMINS" | "ACTIVITY_LOGS" | "DATABASE_BACKUP">("CARDS");
+  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "ADMINS" | "CARDS" | "OUTLETS" | "SUPER_ADMINS" | "ACTIVITY_LOGS" | "DATABASE_BACKUP">("OVERVIEW");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await recordActivityLog({
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        action: "LOGOUT",
+        title: "Logout Akun",
+        description: `${currentUser.fullName} (${currentUser.role}) logout dari dashboard`,
+      });
+    } catch (e) {
+      console.error("Error logging logout activity:", e);
+    } finally {
+      await signOut({ callbackUrl: "/login" });
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchScope, setSearchScope] = useState<"ALL" | "OUTLET" | "ADMIN" | "CODE">("ALL");
   const [selectedAdminFilter, setSelectedAdminFilter] = useState<string>("ALL");
@@ -977,263 +1004,704 @@ export function SuperAdminDashboardClient({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner & Control Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            {isMaster ? (
-              <span className="text-xs font-semibold text-indigo-400 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                Super Admin 1 (Master Central)
-              </span>
-            ) : (
-              <span className="text-xs font-semibold text-purple-400 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                Super Admin 2 (Operasional)
-              </span>
-            )}
-
-            <span className="text-xs font-mono font-bold text-sky-400 px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 shadow-xs">
-              {siteSetting?.appVersion || "V 1.1.2"}
-            </span>
-
-            {canEditLanding && (
-              <span className="text-[10px] font-semibold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1">
-                <Globe className="w-3 h-3" />
-                Izin Edit Landing Page Aktif
-              </span>
-            )}
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Dashboard Kontrol Global
-          </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Kelola seluruh kartu QR, alokasi admin mitra, cetak massal, konten landing page, dan analitik ulasan
-          </p>
-        </div>
-
-        {/* Global Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Analytics Modal */}
-      {isVisitorModalOpen && (
-        <VisitorAnalyticsModal onClose={() => setIsVisitorModalOpen(false)} />
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex relative selection:bg-indigo-500 selection:text-white">
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-40 lg:hidden animate-in fade-in duration-200"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
       )}
 
-      {/* Global Modals for Landing Page */}
-          {/* Tombol CMS Landing Page */}
-          <button
-            onClick={() => {
-              if (canEditLanding) {
-                setIsLandingPageModalOpen(true);
-              } else {
-                showErrorAlert(
-                  "Akses Terbatas",
-                  "Akun Super Admin 2 Anda belum memiliki izin untuk mengedit konten Landing Page & WhatsApp. Silakan minta akses ke Super Admin 1."
-                );
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-medium text-xs border transition-all cursor-pointer shadow-sm ${
-              canEditLanding
-                ? "bg-gradient-to-r from-sky-600/20 to-indigo-600/20 hover:from-sky-600/30 hover:to-indigo-600/30 text-sky-300 border-sky-500/40 hover:border-sky-400"
-                : "bg-slate-800/40 text-slate-500 border-slate-700/50 cursor-not-allowed opacity-75"
-            }`}
-            title={canEditLanding ? "Edit WhatsApp & Teks Landing Page" : "Akses Terkunci (Perlu Izin Super Admin 1)"}
-          >
-            {canEditLanding ? (
-              <Globe className="w-4 h-4 text-sky-400" />
+      {/* Modern Left Sidebar Navigation */}
+      <aside
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-[#090d16] border-r border-slate-800/80 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isMobileSidebarOpen ? "translate-x-0 shadow-2xl shadow-indigo-950/50" : "-translate-x-full"
+        }`}
+      >
+        {/* Sidebar Brand Header */}
+        <div className="p-5 border-b border-slate-800/80 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {siteSetting?.dashboardLogoUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={siteSetting.dashboardLogoUrl}
+                alt="Logo"
+                className="w-10 h-10 object-contain drop-shadow-md shrink-0"
+              />
             ) : (
-              <Lock className="w-3.5 h-3.5 text-slate-500" />
-            )}
-            <span>Pengaturan Landing Page</span>
-          </button>
-
-          {/* Tombol Manajemen Template Cetak Multi-Ukuran */}
-          <button
-            onClick={() => {
-              if (!canManageTemplates) {
-                showErrorAlert(
-                  "Akses Terkunci",
-                  "Akun Super Admin 2 Anda belum diberikan izin oleh Super Admin 1 (Master) untuk mengelola template cetak multi-ukuran."
-                );
-                return;
-              }
-              setIsPrintTemplateModalOpen(true);
-            }}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-semibold text-xs border transition-all cursor-pointer shadow-sm ${
-              canManageTemplates
-                ? "bg-gradient-to-r from-purple-600/20 to-indigo-600/20 hover:from-purple-600/30 hover:to-indigo-600/30 text-purple-300 border-purple-500/40 hover:border-purple-400"
-                : "bg-slate-800/40 text-slate-500 border-slate-700/50 cursor-not-allowed opacity-75"
-            }`}
-            title={canManageTemplates ? "Kelola Template Cetak ID Card, A5, A6, Persegi & Posisi QR Code" : "Akses Terkunci (Perlu Izin Super Admin 1)"}
-          >
-            {canManageTemplates ? (
-              <Layers className="w-4 h-4 text-purple-400" />
-            ) : (
-              <Lock className="w-3.5 h-3.5 text-slate-500" />
-            )}
-            <span>🎨 Template Cetak Multi-Ukuran</span>
-          </button>
-
-          <button
-            onClick={() => setIsBatchExportOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium text-xs border border-slate-700 transition-all shadow-sm cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-sky-400" />
-            <span>Ekspor Batch (CSV/ZIP)</span>
-          </button>
-
-          <button
-            onClick={() => setIsScannerModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-semibold text-xs border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
-            title="Pindai Kartu Fisik QR dengan Kamera untuk Cek Status / Pulihkan Kartu"
-          >
-            <Camera className="w-4 h-4 text-indigo-400" />
-            <span>Scan Kamera QR</span>
-          </button>
-
-          <button
-            onClick={() => setIsBatchGenerateOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 font-medium text-xs border border-sky-500/30 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Generate Kartu</span>
-          </button>
-
-          <button
-            onClick={() => setIsCreateAdminOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Tambah Admin Lapangan</span>
-          </button>
-
-          {/* Tombol Edit Profil Saya */}
-          <button
-            onClick={() => setIsProfileModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs border border-slate-700 transition-all shadow-sm cursor-pointer"
-            title="Edit Profil & Ubah Password Saya"
-          >
-            <UserCheck className="w-4 h-4 text-indigo-400" />
-            <span>Profil Saya</span>
-          </button>
-
-          {/* Tombol Tambah Super Admin 2 (Khusus Super Admin 1) */}
-          {isMaster && (
-            <button
-              onClick={() => setIsCreateSuperAdminOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-purple-600/25 transition-all hover:scale-[1.02] cursor-pointer"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>+ Tambah Super Admin 2</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 5 Global Stat Cards (4 for SA2) */}
-      <div className={`grid grid-cols-2 ${isMaster ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
-        {/* Total Scan */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-cyan">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Scan Global</span>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-sky-400">{totalScans}</span>
-            <span className="text-xs text-slate-400 font-medium">scan</span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Akumulasi seluruh Indonesia</span>
-        </div>
-
-        {/* Total Kartu */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-indigo">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Kartu QR</span>
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Layers className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-white">{totalCards}</span>
-            <span className="text-xs text-emerald-400 font-semibold">({totalActiveCards} Aktif)</span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 flex gap-2">
-            <span className="text-indigo-400 font-medium">{connectedCards} Terhubung</span>
-            <span>&bull;</span>
-            <span className="text-slate-500">{unconnectedCards} Kosong</span>
-          </span>
-        </div>
-
-        {/* Total Outlet */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-emerald">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Outlet Klien</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Store className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-emerald-400">{totalOutlets}</span>
-            <span className="text-xs text-slate-400 font-medium">toko</span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Terdaftar & aktif menggunakan</span>
-        </div>
-
-        {/* Total Super & Lapangan Admin */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-amber">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Admin Tim</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <UserCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-amber-400">{totalAdmins}</span>
-            <span className="text-xs text-slate-400 font-medium">lapangan</span>
-            <span className="text-xs text-purple-400 font-medium ml-1">({totalSuperAdmins} Super)</span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Struktur manajemen pengguna</span>
-        </div>
-
-        {/* Total Visitor (Khusus Super Admin 1) */}
-        {isMaster && (
-          <div 
-            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-rose cursor-pointer hover:border-rose-500/50 transition-all group relative"
-            onClick={() => setIsVisitorModalOpen(true)}
-          >
-            <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity pointer-events-none"></div>
-            <div className="flex items-center justify-between relative z-10">
-              <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Total Pengunjung</span>
-              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 group-hover:scale-110 transition-transform">
-                <Globe className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
+                <QrCode className="w-5 h-5" />
               </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-sm tracking-tight text-white flex items-center gap-1.5 truncate">
+                Smart QR <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold">Review</span>
+              </span>
+              <span className="text-[10px] text-slate-400 truncate">Sistem Ulasan Digital</span>
             </div>
-            <div className="mt-3 flex items-baseline gap-1 relative z-10">
-              <span className="text-2xl sm:text-3xl font-bold text-rose-400">{siteSetting?.visitorCount || 0}</span>
-              <span className="text-xs text-slate-400 font-medium">user</span>
-            </div>
-            <span className="text-[11px] text-slate-400 mt-1 block relative z-10">Lihat grafik analitik detail</span>
           </div>
-        )}
-      </div>
 
-      {/* Main Tabs Container */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
-          <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            title="Tutup Menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Nav List */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+          {/* Section: Menu Utama */}
+          <div className="space-y-1">
+            <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Menu Utama
+            </div>
+
+            {/* Dashboard Utama */}
             <button
-              onClick={() => setActiveTab("CARDS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                activeTab === "CARDS"
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25"
-                  : "bg-slate-800/80 text-slate-400 hover:text-white"
+              onClick={() => {
+                setActiveTab("OVERVIEW");
+                setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "OVERVIEW"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
               }`}
             >
-              Semua Kartu QR ({searchQuery.trim() ? searchMatchedCards.length : displayCards.length})
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              <span className="truncate">Dashboard Utama</span>
             </button>
+
+            {/* Data Kartu QR */}
+            <button
+              onClick={() => {
+                setActiveTab("CARDS");
+                setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "CARDS"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Layers className="w-4 h-4 shrink-0" />
+                <span className="truncate">Data Kartu QR</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                {displayCards.length}
+              </span>
+            </button>
+
+            {/* Data Outlet Mitra */}
+            <button
+              onClick={() => {
+                setActiveTab("OUTLETS");
+                setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "OUTLETS"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Store className="w-4 h-4 shrink-0" />
+                <span className="truncate">Data Outlet Mitra</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                {displayOutlets.length}
+              </span>
+            </button>
+
+            {/* Admin Lapangan */}
+            <button
+              onClick={() => {
+                setActiveTab("ADMINS");
+                setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "ADMINS"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3 truncate">
+                <UserCheck className="w-4 h-4 shrink-0" />
+                <span className="truncate">Admin Lapangan</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                {admins.length}
+              </span>
+            </button>
+
+            {/* Kelola Super Admin (Khusus Super Admin 1 Master) */}
+            {isMaster && (
+              <button
+                onClick={() => {
+                  setActiveTab("SUPER_ADMINS");
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "SUPER_ADMINS"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                    : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+                }`}
+              >
+                <div className="flex items-center gap-3 truncate">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-purple-400" />
+                  <span className="truncate">Super Admin</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
+                  {superAdmins.length}
+                </span>
+              </button>
+            )}
+
+            {/* Database & Auto Backup (Khusus Super Admin 1 Master) */}
+            {isMaster && (
+              <button
+                onClick={() => {
+                  setActiveTab("DATABASE_BACKUP");
+                  setIsMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === "DATABASE_BACKUP"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                    : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+                }`}
+              >
+                <Database className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span className="truncate">Database & Backup</span>
+              </button>
+            )}
+
+            {/* Log Aktivitas */}
+            <button
+              onClick={() => {
+                setActiveTab("ACTIVITY_LOGS");
+                setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "ACTIVITY_LOGS"
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 font-bold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+              }`}
+            >
+              <History className="w-4 h-4 shrink-0 text-sky-400" />
+              <span className="truncate">Log Aktivitas</span>
+            </button>
+          </div>
+
+          {/* Section: Alat & Kontrol Cepat */}
+          <div className="space-y-1">
+            <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Alat & Manajemen
+            </div>
+
+            {/* Template Cetak */}
+            <button
+              onClick={() => {
+                if (!canManageTemplates) {
+                  showErrorAlert(
+                    "Akses Terkunci",
+                    "Akun Super Admin 2 Anda belum diberikan izin oleh Super Admin 1 (Master) untuk mengelola template cetak multi-ukuran."
+                  );
+                  return;
+                }
+                setIsPrintTemplateModalOpen(true);
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+            >
+              <Layers className="w-4 h-4 shrink-0 text-purple-400" />
+              <span className="truncate">Template Cetak</span>
+            </button>
+
+            {/* Pengaturan Landing Page */}
+            <button
+              onClick={() => {
+                if (canEditLanding) {
+                  setIsLandingPageModalOpen(true);
+                } else {
+                  showErrorAlert(
+                    "Akses Terbatas",
+                    "Akun Super Admin 2 Anda belum memiliki izin untuk mengedit konten Landing Page & WhatsApp. Silakan minta akses ke Super Admin 1."
+                  );
+                }
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+            >
+              <Globe className="w-4 h-4 shrink-0 text-sky-400" />
+              <span className="truncate">Pengaturan Web & SEO</span>
+            </button>
+
+            {/* Ekspor Percetakan Batch */}
+            <button
+              onClick={() => setIsBatchExportOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+            >
+              <Download className="w-4 h-4 shrink-0 text-amber-400" />
+              <span className="truncate">Ekspor Cetak (CSV/ZIP)</span>
+            </button>
+
+            {/* Scan Kamera QR */}
+            <button
+              onClick={() => setIsScannerModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+            >
+              <Camera className="w-4 h-4 shrink-0 text-indigo-400" />
+              <span className="truncate">Scan Kamera QR</span>
+            </button>
+
+            {/* Analitik Pengunjung (SA1) */}
+            {isMaster && (
+              <button
+                onClick={() => setIsVisitorModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+              >
+                <TrendingUp className="w-4 h-4 shrink-0 text-rose-400" />
+                <span className="truncate">Analitik Pengunjung</span>
+              </button>
+            )}
+
+            {/* Buka Landing Page Publik */}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Globe className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span className="truncate">Lihat Landing Page</span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+            </a>
+          </div>
+        </div>
+
+        {/* Sidebar Footer User Profile Card */}
+        <div className="p-3 border-t border-slate-800/80 shrink-0">
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between gap-2.5 shadow-sm">
+            <div
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-2.5 min-w-0 cursor-pointer group flex-1"
+              title="Klik untuk Edit Profil"
+            >
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "A"}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-bold text-xs text-white truncate group-hover:text-indigo-300 transition-colors">
+                  {currentUser.fullName || "Super Admin"}
+                </span>
+                <span className="inline-flex items-center w-fit text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30 mt-0.5">
+                  {isMaster ? "SUPER ADMIN 1 (CEO)" : "SUPER ADMIN 2"}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 rounded-xl transition-all cursor-pointer shrink-0 disabled:opacity-50"
+              title="Logout / Keluar"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="w-4 h-4 animate-spin text-rose-400" />
+              ) : (
+                <LogOut className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area (Offset by Sidebar width on desktop) */}
+      <div className="flex-1 lg:pl-72 flex flex-col min-w-0 min-h-screen">
+        {/* Modern Sticky Top Header */}
+        <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Buka Navigasi"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                  {activeTab === "OVERVIEW" && "Dashboard Utama"}
+                  {activeTab === "CARDS" && "Data Kartu QR"}
+                  {activeTab === "OUTLETS" && "Data Outlet Mitra"}
+                  {activeTab === "ADMINS" && "Admin Lapangan Mitra"}
+                  {activeTab === "SUPER_ADMINS" && "Kelola Super Admin"}
+                  {activeTab === "DATABASE_BACKUP" && "Database & Auto-Backup"}
+                  {activeTab === "ACTIVITY_LOGS" && "Log Audit Sistem"}
+                </h1>
+                <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20">
+                  {siteSetting?.appVersion || "V 1.1.2"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 hidden sm:block">
+                Selamat datang kembali, <strong className="text-slate-200">{currentUser.fullName}</strong> ({isMaster ? "Super Admin 1 - CEO" : "Super Admin 2"})
+              </p>
+            </div>
+          </div>
+
+          {/* Top-Right Quick Action CTA Buttons (Identical to reference image) */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={() => setIsCreateAdminOpen(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700/80 transition-all cursor-pointer shadow-sm hover:border-slate-600"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>+ Admin Lapangan</span>
+            </button>
+
+            <button
+              onClick={() => setIsBatchGenerateOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Input Kartu Baru</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Viewport Body */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+          {/* 5 Modern Squircle Stat Cards (4 for SA2) */}
+          <div className={`grid grid-cols-2 ${isMaster ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
+            {/* Total Kartu QR */}
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-500/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Kartu QR</span>
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Layers className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-extrabold text-white">{totalCards}</span>
+                <span className="text-xs text-indigo-400 font-semibold">kartu</span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
+                <span className="text-emerald-400 font-medium">{totalActiveCards} Aktif</span>
+                <span>&bull;</span>
+                <span className="text-slate-500">{unconnectedCards} Kosong</span>
+              </div>
+            </div>
+
+            {/* Total Scan Global */}
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Scan Ulasan</span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400">{totalScans}</span>
+                <span className="text-xs text-slate-400 font-semibold">scan</span>
+              </div>
+              <span className="text-[11px] text-slate-400 mt-1 block">Akumulasi seluruh outlet</span>
+            </div>
+
+            {/* Total Outlet */}
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-sky-500/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Outlet Klien</span>
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Store className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-extrabold text-sky-400">{totalOutlets}</span>
+                <span className="text-xs text-slate-400 font-semibold">toko</span>
+              </div>
+              <span className="text-[11px] text-slate-400 mt-1 block">Terdaftar & aktif</span>
+            </div>
+
+            {/* Total Tim Admin */}
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-amber-500/40 transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Admin Tim</span>
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-extrabold text-amber-400">{totalAdmins}</span>
+                <span className="text-xs text-slate-400 font-semibold">lapangan</span>
+                <span className="text-xs text-purple-400 font-medium ml-1">({totalSuperAdmins} Super)</span>
+              </div>
+              <span className="text-[11px] text-slate-400 mt-1 block">Manajemen operasional</span>
+            </div>
+
+            {/* Total Pengunjung (SA1) */}
+            {isMaster && (
+              <div
+                onClick={() => setIsVisitorModalOpen(true)}
+                className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-rose-500/50 transition-all cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-300">Pengunjung Web</span>
+                  <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-rose-400">{siteSetting?.visitorCount || 0}</span>
+                  <span className="text-xs text-slate-400 font-semibold">user</span>
+                </div>
+                <span className="text-[11px] text-rose-400/80 mt-1 block">Klik untuk analitik detail &rarr;</span>
+              </div>
+            )}
+          </div>
+
+          {/* Overview View (When activeTab === 'OVERVIEW') */}
+          {activeTab === "OVERVIEW" && (
+            <div className="space-y-6">
+              {/* Table Card 1: Kartu QR Paling Banyak Discan (Top 5) */}
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-white tracking-tight">
+                        Kartu QR Paling Banyak Discan / Terpopuler
+                      </h2>
+                      <p className="text-xs text-slate-400">
+                        Top kartu dengan interaksi ulasan Google tertinggi
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab("CARDS")}
+                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Kelola Seluruh Kartu ({displayCards.length})</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
+                        <th className="py-3 px-4">No</th>
+                        <th className="py-3 px-4">Kode Kartu</th>
+                        <th className="py-3 px-4">Outlet Terhubung</th>
+                        <th className="py-3 px-4">Admin Jatah</th>
+                        <th className="py-3 px-4 text-center">Total Scan</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                        <th className="py-3 px-4 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {[...displayCards]
+                        .sort((a, b) => (b.scanCount || 0) - (a.scanCount || 0))
+                        .slice(0, 5)
+                        .map((card, idx) => (
+                          <tr key={card.code} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="py-3.5 px-4 font-mono text-slate-500">#{idx + 1}</td>
+                            <td className="py-3.5 px-4 font-mono font-bold text-sky-400">{card.code}</td>
+                            <td className="py-3.5 px-4 text-white font-medium">
+                              {card.outlet?.name || <span className="text-slate-500 italic">Belum terhubung</span>}
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-300">
+                              {card.assignedAdmin?.fullName || <span className="text-slate-500 italic">Pusat</span>}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-bold text-emerald-400">
+                              {card.scanCount || 0} scan
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                card.status === "ACTIVE"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              }`}>
+                                {card.status === "ACTIVE" ? "AKTIF" : "NONAKTIF"}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <button
+                                onClick={() =>
+                                  setPreviewCard({
+                                    code: card.code,
+                                    status: card.status,
+                                    outlet: card.outlet
+                                      ? {
+                                          name: card.outlet.name,
+                                          googleReviewUrl: card.outlet.googleReviewUrl,
+                                        }
+                                      : null,
+                                  })
+                                }
+                                className="px-2.5 py-1 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 border border-indigo-500/30 text-[11px] font-medium transition-colors cursor-pointer"
+                              >
+                                Lihat QR
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Table Card 2: Data Outlet Mitra Terbaru (Mirip Card 2 di screenshot) */}
+              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-white tracking-tight">
+                        Data Outlet Mitra Terbaru
+                      </h2>
+                      <p className="text-xs text-slate-400">
+                        Toko klien yang terdaftar di platform
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400 font-medium">
+                      Total: <strong className="text-white">{displayOutlets.length} Outlet</strong>
+                    </span>
+                    <button
+                      onClick={() => setActiveTab("OUTLETS")}
+                      className="text-xs font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Kelola Semua &rarr;</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider">
+                        <th className="py-3 px-4">No</th>
+                        <th className="py-3 px-4">Nama Outlet & Review Link</th>
+                        <th className="py-3 px-4">Pemilik & WhatsApp</th>
+                        <th className="py-3 px-4 text-center">Kartu QR Terhubung</th>
+                        <th className="py-3 px-4 text-center">Status Akun</th>
+                        <th className="py-3 px-4 text-center">Aksi Cepat</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {[...displayOutlets].slice(0, 5).map((outlet, idx) => {
+                        const waNum = outlet.owner?.whatsappNumber;
+                        const ownerActive = outlet.owner?.isActive !== false;
+                        const cards = outlet.qrCards && outlet.qrCards.length > 0
+                          ? outlet.qrCards
+                          : (outlet.qrCard ? [outlet.qrCard] : []);
+                        return (
+                          <tr key={outlet.id} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="py-3.5 px-4 font-mono text-slate-500">#{idx + 1}</td>
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-white text-xs">{outlet.name}</div>
+                              <div className="text-[11px] text-slate-400 truncate max-w-xs">{outlet.googleReviewUrl || "-"}</div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="text-slate-200">{outlet.owner?.fullName || "-"}</div>
+                              {waNum && (
+                                <a
+                                  href={getWaLink(waNum, outlet.name)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 mt-0.5"
+                                >
+                                  <MessageCircle className="w-3 h-3" />
+                                  <span>{waNum}</span>
+                                </a>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-center font-mono font-bold text-sky-400">
+                              {cards.length > 0 ? (
+                                <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[11px]">
+                                  {cards.map((c) => c.code).join(", ")}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 italic">Belum Ada</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                ownerActive
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              }`}>
+                                {ownerActive ? "AKTIF" : "NONAKTIF"}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              {outlet.owner ? (
+                                <button
+                                  onClick={() => {
+                                    setEditingOutlet({
+                                      id: outlet.id,
+                                      name: outlet.name,
+                                      googleReviewUrl: outlet.googleReviewUrl,
+                                      owner: {
+                                        fullName: outlet.owner!.fullName,
+                                        whatsappNumber: outlet.owner!.whatsappNumber,
+                                        email: outlet.owner!.email,
+                                      },
+                                    });
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] transition-colors cursor-pointer"
+                                >
+                                  Edit Outlet
+                                </button>
+                              ) : (
+                                <span className="text-slate-500 text-[11px]">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Tabs Container (When activeTab is CARDS, OUTLETS, ADMINS, etc) */}
+          {activeTab !== "OVERVIEW" && (
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab("OVERVIEW")}
+                    className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 bg-slate-800/80 text-slate-400 hover:text-white"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>Dashboard Utama</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("CARDS")}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                      activeTab === "CARDS"
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 font-bold"
+                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Semua Kartu QR ({searchQuery.trim() ? searchMatchedCards.length : displayCards.length})
+                  </button>
             <button
               onClick={() => setActiveTab("ADMINS")}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
@@ -2787,6 +3255,13 @@ export function SuperAdminDashboardClient({
           </div>
         )}
       </div>
+      )}
+        </main>
+
+        <footer className="border-t border-slate-900 py-5 px-6 text-center text-xs text-slate-500 mt-auto">
+          &copy; {new Date().getFullYear()} Smart QR Review Platform. Super Admin Central Control.
+        </footer>
+      </div>
 
       {/* Modals */}
       {isLandingPageModalOpen && (
@@ -2939,6 +3414,11 @@ export function SuperAdminDashboardClient({
         outlets={allOutlets.map((o) => ({ id: o.id, name: o.name }))}
         onCardRestored={() => router.refresh()}
       />
+
+      {/* Visitor Analytics Modal (Khusus Super Admin 1) */}
+      {isVisitorModalOpen && (
+        <VisitorAnalyticsModal onClose={() => setIsVisitorModalOpen(false)} />
+      )}
     </div>
   );
 }

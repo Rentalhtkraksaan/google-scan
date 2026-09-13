@@ -1,7 +1,6 @@
 import { auth } from "@root/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { Navbar } from "@/components/layout/Navbar";
 import { SuperAdminDashboardClient } from "./SuperAdminDashboardClient";
 import { AdminWithRelations, AuthenticatedUser, OutletModel, QrCardModel } from "@/types/models";
 
@@ -207,23 +206,13 @@ export default async function SuperAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
-      <Navbar user={authUser} siteSetting={siteSetting as unknown as import("@/types/models").SiteSettingModel} />
-
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <SuperAdminDashboardClient
-          currentUser={authUser}
-          superAdmins={superAdmins}
-          admins={admins as unknown as AdminWithRelations[]}
-          allCards={allCards as unknown as QrCardModel[]}
-          allOutlets={allOutlets as unknown as OutletModel[]}
-          siteSetting={siteSetting}
-        />
-      </main>
-
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        &copy; {new Date().getFullYear()} Smart QR Review Platform. Super Admin Central Control.
-      </footer>
-    </div>
+    <SuperAdminDashboardClient
+      currentUser={authUser}
+      superAdmins={superAdmins}
+      admins={admins as unknown as AdminWithRelations[]}
+      allCards={allCards as unknown as QrCardModel[]}
+      allOutlets={allOutlets as unknown as OutletModel[]}
+      siteSetting={siteSetting}
+    />
   );
 }
