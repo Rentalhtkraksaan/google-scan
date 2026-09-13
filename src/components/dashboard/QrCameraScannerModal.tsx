@@ -29,9 +29,9 @@ import {
   restoreOrRegisterCardAction,
   batchLookupScannedCardsAction,
   batchRestoreOrRegisterCardsAction,
-  parseMultipleCardCodes,
   ScannedCardResult,
 } from "@/lib/actions/qr.actions";
+import { parseMultipleCardCodes } from "@/lib/card-code";
 
 interface AdminOption {
   id: string;
