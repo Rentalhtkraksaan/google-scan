@@ -15,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://qr-inaja.vercel.app"),
     title: {
       default: "Smart QR Review — Dynamic Google Review Platform",
       template: "%s | Smart QR Review",
@@ -29,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: "Platform SaaS Dynamic QR Code & Smart Review Card untuk akselerasi ulasan bintang 5 Google Maps bisnis Anda.",
       images: [
         {
-          url: faviconUrl,
+          url: "/api/og",
           width: 800,
           height: 800,
           alt: "Smart QR Review Logo",
