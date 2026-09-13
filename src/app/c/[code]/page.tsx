@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { formatGoogleReviewUrl } from "@/lib/google-url";
-import { recordActivityLog } from "@/lib/actions/activity.actions";
 import { redirect } from "next/navigation";
 import { SmartReviewClient } from "./SmartReviewClient";
 import Link from "next/link";
-import { Store, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 

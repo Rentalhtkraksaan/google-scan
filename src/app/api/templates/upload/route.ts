@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import { promises as fs } from "fs";
-import path from "path";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +15,6 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const sizeKey = (formData.get("sizeKey") as string) || "template";
 
     if (!file) {
       return NextResponse.json(

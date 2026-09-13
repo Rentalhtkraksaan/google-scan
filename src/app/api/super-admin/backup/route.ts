@@ -6,14 +6,20 @@ import {
   createDatabaseBackup,
   listBackupFiles,
   deleteBackupFile,
-  getBackupFilePath,
   getBackupFileContent,
   getAutoBackupStatus,
   performMidnightCheckAndBackup,
 } from "@/lib/db-backup";
-import fs from "fs";
 
-async function verifyMasterSuperAdmin(session: any) {
+interface SessionUser {
+  user?: {
+    id?: string;
+    role?: string;
+    name?: string | null;
+  };
+}
+
+async function verifyMasterSuperAdmin(session: SessionUser | null) {
   if (!session?.user?.id || session.user.role !== Role.SUPER_ADMIN) {
     return false;
   }
@@ -84,7 +90,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const session = await auth();
     const isMaster = await verifyMasterSuperAdmin(session);

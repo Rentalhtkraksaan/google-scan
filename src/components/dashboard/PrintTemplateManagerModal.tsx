@@ -32,16 +32,12 @@ interface PrintTemplateManagerModalProps {
   onSaved?: (savedJson?: string) => void;
 }
 
-const SIZE_TABS: { key: PrintSizeKey; label: string; badge: string; icon: string }[] = [
-  { key: "square", label: "Stiker Meja Persegi", badge: "10 x 10 cm", icon: "⏹️" },
-];
-
 export function PrintTemplateManagerModal({
   isOpen,
   onClose,
   onSaved,
 }: PrintTemplateManagerModalProps) {
-  const [activeSize, setActiveSize] = useState<PrintSizeKey>("square");
+  const activeSize: PrintSizeKey = "square";
   const [templates, setTemplates] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(PRINT_SIZE_PRESETS);
   const [isLoading, setIsLoading] = useState(true);
   const [customFiles, setCustomFiles] = useState<Record<PrintSizeKey, File | null>>({
@@ -50,7 +46,6 @@ export function PrintTemplateManagerModal({
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
-  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load saved templates from DB & lock body scroll
@@ -188,7 +183,7 @@ export function PrintTemplateManagerModal({
     return () => {
       active = false;
     };
-  }, [activeSize, currentConfig]);
+  }, [currentConfig]);
 
   // Handle Custom Template Upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

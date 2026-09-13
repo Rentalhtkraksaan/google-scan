@@ -146,11 +146,14 @@ export default async function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {siteSetting?.landingPageLogoUrl ? (
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden bg-slate-900 border border-slate-700/80 shadow-lg p-1">
-                <img src={siteSetting.landingPageLogoUrl} alt="Landing Page Logo" className="w-full h-full object-contain" />
-              </div>
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={siteSetting.landingPageLogoUrl}
+                alt="Landing Page Logo"
+                className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-md shrink-0"
+              />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
                 <QrCode className="w-5 h-5" />
               </div>
             )}

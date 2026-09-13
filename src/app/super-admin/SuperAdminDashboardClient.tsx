@@ -63,7 +63,6 @@ import {
 import {
   showSuccessAlert,
   showErrorAlert,
-  showConfirmAlert,
   showToggleCardConfirmAlert,
   showTwoStepDeleteConfirmAlert,
   showWelcomeAlert,
@@ -536,15 +535,21 @@ export function SuperAdminDashboardClient({
     showSuccessAlert("Berhasil Dihapus", "Kartu berhasil dihapus dari sistem", 1500);
 
     // Fire and forget
-    deleteBatchCardsAction(codesToDelete).then((res) => {
-      if (!res.success) {
+    setIsDeletingBatch(true);
+    deleteBatchCardsAction(codesToDelete)
+      .then((res) => {
+        if (!res.success) {
+          setLocalCards(allCards);
+          showErrorAlert("Gagal Menghapus", res.message);
+        }
+      })
+      .catch(() => {
         setLocalCards(allCards);
-        showErrorAlert("Gagal Menghapus", res.message);
-      }
-    }).catch(() => {
-      setLocalCards(allCards);
-      showErrorAlert("Kesalahan", "Terjadi kesalahan saat menghapus batch kartu.");
-    });
+        showErrorAlert("Kesalahan", "Terjadi kesalahan saat menghapus batch kartu.");
+      })
+      .finally(() => {
+        setIsDeletingBatch(false);
+      });
   };
 
   const handleBatchDeleteOutlets = async () => {
@@ -822,7 +827,7 @@ export function SuperAdminDashboardClient({
   };
 
   // Toggle Super Admin Permission (Print template management permission)
-  const handleToggleTemplatePermission = async (targetId: string, name: string) => {
+  const handleToggleTemplatePermission = async (targetId: string, name?: string) => {
     if (!isMaster) {
       showErrorAlert("Akses Ditolak", "Hanya Super Admin 1 yang dapat mengubah hak akses ini.");
       return;
@@ -836,7 +841,7 @@ export function SuperAdminDashboardClient({
     try {
       const res = await toggleSuperAdminPermissionAction(targetId, "canManagePrintTemplates");
       if (res.success) {
-        showSuccessAlert("Hak Akses Diperbarui", res.message, 1500);
+        showSuccessAlert("Hak Akses Diperbarui", name ? `${name}: ${res.message}` : res.message, 1500);
       } else {
         setLocalSuperAdmins(superAdmins); // revert
         showErrorAlert("Gagal", res.message);
@@ -848,7 +853,7 @@ export function SuperAdminDashboardClient({
   };
 
   // Toggle Super Admin Permission (Delete cards permission)
-  const handleToggleDeletePermission = async (targetId: string, name: string) => {
+  const handleToggleDeletePermission = async (targetId: string, name?: string) => {
     if (!isMaster) {
       showErrorAlert("Akses Ditolak", "Hanya Super Admin 1 yang dapat mengubah hak akses ini.");
       return;
@@ -862,7 +867,7 @@ export function SuperAdminDashboardClient({
     try {
       const res = await toggleSuperAdminPermissionAction(targetId, "canDeleteCards");
       if (res.success) {
-        showSuccessAlert("Hak Akses Diperbarui", res.message, 1500);
+        showSuccessAlert("Hak Akses Diperbarui", name ? `${name}: ${res.message}` : res.message, 1500);
       } else {
         setLocalSuperAdmins(superAdmins); // revert
         showErrorAlert("Gagal", res.message);

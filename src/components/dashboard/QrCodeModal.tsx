@@ -37,10 +37,6 @@ interface QrCodeModalProps {
   onClose: () => void;
 }
 
-const SIZE_OPTIONS: { key: PrintSizeKey; label: string; badge: string; icon: string }[] = [
-  { key: "square", label: "Stiker Meja Persegi", badge: "10 x 10 cm", icon: "⏹️" },
-];
-
 export function parsePrintTemplates(
   raw?: unknown
 ): Record<PrintSizeKey, PrintTemplateConfig> | null {
@@ -95,7 +91,7 @@ export function QrCodeModal({
   onClose,
 }: QrCodeModalProps) {
   const [viewTab, setViewTab] = useState<"CARD" | "QR">("CARD");
-  const [selectedSize, setSelectedSize] = useState<PrintSizeKey>("square");
+  const selectedSize: PrintSizeKey = "square";
 
   // Instant synchronous initialization from Prop or Local Cache (0ms delay)
   const [templateConfigs, setTemplateConfigs] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(() => {
@@ -226,7 +222,7 @@ export function QrCodeModal({
     return () => {
       active = false;
     };
-  }, [card, scanUrl, selectedSize, templateConfigs, version]);
+  }, [card, scanUrl, templateConfigs, version]);
 
   if (!card) return null;
 

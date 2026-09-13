@@ -14,10 +14,6 @@ interface BatchExportModalProps {
   onClose: () => void;
 }
 
-const SIZE_OPTIONS: { key: PrintSizeKey; label: string; badge: string; icon: string }[] = [
-  { key: "square", label: "Stiker Meja Persegi", badge: "10 x 10 cm", icon: "⏹️" },
-];
-
 export function BatchExportModal({ cards, initialPrintTemplates, onClose }: BatchExportModalProps) {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [exportFormat, setExportFormat] = useState<"CARDS" | "QR_ONLY" | "BOTH">("CARDS");

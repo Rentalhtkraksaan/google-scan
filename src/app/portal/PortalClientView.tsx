@@ -17,7 +17,6 @@ import {
   CreditCard,
   PlusCircle,
   ShieldCheck,
-  Trash2,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
