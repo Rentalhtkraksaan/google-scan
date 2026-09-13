@@ -1365,6 +1365,15 @@ export function SuperAdminDashboardClient({
           {/* Top-Right Quick Action CTA Buttons (Identical to reference image) */}
           <div className="flex items-center gap-2.5 shrink-0">
             <button
+              onClick={() => setIsScannerModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+              title="Pindai Kamera QR atau Pulihkan Banyak Kartu Sekaligus"
+            >
+              <Camera className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Scan / Pulihkan Kartu</span>
+            </button>
+
+            <button
               onClick={() => setIsCreateAdminOpen(true)}
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700/80 transition-all cursor-pointer shadow-sm hover:border-slate-600"
             >
