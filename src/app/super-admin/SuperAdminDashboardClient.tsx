@@ -39,6 +39,7 @@ import { CreateSuperAdminModal } from "@/components/dashboard/CreateSuperAdminMo
 import { EditSuperAdminModal } from "@/components/dashboard/EditSuperAdminModal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { LandingPageSettingsModal } from "@/components/dashboard/LandingPageSettingsModal";
+import { VisitorAnalyticsModal } from "@/components/dashboard/VisitorAnalyticsModal";
 import { PrintTemplateManagerModal } from "@/components/dashboard/PrintTemplateManagerModal";
 import { BatchGenerateModal } from "@/components/dashboard/BatchGenerateModal";
 import { BatchExportModal } from "@/components/dashboard/BatchExportModal";
@@ -209,6 +210,7 @@ export function SuperAdminDashboardClient({
   const [selectedOutletIds, setSelectedOutletIds] = useState<string[]>([]);
   const [selectedSuperAdminIds, setSelectedSuperAdminIds] = useState<string[]>([]);
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+  const [isVisitorModalOpen, setIsVisitorModalOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -993,6 +995,12 @@ export function SuperAdminDashboardClient({
 
         {/* Global Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Analytics Modal */}
+      {isVisitorModalOpen && (
+        <VisitorAnalyticsModal onClose={() => setIsVisitorModalOpen(false)} />
+      )}
+
+      {/* Global Modals for Landing Page */}
           {/* Tombol CMS Landing Page */}
           <button
             onClick={() => {
@@ -1172,18 +1180,22 @@ export function SuperAdminDashboardClient({
 
         {/* Total Visitor (Khusus Super Admin 1) */}
         {isMaster && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-rose">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">Total Pengunjung</span>
-              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <div 
+            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-rose cursor-pointer hover:border-rose-500/50 transition-all group relative"
+            onClick={() => setIsVisitorModalOpen(true)}
+          >
+            <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity pointer-events-none"></div>
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-xs font-medium text-slate-400 group-hover:text-slate-300 transition-colors">Total Pengunjung</span>
+              <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 group-hover:scale-110 transition-transform">
                 <Globe className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-3 flex items-baseline gap-1">
+            <div className="mt-3 flex items-baseline gap-1 relative z-10">
               <span className="text-2xl sm:text-3xl font-bold text-rose-400">{siteSetting?.visitorCount || 0}</span>
               <span className="text-xs text-slate-400 font-medium">user</span>
             </div>
-            <span className="text-[11px] text-slate-400 mt-1 block">Kunjungan di Landing Page</span>
+            <span className="text-[11px] text-slate-400 mt-1 block relative z-10">Lihat grafik analitik detail</span>
           </div>
         )}
       </div>

@@ -31,6 +31,24 @@ export default async function LandingPage() {
     data: { visitorCount: { increment: 1 } },
   });
 
+  try {
+    // Gunakan tanggal lokal Indonesia (WIB) untuk pencatatan harian
+    const dateOpts = { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+    const parts = new Intl.DateTimeFormat('en-CA', dateOpts).formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const today = `${year}-${month}-${day}`;
+
+    await prisma.dailyVisitor.upsert({
+      where: { date: today },
+      update: { visits: { increment: 1 } },
+      create: { date: today, visits: 1 },
+    });
+  } catch (e) {
+    console.error("Gagal mencatat kunjungan harian:", e);
+  }
+
   const whatsappNumber = siteSetting?.whatsappNumber || "6281234567890";
   const heroBadge = siteSetting?.heroBadge || "🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis";
   const heroHeadline = siteSetting?.heroHeadline || "Dapatkan Ratusan Ulasan Bintang 5 Dengan Sekali Tap";

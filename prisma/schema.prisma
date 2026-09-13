@@ -161,3 +161,11 @@ model ActivityLog {
   @@index([createdAt])
   @@map("activity_logs")
 }
+
+model DailyVisitor {
+  id      String @id @default(cuid())
+  date    String @unique // Format: YYYY-MM-DD
+  visits  Int    @default(0)
+
+  @@map("daily_visitors")
+}
