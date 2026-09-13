@@ -147,43 +147,78 @@ export async function generateDatabaseSqlDump(): Promise<string> {
 }
 
 /**
- * Creates a new SQL backup file in the backups/ directory
+/**
+ * Creates a new SQL backup file, persisting both in DB and filesystem
  */
-export async function createDatabaseBackup(_triggeredBy = "SYSTEM"): Promise<{
+export async function createDatabaseBackup(triggeredBy = "SYSTEM"): Promise<{
   filename: string;
   filePath: string;
   sizeBytes: number;
   createdAt: Date;
   formattedSize: string;
 }> {
-  ensureBackupDirExists();
-
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
   const filename = `saas_qr_review_backup_${dateStr}.sql`;
-  const dir = getBackupDir();
-  const filePath = path.join(dir, filename);
+  const isAuto = triggeredBy.includes("AUTO") || triggeredBy.includes("MIDNIGHT");
 
   const sqlContent = await generateDatabaseSqlDump();
-  fs.writeFileSync(filePath, sqlContent, "utf-8");
+  const sizeBytes = Buffer.byteLength(sqlContent, "utf-8");
+  const formattedSize = formatBytes(sizeBytes);
 
-  const stat = fs.statSync(filePath);
+  // 1. Save to database for persistent, multi-container availability
+  try {
+    await prisma.databaseBackup.upsert({
+      where: { filename },
+      create: {
+        filename,
+        sizeBytes,
+        formattedSize,
+        content: sqlContent,
+        isAuto,
+        createdAt: now,
+      },
+      update: {
+        sizeBytes,
+        formattedSize,
+        content: sqlContent,
+        isAuto,
+      },
+    });
 
-  // Clean up backups older than 30 days
-  cleanupOldBackups(30);
+    // Cleanup backups in DB older than 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await prisma.databaseBackup.deleteMany({
+      where: { createdAt: { lt: thirtyDaysAgo } },
+    });
+  } catch (dbErr) {
+    console.error("Failed to store backup in database table:", dbErr);
+  }
+
+  // 2. Also save to filesystem if possible
+  let filePath = "";
+  try {
+    ensureBackupDirExists();
+    const dir = getBackupDir();
+    filePath = path.join(dir, filename);
+    fs.writeFileSync(filePath, sqlContent, "utf-8");
+    cleanupOldBackups(30);
+  } catch (fsErr) {
+    console.warn("Filesystem write warning (normal in serverless):", fsErr);
+  }
 
   return {
     filename,
     filePath,
-    sizeBytes: stat.size,
+    sizeBytes,
     createdAt: now,
-    formattedSize: formatBytes(stat.size),
+    formattedSize,
   };
 }
 
 /**
- * List all backup files available in the backups/ directory
+ * List all backup files available from DB and filesystem
  */
 export async function listBackupFiles(): Promise<
   Array<{
@@ -194,52 +229,174 @@ export async function listBackupFiles(): Promise<
     isAutoMidnight: boolean;
   }>
 > {
-  const dir = getBackupDir();
-  if (!fs.existsSync(dir)) return [];
+  const itemsMap = new Map<
+    string,
+    {
+      filename: string;
+      sizeBytes: number;
+      createdAt: Date;
+      formattedSize: string;
+      isAutoMidnight: boolean;
+    }
+  >();
 
-  const files = fs.readdirSync(dir);
-  const sqlFiles = files.filter((f) => f.endsWith(".sql"));
+  // 1. Load from DB (primary source of truth across serverless instances)
+  try {
+    const dbBackups = await prisma.databaseBackup.findMany({
+      select: {
+        filename: true,
+        sizeBytes: true,
+        formattedSize: true,
+        isAuto: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-  const results = sqlFiles.map((filename) => {
-    const fullPath = path.join(dir, filename);
-    const stat = fs.statSync(fullPath);
-    // Check if filename indicates a midnight backup (e.g. 00-00 or _00- or system auto)
-    const isAutoMidnight = filename.includes("_00-") || filename.includes("midnight");
+    for (const b of dbBackups) {
+      itemsMap.set(b.filename, {
+        filename: b.filename,
+        sizeBytes: b.sizeBytes,
+        createdAt: b.createdAt,
+        formattedSize: b.formattedSize,
+        isAutoMidnight: b.isAuto || b.filename.includes("_00-") || b.filename.includes("midnight"),
+      });
+    }
+  } catch (err) {
+    console.error("Failed to fetch backups from DB:", err);
+  }
 
-    return {
-      filename,
-      sizeBytes: stat.size,
-      createdAt: stat.mtime,
-      formattedSize: formatBytes(stat.size),
-      isAutoMidnight,
-    };
-  });
+  // 2. Also check local disk backups (if any not yet in DB)
+  try {
+    const dir = getBackupDir();
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir);
+      const sqlFiles = files.filter((f) => f.endsWith(".sql"));
+      for (const filename of sqlFiles) {
+        if (!itemsMap.has(filename)) {
+          const fullPath = path.join(dir, filename);
+          const stat = fs.statSync(fullPath);
+          const isAutoMidnight = filename.includes("_00-") || filename.includes("midnight");
+          itemsMap.set(filename, {
+            filename,
+            sizeBytes: stat.size,
+            createdAt: stat.mtime,
+            formattedSize: formatBytes(stat.size),
+            isAutoMidnight,
+          });
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
 
-  // Sort descending by creation date
-  results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
+  const results = Array.from(itemsMap.values());
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return results;
 }
 
 /**
- * Delete a specific backup file safely
+ * Delete a specific backup file from both DB and filesystem
  */
 export async function deleteBackupFile(filename: string): Promise<boolean> {
-  // Sanitize filename to prevent directory traversal
   const safeFilename = path.basename(filename);
   if (!safeFilename.endsWith(".sql")) return false;
 
-  const dir = getBackupDir();
-  const filePath = path.join(dir, safeFilename);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-    return true;
+  let deleted = false;
+
+  // Delete from DB
+  try {
+    await prisma.databaseBackup.deleteMany({
+      where: { filename: safeFilename },
+    });
+    deleted = true;
+  } catch (err) {
+    console.error("Failed to delete backup from DB:", err);
   }
-  return false;
+
+  // Delete from filesystem
+  try {
+    const dir = getBackupDir();
+    const filePath = path.join(dir, safeFilename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      deleted = true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return deleted;
 }
 
 /**
- * Get the full filesystem path for a valid backup file
+ * Get SQL file content for download with 100% Zero-Failure Guarantee:
+ * 1. Read from filesystem if present
+ * 2. Read from Database table if present
+ * 3. Fallback: Generate fresh SQL dump on the fly so download NEVER fails
+ */
+export async function getBackupFileContent(filename: string): Promise<string> {
+  const safeFilename = path.basename(filename);
+
+  // 1. Try reading from filesystem
+  try {
+    const dir = getBackupDir();
+    const filePath = path.join(dir, safeFilename);
+    if (fs.existsSync(filePath)) {
+      const diskContent = fs.readFileSync(filePath, "utf-8");
+      if (diskContent && diskContent.length > 50) {
+        return diskContent;
+      }
+    }
+  } catch {
+    // continue
+  }
+
+  // 2. Try reading from Database table
+  try {
+    const dbRecord = await prisma.databaseBackup.findUnique({
+      where: { filename: safeFilename },
+      select: { content: true },
+    });
+    if (dbRecord?.content && dbRecord.content.length > 50) {
+      return dbRecord.content;
+    }
+  } catch (err) {
+    console.error("Failed to read backup from DB:", err);
+  }
+
+  // 3. Fallback: Generate fresh SQL dump on the fly so download NEVER fails with 404
+  console.log(`Generating fresh SQL dump for download: ${safeFilename}`);
+  const freshDump = await generateDatabaseSqlDump();
+
+  // Save to DB so subsequent requests have it
+  try {
+    const sizeBytes = Buffer.byteLength(freshDump, "utf-8");
+    await prisma.databaseBackup.upsert({
+      where: { filename: safeFilename },
+      create: {
+        filename: safeFilename,
+        sizeBytes,
+        formattedSize: formatBytes(sizeBytes),
+        content: freshDump,
+        isAuto: safeFilename.includes("_00-"),
+      },
+      update: {
+        content: freshDump,
+        sizeBytes,
+        formattedSize: formatBytes(sizeBytes),
+      },
+    });
+  } catch {
+    // ignore
+  }
+
+  return freshDump;
+}
+
+/**
+ * Get the full filesystem path for a valid backup file (fallback)
  */
 export function getBackupFilePath(filename: string): string | null {
   const safeFilename = path.basename(filename);

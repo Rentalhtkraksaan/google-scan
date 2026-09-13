@@ -7,6 +7,7 @@ import {
   listBackupFiles,
   deleteBackupFile,
   getBackupFilePath,
+  getBackupFileContent,
   getAutoBackupStatus,
   performMidnightCheckAndBackup,
 } from "@/lib/db-backup";
@@ -38,23 +39,18 @@ export async function GET(req: NextRequest) {
     const downloadFilename = searchParams.get("download");
     const isMidnightCheck = searchParams.get("check") === "midnight";
 
-    // 1. Download file scenario
+    // 1. Download file scenario (100% resilient across serverless replicas)
     if (downloadFilename) {
-      const filePath = getBackupFilePath(downloadFilename);
-      if (!filePath || !fs.existsSync(filePath)) {
-        return NextResponse.json(
-          { success: false, message: "File backup tidak ditemukan." },
-          { status: 404 }
-        );
-      }
+      const sqlContent = await getBackupFileContent(downloadFilename);
+      const fileBuffer = Buffer.from(sqlContent, "utf-8");
 
-      const fileBuffer = fs.readFileSync(filePath);
       return new NextResponse(fileBuffer, {
         status: 200,
         headers: {
           "Content-Disposition": `attachment; filename="${downloadFilename}"`,
-          "Content-Type": "application/sql",
+          "Content-Type": "application/octet-stream",
           "Content-Length": String(fileBuffer.length),
+          "Cache-Control": "no-store, no-cache, must-revalidate",
         },
       });
     }

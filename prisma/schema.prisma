@@ -171,3 +171,17 @@ model DailyVisitor {
 
   @@map("daily_visitors")
 }
+
+model DatabaseBackup {
+  id            String   @id @default(cuid())
+  filename      String   @unique
+  sizeBytes     Int
+  formattedSize String
+  content       String?  @db.LongText
+  isAuto        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("database_backups")
+}
+

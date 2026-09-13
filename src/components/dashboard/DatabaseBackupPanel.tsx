@@ -105,17 +105,29 @@ export default function DatabaseBackupPanel() {
     return () => clearInterval(interval);
   }, [fetchBackups]);
 
-  // Helper to trigger browser file download via API
-  const triggerBrowserDownload = (filename: string) => {
-    const downloadUrl = `/api/super-admin/backup?download=${encodeURIComponent(filename)}`;
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-    }, 5000);
+  // Helper to trigger robust browser file download via Blob + ObjectURL
+  const triggerBrowserDownload = async (filename: string) => {
+    try {
+      const downloadUrl = `/api/super-admin/backup?download=${encodeURIComponent(filename)}`;
+      const res = await fetch(downloadUrl);
+      if (!res.ok) {
+        throw new Error("Gagal mengunduh file backup dari server.");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 2000);
+    } catch (err) {
+      console.error("Blob download error, falling back to direct navigation:", err);
+      window.location.href = `/api/super-admin/backup?download=${encodeURIComponent(filename)}`;
+    }
   };
 
   // Trigger manual instant backup
