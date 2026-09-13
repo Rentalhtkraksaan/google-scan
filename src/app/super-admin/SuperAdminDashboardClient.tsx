@@ -185,6 +185,7 @@ export function SuperAdminDashboardClient({
   const [localSuperAdmins, setLocalSuperAdmins] = useState(superAdmins);
   const [localAdmins, setLocalAdmins] = useState(admins);
   const [localOutlets, setLocalOutlets] = useState(allOutlets);
+  const [localCards, setLocalCards] = useState(allCards);
 
   useEffect(() => {
     setLocalSuperAdmins(superAdmins);
@@ -197,6 +198,10 @@ export function SuperAdminDashboardClient({
   useEffect(() => {
     setLocalOutlets(allOutlets);
   }, [allOutlets]);
+
+  useEffect(() => {
+    setLocalCards(allCards);
+  }, [allCards]);
 
   // Selection states untuk fitur Hapus All / Select All (Khusus Super Admin 1)
   const [selectedCardCodes, setSelectedCardCodes] = useState<string[]>([]);
@@ -257,7 +262,7 @@ export function SuperAdminDashboardClient({
   };
 
   // Hanya Super Admin 1 (Master) yang melihat Kartu & Outlet Demo Landing Page
-  const displayCards = isMaster ? allCards : allCards.filter((c) => !isDemoCard(c.code));
+  const displayCards = isMaster ? localCards : localCards.filter((c) => !isDemoCard(c.code));
   const displayOutlets = isMaster
     ? localOutlets
     : localOutlets.filter((o) => !o.qrCard?.code || !isDemoCard(o.qrCard.code));
@@ -507,20 +512,22 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    setIsDeletingBatch(true);
-    try {
-      const res = await deleteBatchCardsAction(selectedCardCodes);
-      if (res.success) {
-        showSuccessAlert("Berhasil Dihapus", res.message, 1500);
-        setSelectedCardCodes([]);
-      } else {
+    // Optimistic UI
+    const codesToDelete = [...selectedCardCodes];
+    setLocalCards((prev) => prev.filter((c) => !codesToDelete.includes(c.code)));
+    setSelectedCardCodes([]);
+    showSuccessAlert("Berhasil Dihapus", "Kartu berhasil dihapus dari sistem", 1500);
+
+    // Fire and forget
+    deleteBatchCardsAction(codesToDelete).then((res) => {
+      if (!res.success) {
+        setLocalCards(allCards);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalCards(allCards);
       showErrorAlert("Kesalahan", "Terjadi kesalahan saat menghapus batch kartu.");
-    } finally {
-      setIsDeletingBatch(false);
-    }
+    });
   };
 
   const handleBatchDeleteOutlets = async () => {
@@ -551,20 +558,25 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    setIsDeletingBatch(true);
-    try {
-      const res = await deleteBatchOutletUsersAction(selectedOutletIds);
-      if (res.success) {
-        showSuccessAlert("Berhasil Dihapus", res.message, 1500);
-        setSelectedOutletIds([]);
-      } else {
+    // Optimistic UI
+    const idsToDelete = [...selectedOutletIds];
+    setLocalOutlets((prev) => prev.filter((o) => {
+      const ownerId = o.ownerId || o.owner?.id || o.id;
+      return !idsToDelete.includes(ownerId);
+    }));
+    setSelectedOutletIds([]);
+    showSuccessAlert("Berhasil Dihapus", "Outlet berhasil dihapus dari sistem", 1500);
+
+    // Fire and forget
+    deleteBatchOutletUsersAction(idsToDelete).then((res) => {
+      if (!res.success) {
+        setLocalOutlets(allOutlets);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalOutlets(allOutlets);
       showErrorAlert("Kesalahan", "Terjadi kesalahan saat menghapus batch outlet.");
-    } finally {
-      setIsDeletingBatch(false);
-    }
+    });
   };
 
   const handleBatchDeleteAdmins = async () => {
@@ -577,20 +589,22 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    setIsDeletingBatch(true);
-    try {
-      const res = await deleteBatchAdminsAction(selectedAdminIds);
-      if (res.success) {
-        showSuccessAlert("Berhasil Dihapus", res.message, 1500);
-        setSelectedAdminIds([]);
-      } else {
+    // Optimistic UI
+    const idsToDelete = [...selectedAdminIds];
+    setLocalAdmins((prev) => prev.filter((a) => !idsToDelete.includes(a.id)));
+    setSelectedAdminIds([]);
+    showSuccessAlert("Berhasil Dihapus", "Admin Lapangan berhasil dihapus dari sistem", 1500);
+
+    // Fire and forget
+    deleteBatchAdminsAction(idsToDelete).then((res) => {
+      if (!res.success) {
+        setLocalAdmins(admins);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalAdmins(admins);
       showErrorAlert("Kesalahan", "Terjadi kesalahan saat menghapus batch admin.");
-    } finally {
-      setIsDeletingBatch(false);
-    }
+    });
   };
 
   const handleBatchDeleteSuperAdmins = async () => {
@@ -603,20 +617,22 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    setIsDeletingBatch(true);
-    try {
-      const res = await deleteBatchSuperAdminsAction(selectedSuperAdminIds);
-      if (res.success) {
-        showSuccessAlert("Berhasil Dihapus", res.message, 1500);
-        setSelectedSuperAdminIds([]);
-      } else {
+    // Optimistic UI
+    const idsToDelete = [...selectedSuperAdminIds];
+    setLocalSuperAdmins((prev) => prev.filter((sa) => !idsToDelete.includes(sa.id)));
+    setSelectedSuperAdminIds([]);
+    showSuccessAlert("Berhasil Dihapus", "Super Admin berhasil dihapus dari sistem", 1500);
+
+    // Fire and forget
+    deleteBatchSuperAdminsAction(idsToDelete).then((res) => {
+      if (!res.success) {
+        setLocalSuperAdmins(superAdmins);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalSuperAdmins(superAdmins);
       showErrorAlert("Kesalahan", "Terjadi kesalahan saat menghapus batch super admin.");
-    } finally {
-      setIsDeletingBatch(false);
-    }
+    });
   };
 
   // Toggle card status dengan konfirmasi modal
@@ -624,16 +640,21 @@ export function SuperAdminDashboardClient({
     const confirmed = await showToggleCardConfirmAlert(code, outletName, currentStatus);
     if (!confirmed) return;
 
-    try {
-      const res = await toggleCardStatusAction(code);
-      if (res.success) {
-        showSuccessAlert("Status Diperbarui", res.message, 1200);
-      } else {
+    // Optimistic UI
+    const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    setLocalCards((prev) => prev.map((c) => (c.code === code ? { ...c, status: newStatus } : c)));
+    showSuccessAlert("Status Diperbarui", `Status kartu ${code} berhasil diubah.`, 1200);
+
+    // Fire and forget
+    toggleCardStatusAction(code).then((res) => {
+      if (!res.success) {
+        setLocalCards(allCards);
         showErrorAlert("Gagal", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalCards(allCards);
       showErrorAlert("Kesalahan", "Gagal mengubah status kartu.");
-    }
+    });
   };
 
   // Delete card (Validasi 2 Langkah & Proteksi Super Admin 1)
@@ -654,16 +675,20 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    try {
-      const res = await deleteCardAction(code);
-      if (res.success) {
-        showSuccessAlert("Berhasil Dihapus", res.message, 1500);
-      } else {
+    // Optimistic UI
+    setLocalCards((prev) => prev.filter((c) => c.code !== code));
+    showSuccessAlert("Berhasil Dihapus", `Kartu ${code} berhasil dihapus dari sistem`, 1500);
+
+    // Fire and forget
+    deleteCardAction(code).then((res) => {
+      if (!res.success) {
+        setLocalCards(allCards);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalCards(allCards);
       showErrorAlert("Kesalahan", "Gagal menghapus kartu.");
-    }
+    });
   };
 
   // Delete Admin (Field Admin - Validasi 2 Langkah & Proteksi Super Admin 1 & Outlet Binaan 0)
@@ -706,16 +731,20 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    try {
-      const res = await deleteAdminAction(adminId);
-      if (res.success) {
-        showSuccessAlert("Admin Dihapus", res.message, 1500);
-      } else {
+    // Optimistic UI
+    setLocalAdmins((prev) => prev.filter((a) => a.id !== adminId));
+    showSuccessAlert("Admin Dihapus", `Admin Lapangan ${name} berhasil dihapus dari sistem`, 1500);
+
+    // Fire and forget
+    deleteAdminAction(adminId).then((res) => {
+      if (!res.success) {
+        setLocalAdmins(admins);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalAdmins(admins);
       showErrorAlert("Kesalahan", "Gagal menghapus admin.");
-    }
+    });
   };
 
   // Delete Super Admin 2 (Only Super Admin 1 - Validasi 2 Langkah)
@@ -733,16 +762,20 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    try {
-      const res = await deleteSuperAdminAction(targetId);
-      if (res.success) {
-        showSuccessAlert("Super Admin Dihapus", res.message, 1500);
-      } else {
+    // Optimistic UI
+    setLocalSuperAdmins((prev) => prev.filter((sa) => sa.id !== targetId));
+    showSuccessAlert("Super Admin Dihapus", `Super Admin ${name} berhasil dihapus dari sistem`, 1500);
+
+    // Fire and forget
+    deleteSuperAdminAction(targetId).then((res) => {
+      if (!res.success) {
+        setLocalSuperAdmins(superAdmins);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalSuperAdmins(superAdmins);
       showErrorAlert("Kesalahan", "Gagal menghapus Super Admin.");
-    }
+    });
   };
 
   // Toggle Super Admin Permission (Landing page edit permission)
@@ -855,16 +888,20 @@ export function SuperAdminDashboardClient({
     );
     if (!confirmed) return;
 
-    try {
-      const res = await deleteOutletUserAction(userId);
-      if (res.success) {
-        showSuccessAlert("Outlet Dihapus", res.message, 1500);
-      } else {
+    // Optimistic UI
+    setLocalOutlets((prev) => prev.filter((o) => (o.ownerId || o.owner?.id || o.id) !== userId));
+    showSuccessAlert("Outlet Dihapus", `Outlet ${name} berhasil dihapus dari sistem`, 1500);
+
+    // Fire and forget
+    deleteOutletUserAction(userId).then((res) => {
+      if (!res.success) {
+        setLocalOutlets(allOutlets);
         showErrorAlert("Gagal Menghapus", res.message);
       }
-    } catch {
+    }).catch(() => {
+      setLocalOutlets(allOutlets);
       showErrorAlert("Kesalahan", "Gagal menghapus outlet.");
-    }
+    });
   };
 
   // Toggle Admin / User Active Status (Matikan / Aktifkan Akun)
