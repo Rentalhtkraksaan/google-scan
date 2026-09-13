@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toaster";
-
-import { db } from "@/lib/db";
+import prisma from "@/lib/prisma";
 
 export async function generateMetadata(): Promise<Metadata> {
   let faviconUrl = "/favicon.ico";
   try {
-    const setting = await db.siteSetting.findFirst();
+    const setting = await prisma.siteSetting.findFirst();
     if (setting?.faviconUrl) {
       faviconUrl = setting.faviconUrl;
     }
