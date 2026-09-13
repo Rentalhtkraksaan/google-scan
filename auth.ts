@@ -22,16 +22,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const data = parsed.data;
 
         if (data.loginType === "recovery") {
-          const { email, fullName, whatsappNumber } = data;
+          const { email, whatsappNumber } = data;
           const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase().trim() },
           });
 
           if (!user || user.isActive === false) return null;
 
-          const normInputName = fullName.toLowerCase().replace(/\s+/g, " ").trim();
-          const normUserName = user.fullName.toLowerCase().replace(/\s+/g, " ").trim();
-          if (normInputName !== normUserName) return null;
+
 
           let cleanInputWa = whatsappNumber.replace(/[^0-9]/g, "");
           if (cleanInputWa.startsWith("08")) cleanInputWa = "62" + cleanInputWa.slice(1);

@@ -201,7 +201,7 @@ export async function updateAdminUserAction(
       return { success: false, message: "Email maksimal 30 karakter." };
     }
 
-    if (newPassword && (newPassword.length < 6 || newPassword.length > 15)) {
+    if (newPassword && (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50)) {
       return { success: false, message: "Password harus berukuran 6 sampai 15 karakter." };
     }
 
@@ -411,8 +411,11 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
       return { success: false, message: "Email maksimal 30 karakter." };
     }
 
-    if (raw.password.length < 6 || raw.password.length > 15) {
-      return { success: false, message: "Password harus berukuran 6 sampai 15 karakter." };
+    if (raw.password.length < 8 || raw.password.length > 50) {
+      return { success: false, message: "Password harus berukuran minimal 8 karakter." };
+    }
+    if (!/[A-Z]/.test(raw.password) || !/[a-z]/.test(raw.password) || !/[0-9]/.test(raw.password) || !/[^A-Za-z0-9]/.test(raw.password)) {
+      return { success: false, message: "Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus." };
     }
 
     // Cek email duplikat
@@ -1042,7 +1045,7 @@ export async function updateOutletAction(
     }
 
     if (newPassword) {
-      if (newPassword.length < 6 || newPassword.length > 15) {
+      if (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50) {
         return { success: false, message: "Password baru harus berukuran 6 sampai 15 karakter." };
       }
       userUpdateData.password = await bcrypt.hash(newPassword, 10);
@@ -1359,14 +1362,13 @@ export async function deleteBatchSuperAdminsAction(superAdminIds: string[]): Pro
 export async function resetForgotPasswordAction(formData: FormData): Promise<ActionResult> {
   try {
     const email = (formData.get("email") as string)?.trim().toLowerCase();
-    const fullName = (formData.get("fullName") as string)?.trim();
     const whatsappNumber = (formData.get("whatsappNumber") as string)?.trim();
     const newPassword = (formData.get("newPassword") as string)?.trim();
 
-    if (!email || !fullName || !whatsappNumber || !newPassword) {
+    if (!email || !whatsappNumber || !newPassword) {
       return {
         success: false,
-        message: "Semua kolom (Email, Nama Lengkap, No. WhatsApp, Password Baru) wajib diisi.",
+        message: "Semua kolom (Email, No. WhatsApp, Password Baru) wajib diisi.",
       };
     }
 
@@ -1377,10 +1379,17 @@ export async function resetForgotPasswordAction(formData: FormData): Promise<Act
       };
     }
 
-    if (newPassword.length < 6 || newPassword.length > 15) {
+    if (newPassword.length < 8 || newPassword.length > 50) {
       return {
         success: false,
-        message: "Password baru harus berukuran 6 sampai 15 karakter.",
+        message: "Password baru minimal 8 karakter.",
+      };
+    }
+
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+      return {
+        success: false,
+        message: "Password harus mengandung minimal satu huruf besar, satu huruf kecil, satu angka, dan satu karakter khusus.",
       };
     }
 
@@ -1392,20 +1401,11 @@ export async function resetForgotPasswordAction(formData: FormData): Promise<Act
     if (!user) {
       return {
         success: false,
-        message: "Data verifikasi tidak cocok. Pastikan Email, Nama Lengkap, dan No. WhatsApp sama dengan yang didaftarkan.",
+        message: "Data verifikasi tidak cocok. Pastikan Email dan No. WhatsApp sama dengan yang didaftarkan.",
       };
     }
 
-    // 2. Cocokkan Nama Lengkap (case-insensitive & trim)
-    const normalizedInputName = fullName.toLowerCase().replace(/\s+/g, " ");
-    const normalizedUserName = user.fullName.toLowerCase().replace(/\s+/g, " ");
 
-    if (normalizedInputName !== normalizedUserName) {
-      return {
-        success: false,
-        message: "Data verifikasi tidak cocok. Pastikan Nama Lengkap sama persis dengan yang didaftarkan.",
-      };
-    }
 
     // 3. Cocokkan Nomor WhatsApp
     let cleanInputWa = whatsappNumber.replace(/[^0-9]/g, "");
@@ -1491,7 +1491,7 @@ export async function updateSuperAdminUserAction(
       return { success: false, message: "Email maksimal 30 karakter." };
     }
 
-    if (newPassword && (newPassword.length < 6 || newPassword.length > 15)) {
+    if (newPassword && (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50)) {
       return { success: false, message: "Password harus berukuran 6 sampai 15 karakter." };
     }
 
@@ -1610,7 +1610,7 @@ export async function updateSelfProfileAction(formData: FormData): Promise<Actio
     }
 
     if (newPassword) {
-      if (newPassword.length < 6 || newPassword.length > 15) {
+      if (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50) {
         return { success: false, message: "Password baru harus berukuran 6 sampai 15 karakter." };
       }
       updateData.password = await bcrypt.hash(newPassword, 10);

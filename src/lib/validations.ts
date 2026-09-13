@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const strongPassword = z
+  .string()
+  .min(8, "Password minimal 8 karakter")
+  .max(50, "Password maksimal 50 karakter")
+  .regex(/[A-Z]/, "Password harus mengandung minimal satu huruf besar")
+  .regex(/[a-z]/, "Password harus mengandung minimal satu huruf kecil")
+  .regex(/[0-9]/, "Password harus mengandung minimal satu angka")
+  .regex(/[^A-Za-z0-9]/, "Password harus mengandung minimal satu karakter khusus");
+
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
 export const loginSchema = z.union([
@@ -13,19 +22,6 @@ export const loginSchema = z.union([
         (val) => !/[<>"'`;%${}()[\]\\]/.test(val) && !val.toLowerCase().includes(".php"),
         { message: "Format email tidak valid atau mengandung karakter dilarang" }
       ),
-    fullName: z
-      .string()
-      .min(2, "Nama lengkap minimal 2 karakter")
-      .max(50, "Nama lengkap maksimal 50 karakter")
-      .regex(/^[a-zA-Z0-9\s.,'-]+$/, "Nama hanya boleh mengandung huruf, spasi, dan tanda baca nama")
-      .refine(
-        (val) =>
-          !val.toLowerCase().includes("<?") &&
-          !val.toLowerCase().includes("php") &&
-          !val.includes("$") &&
-          !val.includes(";"),
-        { message: "Karakter atau format nama tidak diizinkan" }
-      ),
     whatsappNumber: z
       .string()
       .min(8, "Nomor WhatsApp minimal 8 digit")
@@ -35,7 +31,7 @@ export const loginSchema = z.union([
   z.object({
     loginType: z.literal("password").optional(),
     email: z.string().email("Email tidak valid").max(30, "Email maksimal 30 karakter"),
-    password: z.string().min(1, "Password wajib diisi").max(15, "Password maksimal 15 karakter"),
+    password: z.string().min(1, "Password wajib diisi"),
   }),
 ]);
 
@@ -45,10 +41,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const createAdminSchema = z.object({
   email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
-  password: z
-    .string()
-    .min(6, "Password minimal 6 karakter")
-    .max(15, "Password maksimal 15 karakter"),
+  password: strongPassword,
   fullName: z.string().min(2, "Nama minimal 2 karakter").max(100),
   whatsappNumber: z
     .string()
@@ -63,7 +56,7 @@ export type CreateAdminInput = z.infer<typeof createAdminSchema>;
 
 export const createSuperAdminSchema = z.object({
   email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
-  password: z.string().min(6, "Password minimal 6 karakter").max(15, "Password maksimal 15 karakter"),
+  password: strongPassword,
   fullName: z.string().min(2, "Nama minimal 2 karakter").max(100),
   whatsappNumber: z
     .string()
@@ -89,7 +82,7 @@ export const registerOutletSchema = z.object({
     .max(20, "Nomor WhatsApp terlalu panjang")
     .regex(/^[0-9+ ]+$/, "Nomor WA hanya boleh angka dan tanda +"),
   email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
-  password: z.string().min(6, "Password akun minimal 6 karakter").max(15, "Password maksimal 15 karakter"),
+  password: strongPassword,
   outletName: z.string().min(2, "Nama outlet minimal 2 karakter").max(200),
   googleReviewUrl: z
     .string()

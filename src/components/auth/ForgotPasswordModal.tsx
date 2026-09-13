@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import {
   X,
   Mail,
-  User,
   Phone,
   ShieldCheck,
   ArrowRight,
@@ -30,7 +29,6 @@ export function ForgotPasswordModal({
   const callbackUrl = searchParams.get("callbackUrl");
 
   const [email, setEmail] = useState(initialEmail);
-  const [fullName, setFullName] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +36,6 @@ export function ForgotPasswordModal({
     if (isOpen) {
       document.body.style.overflow = "hidden";
       setEmail(initialEmail);
-      setFullName("");
       setWhatsappNumber("");
     }
     return () => {
@@ -53,16 +50,11 @@ export function ForgotPasswordModal({
     if (loading) return;
 
     const cleanEmail = email.trim().toLowerCase();
-    const cleanFullName = fullName.trim();
     const cleanWa = whatsappNumber.trim();
 
     // Validasi Keamanan Input (Anti-Script / Anti-PHP Injection)
     if (
-      cleanEmail.includes(".php") ||
-      cleanFullName.toLowerCase().includes("php") ||
-      cleanFullName.includes("<?") ||
-      cleanFullName.includes("$") ||
-      cleanFullName.includes(";")
+      cleanEmail.includes(".php")
     ) {
       await showErrorAlert("Input Ditolak", "Karakter atau format input tidak diizinkan.");
       return;
@@ -78,10 +70,6 @@ export function ForgotPasswordModal({
       return;
     }
 
-    if (cleanFullName.length < 2 || cleanFullName.length > 50) {
-      await showErrorAlert("Nama Tidak Valid", "Nama lengkap harus terdiri dari 2-50 karakter.");
-      return;
-    }
 
     setLoading(true);
 
@@ -89,7 +77,6 @@ export function ForgotPasswordModal({
       const res = await signIn("credentials", {
         loginType: "recovery",
         email: cleanEmail,
-        fullName: cleanFullName,
         whatsappNumber: cleanWa,
         redirect: false,
       });
@@ -210,32 +197,7 @@ export function ForgotPasswordModal({
             </div>
           </div>
 
-          {/* 3. Nama Lengkap */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                3. Nama Lengkap Terdaftar <span className="text-rose-400">*</span>
-              </label>
-              <span className="text-[10px] text-slate-500">{fullName.length}/50</span>
-            </div>
-            <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                required
-                maxLength={50}
-                value={fullName}
-                onChange={(e) => {
-                  // Hanya izinkan huruf, angka, spasi, dan tanda baca nama umum
-                  const val = e.target.value.replace(/[^a-zA-Z0-9\s.,'-]/g, "").slice(0, 50);
-                  setFullName(val);
-                }}
-                placeholder="Nama lengkap saat akun didaftarkan"
-                suppressHydrationWarning
-                className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
+
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
