@@ -18,9 +18,20 @@ import {
   ExternalLink,
   Layers,
   ArrowRight,
+  CheckSquare,
+  Square,
+  ListPlus,
+  RotateCcw,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { lookupScannedCardAction, restoreOrRegisterCardAction, ScannedCardResult } from "@/lib/actions/qr.actions";
+import {
+  lookupScannedCardAction,
+  restoreOrRegisterCardAction,
+  batchLookupScannedCardsAction,
+  batchRestoreOrRegisterCardsAction,
+  parseMultipleCardCodes,
+  ScannedCardResult,
+} from "@/lib/actions/qr.actions";
 
 interface AdminOption {
   id: string;
@@ -78,8 +89,18 @@ export function QrCameraScannerModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [scannedResult, setScannedResult] = useState<ScannedCardResult | null>(null);
 
-  // Manual input state
+  // Manual input & Range Generator state
   const [manualCode, setManualCode] = useState("");
+  const [showRangeHelper, setShowRangeHelper] = useState(false);
+  const [rangePrefix, setRangePrefix] = useState("c-");
+  const [rangeStart, setRangeStart] = useState("1");
+  const [rangeEnd, setRangeEnd] = useState("20");
+  const [rangePad, setRangePad] = useState<number>(3);
+
+  // Batch states
+  const [batchResults, setBatchResults] = useState<ScannedCardResult[] | null>(null);
+  const [selectedBatchCodes, setSelectedBatchCodes] = useState<string[]>([]);
+  const [isBatchRestoring, setIsBatchRestoring] = useState(false);
 
   // Restore form state
   const [selectedAdminId, setSelectedAdminId] = useState<string>(
@@ -87,6 +108,11 @@ export function QrCameraScannerModal({
   );
   const [selectedOutletId, setSelectedOutletId] = useState<string>("");
   const [isRestoring, setIsRestoring] = useState(false);
+
+  // Memoized detected codes from manual textarea input
+  const detectedCodes = React.useMemo(() => {
+    return parseMultipleCardCodes(manualCode);
+  }, [manualCode]);
 
   // Video, Canvas and Logic references
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -224,6 +250,8 @@ export function QrCameraScannerModal({
   const handleResetScan = () => {
     scannedResultRef.current = null;
     setScannedResult(null);
+    setBatchResults(null);
+    setSelectedBatchCodes([]);
     setManualCode("");
     setSelectedOutletId("");
     if (activeMode === "camera") {
@@ -235,10 +263,75 @@ export function QrCameraScannerModal({
   const handleSwitchMode = (mode: "camera" | "upload" | "manual") => {
     setActiveMode(mode);
     setScannedResult(null);
+    setBatchResults(null);
+    setSelectedBatchCodes([]);
     if (mode === "camera") {
       startCamera();
     } else {
       stopCamera();
+    }
+  };
+
+  // Range generator handler
+  const handleApplyRange = (mode: "replace" | "append") => {
+    const start = parseInt(rangeStart, 10);
+    const end = parseInt(rangeEnd, 10);
+    if (isNaN(start) || isNaN(end) || start > end) {
+      Swal.fire({
+        icon: "warning",
+        title: "Rentang Tidak Valid",
+        text: "Pastikan nomor awal lebih kecil atau sama dengan nomor akhir.",
+        background: "#0f172a",
+        color: "#f8fafc",
+        confirmButtonColor: "#4f46e5",
+      });
+      return;
+    }
+    const count = end - start + 1;
+    if (count > 200) {
+      Swal.fire({
+        icon: "warning",
+        title: "Terlalu Banyak",
+        text: "Maksimal 200 kartu per rentang generasi.",
+        background: "#0f172a",
+        color: "#f8fafc",
+        confirmButtonColor: "#4f46e5",
+      });
+      return;
+    }
+
+    const generated: string[] = [];
+    for (let i = start; i <= end; i++) {
+      const numStr = rangePad > 0 ? String(i).padStart(rangePad, "0") : String(i);
+      generated.push(`${rangePrefix.trim()}${numStr}`);
+    }
+
+    if (mode === "replace") {
+      setManualCode(generated.join("\n"));
+    } else {
+      setManualCode((prev) =>
+        prev.trim() ? `${prev.trim()}\n${generated.join("\n")}` : generated.join("\n")
+      );
+    }
+    setShowRangeHelper(false);
+  };
+
+  // Batch item selection helpers
+  const toggleSelectBatchCode = (code: string) => {
+    setSelectedBatchCodes((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
+
+  const toggleSelectAllRecoverable = () => {
+    if (!batchResults) return;
+    const recoverable = batchResults.filter((c) => c.canRestore).map((c) => c.code);
+    const allSelected =
+      recoverable.length > 0 && recoverable.every((c) => selectedBatchCodes.includes(c));
+    if (allSelected) {
+      setSelectedBatchCodes((prev) => prev.filter((c) => !recoverable.includes(c)));
+    } else {
+      setSelectedBatchCodes(recoverable);
     }
   };
 
@@ -281,14 +374,57 @@ export function QrCameraScannerModal({
     if (e.target) e.target.value = "";
   };
 
-  // Handle Manual Code Submit
-  const handleManualSubmit = (e: React.FormEvent) => {
+  // Handle Manual Code Submit (Single vs Batch)
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualCode.trim()) return;
-    handleDecodedCode(manualCode.trim());
+    if (detectedCodes.length === 0) return;
+
+    if (detectedCodes.length === 1) {
+      handleDecodedCode(detectedCodes[0]);
+      return;
+    }
+
+    // Multiple codes batch inspection
+    setIsProcessing(true);
+    setScannedResult(null);
+
+    try {
+      const res = await batchLookupScannedCardsAction(detectedCodes);
+      if (res.success && res.data) {
+        setBatchResults(res.data);
+        const recoverable = res.data.filter((c) => c.canRestore).map((c) => c.code);
+        setSelectedBatchCodes(recoverable);
+
+        const firstSuggested = res.data.find((c) => c.suggestedAdminId)?.suggestedAdminId;
+        if (firstSuggested && admins.some((a) => a.id === firstSuggested)) {
+          setSelectedAdminId(firstSuggested);
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Pemeriksaan Gagal",
+          text: res.message || "Gagal memeriksa daftar kartu.",
+          background: "#0f172a",
+          color: "#f8fafc",
+          confirmButtonColor: "#4f46e5",
+        });
+      }
+    } catch (err) {
+      console.error("Batch lookup error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Kesalahan Sistem",
+        text: "Terjadi kesalahan saat memeriksa daftar kartu.",
+        background: "#0f172a",
+        color: "#f8fafc",
+        confirmButtonColor: "#4f46e5",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // Handle Restore Card
+  // Handle Single Card Restore
   const handleRestoreCard = async () => {
     if (!scannedResult) return;
     setIsRestoring(true);
@@ -335,6 +471,108 @@ export function QrCameraScannerModal({
     }
   };
 
+  // Handle Batch Restore
+  const handleBatchRestore = async () => {
+    if (selectedBatchCodes.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Pilih Kartu Terlebih Dahulu",
+        text: "Silakan centang minimal 1 kartu yang siap dipulihkan.",
+        background: "#0f172a",
+        color: "#f8fafc",
+        confirmButtonColor: "#4f46e5",
+      });
+      return;
+    }
+
+    const assignedAdminName =
+      currentUserRole === "SUPER_ADMIN"
+        ? selectedAdminId === "unassigned"
+          ? "Pool Umum (Belum Dialokasikan)"
+          : admins.find((a) => a.id === selectedAdminId)?.fullName || "Admin Terpilih"
+        : "Akun Anda Sendiri";
+
+    const outletName = selectedOutletId
+      ? outlets.find((o) => o.id === selectedOutletId)?.name || "Outlet Terpilih"
+      : "Tanpa Outlet (Kartu Kosong Siap Pakai)";
+
+    const confirm = await Swal.fire({
+      icon: "question",
+      title: `Pulihkan ${selectedBatchCodes.length} Kartu Sekaligus?`,
+      html: `
+        <div class="text-left text-xs space-y-2 mt-2 p-3 bg-slate-950/80 rounded-xl border border-slate-700 text-slate-300">
+          <div><strong>Jumlah Kartu:</strong> <span class="text-emerald-400 font-bold">${selectedBatchCodes.length} Kartu</span></div>
+          <div><strong>Alokasi Admin:</strong> <span class="text-amber-300 font-semibold">${assignedAdminName}</span></div>
+          <div><strong>Outlet:</strong> <span class="text-sky-300 font-semibold">${outletName}</span></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-3">Kartu-kartu fisik ini akan langsung diaktifkan kembali ke sistem dan siap digunakan.</p>
+      `,
+      showCancelButton: true,
+      confirmButtonText: `Ya, Pulihkan ${selectedBatchCodes.length} Kartu`,
+      cancelButtonText: "Batal",
+      background: "#0f172a",
+      color: "#f8fafc",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#64748b",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    setIsBatchRestoring(true);
+    try {
+      const res = await batchRestoreOrRegisterCardsAction({
+        codes: selectedBatchCodes,
+        assignedAdminId: currentUserRole === "SUPER_ADMIN" ? selectedAdminId : undefined,
+        outletId: selectedOutletId || undefined,
+      });
+
+      if (res.success) {
+        await Swal.fire({
+          icon: "success",
+          title: "Pemulihan Massal Berhasil! 🎉",
+          text: res.message,
+          background: "#0f172a",
+          color: "#f8fafc",
+          confirmButtonColor: "#10b981",
+        });
+
+        if (onCardRestored) onCardRestored();
+
+        // Refresh batch results so user sees updated status immediately
+        if (batchResults) {
+          const reCheck = await batchLookupScannedCardsAction(batchResults.map((b) => b.code));
+          if (reCheck.success && reCheck.data) {
+            setBatchResults(reCheck.data);
+            setSelectedBatchCodes([]);
+          } else {
+            handleResetScan();
+          }
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memulihkan",
+          text: res.message,
+          background: "#0f172a",
+          color: "#f8fafc",
+          confirmButtonColor: "#4f46e5",
+        });
+      }
+    } catch (err) {
+      console.error("Batch restore error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Kesalahan Sistem",
+        text: "Terjadi kesalahan saat memulihkan daftar kartu.",
+        background: "#0f172a",
+        color: "#f8fafc",
+        confirmButtonColor: "#4f46e5",
+      });
+    } finally {
+      setIsBatchRestoring(false);
+    }
+  };
+
   // Lifecycle on modal open/close
   useEffect(() => {
     if (isOpen) {
@@ -354,7 +592,11 @@ export function QrCameraScannerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div
+        className={`relative w-full ${
+          batchResults ? "max-w-2xl sm:max-w-3xl" : "max-w-xl"
+        } bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-all duration-300`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/40">
           <div className="flex items-center gap-2.5">
@@ -435,11 +677,275 @@ export function QrCameraScannerModal({
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Memeriksa Status Kartu...</h3>
+                <h3 className="text-sm font-bold text-white">
+                  {detectedCodes.length > 1
+                    ? `Memeriksa Status ${detectedCodes.length} Kartu...`
+                    : "Memeriksa Status Kartu..."}
+                </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   Memvalidasi riwayat database & hak akses kepemilikan
                 </p>
               </div>
+            </div>
+          ) : batchResults ? (
+            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              {/* Header Bar */}
+              <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setBatchResults(null)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                  <span>Edit / Tambah Kode</span>
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-300">
+                    Hasil Pemeriksaan Massal
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleResetScan}
+                    className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Reset Semua"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
+                  </button>
+                </div>
+              </div>
+
+              {/* KPI Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Kartu</div>
+                  <div className="text-xl font-black text-white mt-0.5">{batchResults.length}</div>
+                </div>
+                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Siap Pulihkan</div>
+                  <div className="text-xl font-black text-emerald-300 mt-0.5">
+                    {batchResults.filter((c) => c.canRestore).length}
+                  </div>
+                </div>
+                <div className="p-3 rounded-2xl bg-sky-500/10 border border-sky-500/30">
+                  <div className="text-[10px] uppercase font-bold text-sky-400 tracking-wider">Sudah Aktif</div>
+                  <div className="text-xl font-black text-sky-300 mt-0.5">
+                    {batchResults.filter((c) => c.status === "EXISTING_ACTIVE" || c.status === "EXISTING_EMPTY").length}
+                  </div>
+                </div>
+                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30">
+                  <div className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">Ditolak / Blokir</div>
+                  <div className="text-xl font-black text-rose-300 mt-0.5">
+                    {batchResults.filter((c) => c.status === "ACCESS_DENIED").length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Recovery Configuration (if any recoverable cards exist) */}
+              {batchResults.some((c) => c.canRestore) && (
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-emerald-500/10 to-teal-500/5 border border-emerald-500/30 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <h3 className="text-xs font-bold text-emerald-200">
+                        Opsi Pemulihan Massal ({selectedBatchCodes.length} Terpilih)
+                      </h3>
+                    </div>
+                    {currentUserRole === "SUPER_ADMIN" && (
+                      <span className="text-[10px] text-slate-400 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800">
+                        Hierarki: {isMaster ? "Super Admin 1 (Master)" : "Super Admin 2"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {currentUserRole === "SUPER_ADMIN" && admins.length > 0 && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Alokasikan ke Admin Lapangan:
+                        </label>
+                        <select
+                          value={selectedAdminId}
+                          onChange={(e) => setSelectedAdminId(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="unassigned">Pool Umum (Belum Dialokasikan)</option>
+                          {admins.map((adm) => (
+                            <option key={adm.id} value={adm.id}>
+                              {adm.fullName} ({adm.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {outlets.length > 0 && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          Hubungkan ke Outlet (Opsional):
+                        </label>
+                        <select
+                          value={selectedOutletId}
+                          onChange={(e) => setSelectedOutletId(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="">-- Biarkan sebagai Kartu Kosong Siap Pakai --</option>
+                          {outlets.map((outl) => (
+                            <option key={outl.id} value={outl.id}>
+                              {outl.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleBatchRestore}
+                      disabled={isBatchRestoring || selectedBatchCodes.length === 0}
+                      className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/30 cursor-pointer disabled:opacity-50"
+                    >
+                      {isBatchRestoring ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Sedang Memulihkan {selectedBatchCodes.length} Kartu...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>Pulihkan {selectedBatchCodes.length} Kartu Terpilih Sekaligus</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Select All & Summary */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllRecoverable}
+                    disabled={!batchResults.some((c) => c.canRestore)}
+                    className="flex items-center gap-1.5 font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+                  >
+                    {batchResults.filter((c) => c.canRestore).length > 0 &&
+                    batchResults
+                      .filter((c) => c.canRestore)
+                      .every((c) => selectedBatchCodes.includes(c.code)) ? (
+                      <CheckSquare className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-500" />
+                    )}
+                    <span>Pilih Semua yang Siap Pulihkan</span>
+                  </button>
+
+                  <span className="text-slate-400 text-[11px]">
+                    Terpilih: <strong className="text-emerald-400 font-bold">{selectedBatchCodes.length}</strong> dari{" "}
+                    {batchResults.filter((c) => c.canRestore).length}
+                  </span>
+                </div>
+
+                {/* List of Cards */}
+                <div className="max-h-[260px] overflow-y-auto space-y-1.5 pr-1">
+                  {batchResults.map((card) => {
+                    const isSelected = selectedBatchCodes.includes(card.code);
+                    return (
+                      <div
+                        key={card.code}
+                        onClick={() => {
+                          if (card.canRestore) toggleSelectBatchCode(card.code);
+                        }}
+                        className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                          card.canRestore
+                            ? isSelected
+                              ? "bg-emerald-500/10 border-emerald-500/40 cursor-pointer"
+                              : "bg-slate-950/60 border-slate-800 hover:border-slate-700 cursor-pointer"
+                            : "bg-slate-950/30 border-slate-800/60 opacity-70 cursor-not-allowed"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {card.canRestore ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSelectBatchCode(card.code);
+                              }}
+                              className="text-slate-400 hover:text-white shrink-0"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-emerald-400" />
+                              ) : (
+                                <Square className="w-4 h-4 text-slate-500" />
+                              )}
+                            </button>
+                          ) : (
+                            <div className="w-4 h-4 rounded border border-slate-700 bg-slate-900/60 shrink-0" />
+                          )}
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-xs sm:text-sm text-white truncate">
+                                {card.code}
+                              </span>
+                              {card.card?.outlet && (
+                                <span className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                                  <Building className="w-3 h-3 text-slate-500 shrink-0" />
+                                  {card.card.outlet.name}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+                              {card.message}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          {card.status === "DELETED_RECOVERABLE" && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Dapat Dipulihkan
+                            </span>
+                          )}
+                          {card.status === "NEW_AVAILABLE" && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Daftar Baru
+                            </span>
+                          )}
+                          {card.status === "EXISTING_ACTIVE" && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                              Sudah Aktif
+                            </span>
+                          )}
+                          {card.status === "EXISTING_EMPTY" && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              Kartu Kosong
+                            </span>
+                          )}
+                          {card.status === "ACCESS_DENIED" && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              Akses Ditolak
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom scan next button */}
+              <button
+                type="button"
+                onClick={handleResetScan}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Pindai / Periksa Kartu Lainnya</span>
+              </button>
             </div>
           ) : scannedResult ? (
             <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
@@ -756,28 +1262,139 @@ export function QrCameraScannerModal({
               {activeMode === "manual" && (
                 <form onSubmit={handleManualSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Ketik Kode Kartu atau Tempel URL QR:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: c-017 atau http://localhost:3000/c/c-017"
+                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Keyboard className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Ketik Kode Kartu atau Tempel URL QR (Bisa Banyak Sekaligus):</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {detectedCodes.length > 0 && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            {detectedCodes.length} kode terdeteksi
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setShowRangeHelper((v) => !v)}
+                          className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-0.5 rounded-lg border border-indigo-500/20 transition-colors"
+                        >
+                          <ListPlus className="w-3 h-3" />
+                          <span>{showRangeHelper ? "Tutup Generator" : "+ Rentang Kode"}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Range Generator Helper */}
+                    {showRangeHelper && (
+                      <div className="mb-3 p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 space-y-3 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-indigo-200 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>Generator Rentang Kode Otomatis</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowRangeHelper(false)}
+                            className="text-slate-400 hover:text-white cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-[10px] text-slate-400 font-semibold mb-1">Prefix</label>
+                            <input
+                              type="text"
+                              value={rangePrefix}
+                              onChange={(e) => setRangePrefix(e.target.value)}
+                              placeholder="c-"
+                              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-slate-400 font-semibold mb-1">Dari No.</label>
+                            <input
+                              type="number"
+                              value={rangeStart}
+                              onChange={(e) => setRangeStart(e.target.value)}
+                              min="1"
+                              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-slate-400 font-semibold mb-1">Sampai No.</label>
+                            <input
+                              type="number"
+                              value={rangeEnd}
+                              onChange={(e) => setRangeEnd(e.target.value)}
+                              min="1"
+                              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-slate-400 font-semibold mb-1">Format Digit</label>
+                            <select
+                              value={rangePad}
+                              onChange={(e) => setRangePad(Number(e.target.value))}
+                              className="w-full px-2 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                            >
+                              <option value={3}>3 digit (001)</option>
+                              <option value={2}>2 digit (01)</option>
+                              <option value={4}>4 digit (0001)</option>
+                              <option value={0}>Tanpa nol (1)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleApplyRange("replace")}
+                            className="flex-1 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Ganti Input dengan Rentang Ini
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyRange("append")}
+                            className="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                          >
+                            + Sisipkan ke Bawah
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <textarea
+                      rows={4}
+                      placeholder={`Contoh input banyak kartu:\nc-001\nc-002\nc-003\natau pisahkan koma: c-001, c-002, c-003\natau tempel link URL: http://localhost:3000/c/c-017`}
                       value={manualCode}
                       onChange={(e) => setManualCode(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                      className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
                       autoFocus
                     />
+
+                    <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span>Mendukung copy-paste banyak baris dari Excel / Notepad, dipisah koma / spasi, atau URL lengkap.</span>
+                    </p>
                   </div>
 
                   <button
                     type="submit"
-                    disabled={!manualCode.trim() || isProcessing}
+                    disabled={detectedCodes.length === 0 || isProcessing}
                     className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-600/25 cursor-pointer disabled:opacity-50"
                   >
                     {isProcessing ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Memeriksa Kode...</span>
+                        <span>Memeriksa {detectedCodes.length} Kartu...</span>
+                      </>
+                    ) : detectedCodes.length > 1 ? (
+                      <>
+                        <span>Periksa Status {detectedCodes.length} Kartu Sekaligus</span>
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     ) : (
                       <>

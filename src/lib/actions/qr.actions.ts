@@ -663,223 +663,259 @@ export type ScannedCardResult = {
   canRestore: boolean;
 };
 
+export function cleanCardCode(rawCodeOrUrl: string): string | null {
+  if (!rawCodeOrUrl || typeof rawCodeOrUrl !== "string") return null;
+  let clean = rawCodeOrUrl.trim().toLowerCase();
+  const codeMatch = clean.match(/(?:^|\/c\/|\/)([a-zA-Z0-9]+-[a-zA-Z0-9]+)(?:$|[?#\/])/i);
+  if (codeMatch && codeMatch[1]) {
+    clean = codeMatch[1].toLowerCase().trim();
+  } else if (clean.includes("/c/")) {
+    const parts = clean.split("/c/");
+    clean = parts[parts.length - 1].split("?")[0].split("#")[0].split("/")[0].trim();
+  } else if (clean.includes("/")) {
+    const parts = clean.split("/");
+    clean = parts[parts.length - 1].split("?")[0].split("#")[0].trim();
+  }
+  return clean || null;
+}
+
+export function parseMultipleCardCodes(rawText: string): string[] {
+  if (!rawText || typeof rawText !== "string") return [];
+  const tokens = rawText
+    .split(/[\r\n,;\s]+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const set = new Set<string>();
+  const result: string[] = [];
+
+  for (const token of tokens) {
+    const code = cleanCardCode(token);
+    if (code && !set.has(code)) {
+      set.add(code);
+      result.push(code);
+    }
+  }
+
+  return result;
+}
+
+async function internalLookupSingleCard(
+  cleanCode: string,
+  currentUserId: string,
+  currentUserRole: Role,
+  isMaster: boolean
+): Promise<ScannedCardResult> {
+  // 1. Cek apakah kartu saat ini ADA di database
+  const existingCard = await prisma.qrCard.findUnique({
+    where: { code: cleanCode },
+    include: {
+      assignedAdmin: {
+        select: { id: true, fullName: true, email: true, createdById: true },
+      },
+      outlet: {
+        include: {
+          owner: {
+            select: { id: true, fullName: true, whatsappNumber: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (existingCard) {
+    // Validasi Hak Akses Kartu yang Ada di Sistem
+    if (currentUserRole === Role.SUPER_ADMIN) {
+      if (!isMaster) {
+        if (existingCard.assignedAdmin && existingCard.assignedAdmin.createdById !== currentUserId) {
+          return {
+            status: "ACCESS_DENIED",
+            code: cleanCode,
+            message: "Akses Ditolak: Kartu fisik ini berada di bawah wewenang Super Admin 1.",
+            canRestore: false,
+          };
+        }
+      }
+    } else if (currentUserRole === Role.ADMIN) {
+      if (existingCard.assignedAdminId !== currentUserId) {
+        const ownerAdminName = existingCard.assignedAdmin?.fullName || "Admin Lapangan Lain";
+        return {
+          status: "ACCESS_DENIED",
+          code: cleanCode,
+          message: `Akses Ditolak: Kartu fisik ini bukan jatah Anda (dialokasikan ke ${ownerAdminName}).`,
+          canRestore: false,
+        };
+      }
+    }
+
+    const isLinkedToOutlet = !!existingCard.outletId && !!existingCard.outlet;
+    const statusMsg = isLinkedToOutlet
+      ? `Kartu ${cleanCode} aktif dan terhubung ke outlet "${existingCard.outlet?.name}".`
+      : `Kartu ${cleanCode} berstatus kartu kosong (siap dialokasikan/dihubungkan).`;
+
+    return {
+      status: isLinkedToOutlet ? "EXISTING_ACTIVE" : "EXISTING_EMPTY",
+      code: cleanCode,
+      message: statusMsg,
+      card: {
+        code: existingCard.code,
+        status: existingCard.status,
+        scanCount: existingCard.scanCount,
+        fallbackUrl: existingCard.fallbackUrl,
+        assignedAdminId: existingCard.assignedAdminId,
+        assignedAdmin: existingCard.assignedAdmin
+          ? {
+              id: existingCard.assignedAdmin.id,
+              fullName: existingCard.assignedAdmin.fullName,
+              email: existingCard.assignedAdmin.email,
+            }
+          : null,
+        outletId: existingCard.outletId,
+        outlet: existingCard.outlet
+          ? {
+              id: existingCard.outlet.id,
+              name: existingCard.outlet.name,
+              googleReviewUrl: existingCard.outlet.googleReviewUrl,
+              owner: existingCard.outlet.owner,
+            }
+          : null,
+      },
+      canRestore: false,
+    };
+  }
+
+  // 2. Kartu TIDAK ADA di database -> Cari riwayat ActivityLog
+  const lastLog = await prisma.activityLog.findFirst({
+    where: {
+      OR: [
+        { targetId: cleanCode },
+        { targetName: { contains: cleanCode } },
+        { description: { contains: cleanCode } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (lastLog) {
+    if (currentUserRole === Role.SUPER_ADMIN) {
+      if (!isMaster) {
+        if (lastLog.superAdminId && lastLog.superAdminId !== currentUserId) {
+          return {
+            status: "ACCESS_DENIED",
+            code: cleanCode,
+            message: "Akses Ditolak: Kartu fisik ini sebelumnya didaftarkan oleh Super Admin 1. Anda tidak memiliki wewenang untuk memulihkannya.",
+            canRestore: false,
+          };
+        }
+      }
+    } else if (currentUserRole === Role.ADMIN) {
+      if (lastLog.adminId && lastLog.adminId !== currentUserId) {
+        return {
+          status: "ACCESS_DENIED",
+          code: cleanCode,
+          message: "Akses Ditolak: Kartu fisik ini sebelumnya bukan jatah Anda. Anda tidak memiliki wewenang untuk memulihkannya.",
+          canRestore: false,
+        };
+      }
+    }
+
+    return {
+      status: "DELETED_RECOVERABLE",
+      code: cleanCode,
+      message: `Kartu fisik "${cleanCode}" terdeteksi pernah terdaftar namun saat ini terhapus dari database. Anda dapat memulihkannya kembali.`,
+      lastKnownHistory: {
+        action: lastLog.action,
+        description: lastLog.description,
+        date: lastLog.createdAt.toISOString(),
+      },
+      suggestedAdminId: lastLog.adminId || null,
+      canRestore: true,
+    };
+  }
+
+  // 3. Kartu belum pernah ada di riwayat sistem sama sekali
+  if (currentUserRole === Role.SUPER_ADMIN) {
+    return {
+      status: "NEW_AVAILABLE",
+      code: cleanCode,
+      message: `Kode kartu "${cleanCode}" belum terdaftar di sistem. Super Admin dapat mendaftarkannya sebagai kartu baru.`,
+      canRestore: true,
+    };
+  } else {
+    return {
+      status: "ACCESS_DENIED",
+      code: cleanCode,
+      message: `Kode kartu "${cleanCode}" belum terdaftar di sistem dan belum dialokasikan oleh Super Admin ke akun Anda.`,
+      canRestore: false,
+    };
+  }
+}
+
 export async function lookupScannedCardAction(rawCodeOrUrl: string): Promise<ActionResult<ScannedCardResult>> {
   try {
     const session = await getSession();
-
-    if (!rawCodeOrUrl || typeof rawCodeOrUrl !== "string") {
-      return { success: false, message: "Kode QR tidak valid." };
-    }
-
-    // Ekstrak kode dari URL jika scanner membaca URL penuh (misal http://domain.com/c/c-017)
-    let cleanCode = rawCodeOrUrl.trim().toLowerCase();
-    const codeMatch = cleanCode.match(/(?:^|\/c\/|\/)([a-zA-Z0-9]+-[a-zA-Z0-9]+)(?:$|[?#\/])/i);
-    if (codeMatch && codeMatch[1]) {
-      cleanCode = codeMatch[1].toLowerCase().trim();
-    } else if (cleanCode.includes("/c/")) {
-      const parts = cleanCode.split("/c/");
-      cleanCode = parts[parts.length - 1].split("?")[0].split("#")[0].split("/")[0].trim();
-    } else if (cleanCode.includes("/")) {
-      const parts = cleanCode.split("/");
-      cleanCode = parts[parts.length - 1].split("?")[0].split("#")[0].trim();
-    }
-
+    const cleanCode = cleanCardCode(rawCodeOrUrl);
     if (!cleanCode) {
       return { success: false, message: "Gagal mengekstrak kode kartu QR dari hasil scan." };
     }
 
     const currentUserId = session.user.id;
-    const currentUserRole = session.user.role;
-    
+    const currentUserRole = session.user.role as Role;
     const dbUser = await prisma.user.findUnique({
       where: { id: currentUserId },
       select: { isSuperAdminMaster: true },
     });
     const isMaster = !!dbUser?.isSuperAdminMaster;
 
-    // 1. Cek apakah kartu saat ini ADA di database
-    const existingCard = await prisma.qrCard.findUnique({
-      where: { code: cleanCode },
-      include: {
-        assignedAdmin: {
-          select: { id: true, fullName: true, email: true, createdById: true },
-        },
-        outlet: {
-          include: {
-            owner: {
-              select: { id: true, fullName: true, whatsappNumber: true },
-            },
-          },
-        },
-      },
-    });
-
-    if (existingCard) {
-      // ─── Validasi Hak Akses Kartu yang Ada di Sistem ───
-      if (currentUserRole === Role.SUPER_ADMIN) {
-        if (!isMaster) {
-          // Super Admin 2: Cek apakah kartu milik Admin binaannya
-          if (existingCard.assignedAdmin && existingCard.assignedAdmin.createdById !== currentUserId) {
-            return {
-              success: true,
-              message: "Akses Ditolak: Kartu fisik ini berada di bawah wewenang Super Admin 1.",
-              data: {
-                status: "ACCESS_DENIED",
-                code: cleanCode,
-                message: "Akses Ditolak: Kartu fisik ini berada di bawah wewenang Super Admin 1 dan tidak dapat Anda kelola.",
-                canRestore: false,
-              },
-            };
-          }
-        }
-      } else if (currentUserRole === Role.ADMIN) {
-        // Admin Lapangan: Harus miliknya sendiri
-        if (existingCard.assignedAdminId !== currentUserId) {
-          const ownerAdminName = existingCard.assignedAdmin?.fullName || "Admin Lapangan Lain";
-          return {
-            success: true,
-            message: `Akses Ditolak: Kartu fisik ini bukan jatah Anda (dialokasikan ke ${ownerAdminName}).`,
-            data: {
-              status: "ACCESS_DENIED",
-              code: cleanCode,
-              message: `Akses Ditolak: Kartu fisik ini bukan jatah Anda (dialokasikan ke ${ownerAdminName}).`,
-              canRestore: false,
-            },
-          };
-        }
-      }
-
-      const isLinkedToOutlet = !!existingCard.outletId && !!existingCard.outlet;
-      const statusMsg = isLinkedToOutlet
-        ? `Kartu ${cleanCode} aktif dan terhubung ke outlet "${existingCard.outlet?.name}".`
-        : `Kartu ${cleanCode} berstatus kartu kosong (siap dialokasikan/dihubungkan).`;
-
-      return {
-        success: true,
-        message: statusMsg,
-        data: {
-          status: isLinkedToOutlet ? "EXISTING_ACTIVE" : "EXISTING_EMPTY",
-          code: cleanCode,
-          message: statusMsg,
-          card: {
-            code: existingCard.code,
-            status: existingCard.status,
-            scanCount: existingCard.scanCount,
-            fallbackUrl: existingCard.fallbackUrl,
-            assignedAdminId: existingCard.assignedAdminId,
-            assignedAdmin: existingCard.assignedAdmin
-              ? {
-                  id: existingCard.assignedAdmin.id,
-                  fullName: existingCard.assignedAdmin.fullName,
-                  email: existingCard.assignedAdmin.email,
-                }
-              : null,
-            outletId: existingCard.outletId,
-            outlet: existingCard.outlet
-              ? {
-                  id: existingCard.outlet.id,
-                  name: existingCard.outlet.name,
-                  googleReviewUrl: existingCard.outlet.googleReviewUrl,
-                  owner: existingCard.outlet.owner,
-                }
-              : null,
-          },
-          canRestore: false,
-        },
-      };
-    }
-
-    // 2. Kartu TIDAK ADA di database -> Cari riwayat ActivityLog
-    const lastLog = await prisma.activityLog.findFirst({
-      where: {
-        OR: [
-          { targetId: cleanCode },
-          { targetName: { contains: cleanCode } },
-          { description: { contains: cleanCode } },
-        ],
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (lastLog) {
-      // ─── Validasi Hak Akses Pemulihan Kartu Terhapus ───
-      if (currentUserRole === Role.SUPER_ADMIN) {
-        if (!isMaster) {
-          // Super Admin 2: Tidak boleh pulihkan kartu milik SA1
-          if (lastLog.superAdminId && lastLog.superAdminId !== currentUserId) {
-            return {
-              success: true,
-              message: "Akses Ditolak: Kartu fisik ini sebelumnya didaftarkan oleh Super Admin 1.",
-              data: {
-                status: "ACCESS_DENIED",
-                code: cleanCode,
-                message: "Akses Ditolak: Kartu fisik ini sebelumnya didaftarkan oleh Super Admin 1. Anda tidak memiliki wewenang untuk memulihkannya.",
-                canRestore: false,
-              },
-            };
-          }
-        }
-      } else if (currentUserRole === Role.ADMIN) {
-        // Admin Lapangan: Hanya boleh pulihkan kartu yang dialokasikan ke dirinya
-        if (lastLog.adminId && lastLog.adminId !== currentUserId) {
-          return {
-            success: true,
-            message: "Akses Ditolak: Kartu fisik ini sebelumnya bukan jatah Anda.",
-            data: {
-              status: "ACCESS_DENIED",
-              code: cleanCode,
-              message: "Akses Ditolak: Kartu fisik ini sebelumnya bukan jatah Anda. Anda tidak memiliki wewenang untuk memulihkannya.",
-              canRestore: false,
-            },
-          };
-        }
-      }
-
-      return {
-        success: true,
-        message: `Kartu fisik "${cleanCode}" terdeteksi pernah terdaftar dan dapat dipulihkan.`,
-        data: {
-          status: "DELETED_RECOVERABLE",
-          code: cleanCode,
-          message: `Kartu fisik "${cleanCode}" terdeteksi pernah terdaftar namun saat ini terhapus dari database. Anda dapat memulihkannya kembali.`,
-          lastKnownHistory: {
-            action: lastLog.action,
-            description: lastLog.description,
-            date: lastLog.createdAt.toISOString(),
-          },
-          suggestedAdminId: lastLog.adminId || null,
-          canRestore: true,
-        },
-      };
-    }
-
-    // 3. Kartu belum pernah ada di riwayat sistem sama sekali
-    if (currentUserRole === Role.SUPER_ADMIN) {
-      return {
-        success: true,
-        message: `Kode kartu "${cleanCode}" belum terdaftar di sistem.`,
-        data: {
-          status: "NEW_AVAILABLE",
-          code: cleanCode,
-          message: `Kode kartu "${cleanCode}" belum terdaftar di sistem. Super Admin dapat mendaftarkannya sebagai kartu baru.`,
-          canRestore: true,
-        },
-      };
-    } else {
-      return {
-        success: true,
-        message: `Kode kartu "${cleanCode}" belum terdaftar di sistem.`,
-        data: {
-          status: "ACCESS_DENIED",
-          code: cleanCode,
-          message: `Kode kartu "${cleanCode}" belum terdaftar di sistem dan belum dialokasikan oleh Super Admin ke akun Anda.`,
-          canRestore: false,
-        },
-      };
-    }
+    const result = await internalLookupSingleCard(cleanCode, currentUserId, currentUserRole, isMaster);
+    return { success: true, message: result.message, data: result };
   } catch (error) {
     console.error("lookupScannedCardAction error:", error);
     const msg = error instanceof Error ? error.message : "Gagal memeriksa status kartu QR.";
+    return { success: false, message: msg };
+  }
+}
+
+// ─── Batch Lookup: Periksa Status Banyak Kartu Fisik Sekaligus ───────────────
+
+export async function batchLookupScannedCardsAction(
+  rawCodesOrText: string[] | string
+): Promise<ActionResult<ScannedCardResult[]>> {
+  try {
+    const session = await getSession();
+    const codes: string[] = Array.isArray(rawCodesOrText)
+      ? rawCodesOrText.map(cleanCardCode).filter((c): c is string => !!c)
+      : parseMultipleCardCodes(rawCodesOrText);
+
+    const uniqueCodes = Array.from(new Set(codes));
+    if (uniqueCodes.length === 0) {
+      return { success: false, message: "Tidak ada kode kartu QR yang valid untuk diperiksa." };
+    }
+
+    if (uniqueCodes.length > 200) {
+      return { success: false, message: "Maksimal 200 kartu dapat diperiksa dalam satu waktu." };
+    }
+
+    const currentUserId = session.user.id;
+    const currentUserRole = session.user.role as Role;
+    const dbUser = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { isSuperAdminMaster: true },
+    });
+    const isMaster = !!dbUser?.isSuperAdminMaster;
+
+    const results = await Promise.all(
+      uniqueCodes.map((c) => internalLookupSingleCard(c, currentUserId, currentUserRole, isMaster))
+    );
+
+    return {
+      success: true,
+      message: `Berhasil memeriksa status ${results.length} kartu fisik.`,
+      data: results,
+    };
+  } catch (error) {
+    console.error("batchLookupScannedCardsAction error:", error);
+    const msg = error instanceof Error ? error.message : "Gagal memeriksa batch kartu QR.";
     return { success: false, message: msg };
   }
 }
@@ -993,6 +1029,149 @@ export async function restoreOrRegisterCardAction(data: {
   } catch (error) {
     console.error("restoreOrRegisterCardAction error:", error);
     const msg = error instanceof Error ? error.message : "Gagal memulihkan kartu QR.";
+    return { success: false, message: msg };
+  }
+}
+
+// ─── Batch Restore: Pulihkan / Daftarkan Banyak Kartu Fisik Sekaligus ─────────
+
+export async function batchRestoreOrRegisterCardsAction(data: {
+  codes: string[];
+  assignedAdminId?: string | null;
+  outletId?: string | null;
+}): Promise<ActionResult<{ restoredCount: number; restoredCodes: string[]; skippedCodes: string[] }>> {
+  try {
+    const session = await getSession();
+    const cleanCodes = Array.from(
+      new Set(data.codes.map(cleanCardCode).filter((c): c is string => !!c))
+    );
+
+    if (cleanCodes.length === 0) {
+      return { success: false, message: "Tidak ada kode kartu yang valid untuk dipulihkan." };
+    }
+
+    if (cleanCodes.length > 200) {
+      return { success: false, message: "Maksimal 200 kartu dapat dipulihkan dalam satu batch." };
+    }
+
+    const currentUserId = session.user.id;
+    const currentUserRole = session.user.role as Role;
+    const dbUser = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { isSuperAdminMaster: true },
+    });
+    const isMaster = !!dbUser?.isSuperAdminMaster;
+
+    // Filter out cards that are already active in the database
+    const existingCards = await prisma.qrCard.findMany({
+      where: { code: { in: cleanCodes } },
+      select: { code: true },
+    });
+    const existingSet = new Set(existingCards.map((c) => c.code));
+
+    const candidates = cleanCodes.filter((c) => !existingSet.has(c));
+    const allowedCodes: string[] = [];
+    const skippedCodes: string[] = cleanCodes.filter((c) => existingSet.has(c));
+
+    for (const code of candidates) {
+      const check = await internalLookupSingleCard(code, currentUserId, currentUserRole, isMaster);
+      if (check.canRestore) {
+        allowedCodes.push(code);
+      } else {
+        skippedCodes.push(code);
+      }
+    }
+
+    if (allowedCodes.length === 0) {
+      return {
+        success: false,
+        message: "Tidak ada kartu yang dapat dipulihkan (seluruh kartu sudah aktif atau Anda tidak memiliki izin akses).",
+      };
+    }
+
+    let targetAdminId: string | null = null;
+    if (currentUserRole === Role.SUPER_ADMIN) {
+      targetAdminId =
+        data.assignedAdminId && data.assignedAdminId !== "unassigned" ? data.assignedAdminId : null;
+    } else if (currentUserRole === Role.ADMIN) {
+      targetAdminId = currentUserId;
+    } else {
+      return { success: false, message: "Akses ditolak." };
+    }
+
+    let targetAdminName = "Pool Umum (Belum Dialokasikan)";
+    if (targetAdminId) {
+      const adm = await prisma.user.findUnique({
+        where: { id: targetAdminId },
+        select: { fullName: true },
+      });
+      if (adm) targetAdminName = adm.fullName;
+    }
+
+    let targetOutletName = "";
+    if (data.outletId) {
+      const outl = await prisma.outlet.findUnique({
+        where: { id: data.outletId },
+        select: { name: true },
+      });
+      if (outl) targetOutletName = outl.name;
+    }
+
+    await prisma.qrCard.createMany({
+      data: allowedCodes.map((code) => ({
+        code,
+        assignedAdminId: targetAdminId,
+        outletId: data.outletId || null,
+        status: CardStatus.ACTIVE,
+      })),
+      skipDuplicates: true,
+    });
+
+    const roleLabel =
+      currentUserRole === Role.SUPER_ADMIN
+        ? isMaster
+          ? "Super Admin 1 (Master)"
+          : "Super Admin 2"
+        : "Admin Lapangan";
+
+    const previewCodes =
+      allowedCodes.slice(0, 5).join(", ") +
+      (allowedCodes.length > 5 ? ` (+${allowedCodes.length - 5} lainnya)` : "");
+
+    const desc = targetOutletName
+      ? `${roleLabel} "${session.user.name || session.user.fullName}" memulihkan massal ${allowedCodes.length} kartu fisik (${previewCodes}), dialokasikan ke Admin "${targetAdminName}", dan dihubungkan ke outlet "${targetOutletName}".`
+      : `${roleLabel} "${session.user.name || session.user.fullName}" memulihkan massal ${allowedCodes.length} kartu fisik (${previewCodes}) dan dialokasikan ke Admin "${targetAdminName}".`;
+
+    await recordActivityLog({
+      userId: currentUserId,
+      userName: session.user.name || session.user.fullName,
+      userRole: currentUserRole,
+      action: "BATCH_RESTORE_CARDS",
+      title: `Memulihkan Massal ${allowedCodes.length} Kartu Fisik`,
+      description: desc,
+      targetId: allowedCodes.slice(0, 10).join(", "),
+      targetName: `${allowedCodes.length} Kartu Fisik`,
+      outletId: data.outletId || undefined,
+      adminId: targetAdminId || undefined,
+      superAdminId: currentUserRole === Role.SUPER_ADMIN ? currentUserId : undefined,
+    });
+
+    revalidatePath("/super-admin");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      message: `Berhasil memulihkan ${allowedCodes.length} kartu fisik sekaligus!`,
+      data: {
+        restoredCount: allowedCodes.length,
+        restoredCodes: allowedCodes,
+        skippedCodes,
+      },
+    };
+  } catch (error) {
+    console.error("batchRestoreOrRegisterCardsAction error:", error);
+    const msg = error instanceof Error ? error.message : "Gagal memulihkan batch kartu fisik.";
     return { success: false, message: msg };
   }
 }
