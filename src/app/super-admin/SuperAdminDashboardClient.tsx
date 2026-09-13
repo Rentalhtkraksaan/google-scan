@@ -123,6 +123,21 @@ export function SuperAdminDashboardClient({
 }: SuperAdminDashboardClientProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [currentPrintTemplates, setCurrentPrintTemplates] = useState<string | null>(
+    siteSetting?.printTemplates || null
+  );
+
+  useEffect(() => {
+    if (siteSetting?.printTemplates) {
+      setCurrentPrintTemplates(siteSetting.printTemplates);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("saas_qr_print_templates", siteSetting.printTemplates);
+        } catch {}
+      }
+    }
+  }, [siteSetting?.printTemplates]);
+
   const isMaster = !!currentUser?.isSuperAdminMaster;
 
   // Helper: Cek apakah Admin didaftarkan oleh Super Admin 1 (Master)
@@ -2781,7 +2796,17 @@ export function SuperAdminDashboardClient({
         <PrintTemplateManagerModal
           isOpen={isPrintTemplateModalOpen}
           onClose={() => setIsPrintTemplateModalOpen(false)}
-          onSaved={() => router.refresh()}
+          onSaved={(savedJson) => {
+            if (savedJson) {
+              setCurrentPrintTemplates(savedJson);
+              if (typeof window !== "undefined") {
+                try {
+                  localStorage.setItem("saas_qr_print_templates", savedJson);
+                } catch {}
+              }
+            }
+            router.refresh();
+          }}
         />
       )}
 
@@ -2841,6 +2866,7 @@ export function SuperAdminDashboardClient({
       {isBatchExportOpen && (
         <BatchExportModal
           cards={displayCards as unknown as CardExportItem[]}
+          initialPrintTemplates={currentPrintTemplates || siteSetting?.printTemplates}
           onClose={() => setIsBatchExportOpen(false)}
         />
       )}
@@ -2860,6 +2886,7 @@ export function SuperAdminDashboardClient({
         <QrCodeModal
           card={previewCard}
           version={siteSetting?.appVersion || "V 1.1.2"}
+          initialPrintTemplates={currentPrintTemplates || siteSetting?.printTemplates}
           onClose={() => setPreviewCard(null)}
         />
       )}

@@ -33,6 +33,7 @@ interface QrCodeModalProps {
   } | null;
   version?: string;
   showPrintActions?: boolean;
+  initialPrintTemplates?: string | Record<string, unknown> | null;
   onClose: () => void;
 }
 
@@ -40,15 +41,86 @@ const SIZE_OPTIONS: { key: PrintSizeKey; label: string; badge: string; icon: str
   { key: "square", label: "Stiker Meja Persegi", badge: "10 x 10 cm", icon: "⏹️" },
 ];
 
+export function parsePrintTemplates(
+  raw?: unknown
+): Record<PrintSizeKey, PrintTemplateConfig> | null {
+  if (!raw) return null;
+  let parsed: Record<string, unknown> = {};
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  } else if (typeof raw === "object" && raw !== null) {
+    parsed = raw as Record<string, unknown>;
+  }
+
+  if (!parsed || Object.keys(parsed).length === 0) return null;
+
+  const merged: Record<PrintSizeKey, PrintTemplateConfig> = { ...PRINT_SIZE_PRESETS };
+  (Object.keys(PRINT_SIZE_PRESETS) as PrintSizeKey[]).forEach((key) => {
+    if (parsed[key]) {
+      const savedItem = parsed[key] as Partial<PrintTemplateConfig>;
+      merged[key] = {
+        ...PRINT_SIZE_PRESETS[key],
+        ...savedItem,
+        isActive: savedItem.isActive !== undefined ? savedItem.isActive : true,
+        qr: { ...PRINT_SIZE_PRESETS[key].qr, ...savedItem.qr },
+        versionTag: { ...PRINT_SIZE_PRESETS[key].versionTag, ...savedItem.versionTag },
+        codeTag: { ...PRINT_SIZE_PRESETS[key].codeTag, ...savedItem.codeTag },
+        outletNameTag:
+          PRINT_SIZE_PRESETS[key].outletNameTag || savedItem.outletNameTag
+            ? {
+                x: 50,
+                y: 89,
+                fontSize: 28,
+                show: true,
+                ...PRINT_SIZE_PRESETS[key].outletNameTag,
+                ...savedItem.outletNameTag,
+              }
+            : undefined,
+      };
+    }
+  });
+
+  return merged;
+}
+
 export function QrCodeModal({
   card,
   version = "V 1.1.2",
   showPrintActions = true,
+  initialPrintTemplates,
   onClose,
 }: QrCodeModalProps) {
   const [viewTab, setViewTab] = useState<"CARD" | "QR">("CARD");
   const [selectedSize, setSelectedSize] = useState<PrintSizeKey>("square");
-  const [templateConfigs, setTemplateConfigs] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(PRINT_SIZE_PRESETS);
+
+  // Instant synchronous initialization from Prop or Local Cache (0ms delay)
+  const [templateConfigs, setTemplateConfigs] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(() => {
+    const fromProp = parsePrintTemplates(initialPrintTemplates);
+    if (fromProp) return fromProp;
+
+    if (typeof window !== "undefined") {
+      try {
+        const cached = (window as unknown as { __GLOBAL_PRINT_TEMPLATES__?: Record<PrintSizeKey, PrintTemplateConfig> })
+          .__GLOBAL_PRINT_TEMPLATES__;
+        if (cached) return cached;
+
+        const stored = localStorage.getItem("saas_qr_print_templates");
+        if (stored) {
+          const fromStorage = parsePrintTemplates(stored);
+          if (fromStorage) return fromStorage;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return PRINT_SIZE_PRESETS;
+  });
+
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [previewCardDataUrl, setPreviewCardDataUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
@@ -65,49 +137,50 @@ export function QrCodeModal({
 
   const scanUrl = card ? getCardScanUrl(card.code) : "";
 
-  // Load saved templates from DB
+  // Synchronize when initialPrintTemplates prop updates
+  useEffect(() => {
+    if (initialPrintTemplates) {
+      const parsed = parsePrintTemplates(initialPrintTemplates);
+      if (parsed) {
+        setTemplateConfigs(parsed);
+        if (typeof window !== "undefined") {
+          (window as unknown as { __GLOBAL_PRINT_TEMPLATES__?: Record<PrintSizeKey, PrintTemplateConfig> })
+            .__GLOBAL_PRINT_TEMPLATES__ = parsed;
+          try {
+            localStorage.setItem("saas_qr_print_templates", JSON.stringify(parsed));
+          } catch {}
+        }
+      }
+    }
+  }, [initialPrintTemplates]);
+
+  // Silent background re-validation from DB
   useEffect(() => {
     getPrintTemplatesAction()
       .then((res) => {
         if (res.success && res.data && Object.keys(res.data).length > 0) {
-          const merged: Record<PrintSizeKey, PrintTemplateConfig> = { ...PRINT_SIZE_PRESETS };
-          (Object.keys(PRINT_SIZE_PRESETS) as PrintSizeKey[]).forEach((key) => {
-            if (res.data && res.data[key]) {
-              const savedItem = res.data[key] as Partial<PrintTemplateConfig>;
-              merged[key] = {
-                ...PRINT_SIZE_PRESETS[key],
-                ...savedItem,
-                isActive: savedItem.isActive !== undefined ? savedItem.isActive : true,
-                qr: { ...PRINT_SIZE_PRESETS[key].qr, ...savedItem.qr },
-                versionTag: { ...PRINT_SIZE_PRESETS[key].versionTag, ...savedItem.versionTag },
-                codeTag: { ...PRINT_SIZE_PRESETS[key].codeTag, ...savedItem.codeTag },
-                outletNameTag:
-                  PRINT_SIZE_PRESETS[key].outletNameTag || savedItem.outletNameTag
-                    ? {
-                        x: 50,
-                        y: 89,
-                        fontSize: 28,
-                        show: true,
-                        ...PRINT_SIZE_PRESETS[key].outletNameTag,
-                        ...savedItem.outletNameTag,
-                      }
-                    : undefined,
-              };
-            }
-          });
-          setTemplateConfigs(merged);
+          const parsed = parsePrintTemplates(res.data);
+          if (parsed) {
+            setTemplateConfigs((prev) => {
+              // Only update if backgroundUrl or values actually changed
+              const prevStr = JSON.stringify(prev);
+              const newStr = JSON.stringify(parsed);
+              if (prevStr === newStr) return prev;
+              return parsed;
+            });
 
-          // If current selected size is disabled, fallback to first active size
-          const activeKeys = (Object.keys(merged) as PrintSizeKey[]).filter(
-            (k) => merged[k].isActive !== false
-          );
-          if (activeKeys.length > 0 && merged[selectedSize]?.isActive === false) {
-            setSelectedSize(activeKeys[0]);
+            if (typeof window !== "undefined") {
+              (window as unknown as { __GLOBAL_PRINT_TEMPLATES__?: Record<PrintSizeKey, PrintTemplateConfig> })
+                .__GLOBAL_PRINT_TEMPLATES__ = parsed;
+              try {
+                localStorage.setItem("saas_qr_print_templates", JSON.stringify(parsed));
+              } catch {}
+            }
           }
         }
       })
-      .catch((err) => console.error("Error loading templates in QrCodeModal:", err));
-  }, [selectedSize]);
+      .catch((err) => console.error("Background template sync error:", err));
+  }, []);
 
   // Generate QR Data URL
   useEffect(() => {

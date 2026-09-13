@@ -83,15 +83,29 @@ export const PRINT_SIZE_PRESETS: Record<PrintSizeKey, PrintTemplateConfig> = {
   },
 };
 
+const imageCache = new Map<string, HTMLImageElement>();
+
 /**
- * Load Image from path/URL safely
+ * Load Image from path/URL safely with in-memory caching
  */
 function loadImage(src: string): Promise<HTMLImageElement> {
+  if (imageCache.has(src)) {
+    const cached = imageCache.get(src)!;
+    if (cached.complete && cached.naturalWidth > 0) {
+      return Promise.resolve(cached);
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = (err) => reject(new Error(`Failed to load image: ${src} - ${err}`));
+    if (!src.startsWith("data:")) {
+      img.crossOrigin = "anonymous";
+    }
+    img.onload = () => {
+      imageCache.set(src, img);
+      resolve(img);
+    };
+    img.onerror = (err) => reject(new Error(`Failed to load image: ${src.slice(0, 50)} - ${err}`));
     img.src = src;
   });
 }

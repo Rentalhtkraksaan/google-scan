@@ -6,9 +6,11 @@ import { generateCardsCsv, generateQrZipBlob, CardExportItem } from "@/lib/qr-ex
 import { PrintSizeKey, PrintTemplateConfig, PRINT_SIZE_PRESETS } from "@/lib/card-canvas";
 import { getPrintTemplatesAction } from "@/lib/actions/site-setting.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
+import { parsePrintTemplates } from "@/components/dashboard/QrCodeModal";
 
 interface BatchExportModalProps {
   cards: CardExportItem[];
+  initialPrintTemplates?: string | Record<string, unknown> | null;
   onClose: () => void;
 }
 
@@ -16,11 +18,30 @@ const SIZE_OPTIONS: { key: PrintSizeKey; label: string; badge: string; icon: str
   { key: "square", label: "Stiker Meja Persegi", badge: "10 x 10 cm", icon: "⏹️" },
 ];
 
-export function BatchExportModal({ cards, onClose }: BatchExportModalProps) {
+export function BatchExportModal({ cards, initialPrintTemplates, onClose }: BatchExportModalProps) {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [exportFormat, setExportFormat] = useState<"CARDS" | "QR_ONLY" | "BOTH">("CARDS");
   const [selectedSize, setSelectedSize] = useState<PrintSizeKey>("square");
-  const [templateConfigs, setTemplateConfigs] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(PRINT_SIZE_PRESETS);
+  const [templateConfigs, setTemplateConfigs] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(() => {
+    const fromProp = parsePrintTemplates(initialPrintTemplates);
+    if (fromProp) return fromProp;
+
+    if (typeof window !== "undefined") {
+      try {
+        const cached = (window as unknown as { __GLOBAL_PRINT_TEMPLATES__?: Record<PrintSizeKey, PrintTemplateConfig> })
+          .__GLOBAL_PRINT_TEMPLATES__;
+        if (cached) return cached;
+
+        const stored = localStorage.getItem("saas_qr_print_templates");
+        if (stored) {
+          const fromStorage = parsePrintTemplates(stored);
+          if (fromStorage) return fromStorage;
+        }
+      } catch {}
+    }
+
+    return PRINT_SIZE_PRESETS;
+  });
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
 

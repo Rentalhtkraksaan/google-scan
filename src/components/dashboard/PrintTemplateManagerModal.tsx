@@ -29,7 +29,7 @@ import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 interface PrintTemplateManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaved?: () => void;
+  onSaved?: (savedJson?: string) => void;
 }
 
 const SIZE_TABS: { key: PrintSizeKey; label: string; badge: string; icon: string }[] = [
@@ -267,7 +267,13 @@ export function PrintTemplateManagerModal({
 
         if (res.success) {
           showSuccessAlert("Berhasil Disimpan!", res.message, 2000);
-          if (onSaved) onSaved();
+          const savedStr = (res.data as string) || JSON.stringify(templatesToSave);
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("saas_qr_print_templates", savedStr);
+            } catch {}
+          }
+          if (onSaved) onSaved(savedStr);
           onClose();
         } else {
           showErrorAlert("Gagal Menyimpan", res.message);

@@ -352,6 +352,7 @@ export async function updatePrintTemplatesAction(formData: FormData): Promise<Ac
     return {
       success: true,
       message: "Pengaturan Template Cetak Multi-Ukuran berhasil disimpan secara permanen!",
+      data: finalJson,
     };
   } catch (error) {
     console.error("updatePrintTemplatesAction error:", error);
