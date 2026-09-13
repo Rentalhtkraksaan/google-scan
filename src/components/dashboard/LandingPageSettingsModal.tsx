@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { X, Sparkles, MessageCircle, Globe, Loader2, Save, Info } from "lucide-react";
+import { X, Sparkles, MessageCircle, Globe, Loader2, Save, Info, Search } from "lucide-react";
 import { updateSiteSettingAction } from "@/lib/actions/site-setting.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import { SiteSettingModel } from "@/types/models";
@@ -59,6 +59,13 @@ export function LandingPageSettingsModal({
       "Halaman rating bintang 5 Google resmi langsung muncul seketika di layar HP pelanggan, siap dikirim dalam 5 detik!"
   );
   const [footerText, setFooterText] = useState(initialSetting?.footerText || "Smart QR Review Platform. Seluruh hak cipta dilindungi.");
+  const [seoTitle, setSeoTitle] = useState(
+    initialSetting?.seoTitle || "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis"
+  );
+  const [seoDescription, setSeoDescription] = useState(
+    initialSetting?.seoDescription ||
+      "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan."
+  );
   
   const [dashboardLogoUrl, setDashboardLogoUrl] = useState(initialSetting?.dashboardLogoUrl || "");
   const [dashboardLogoFile, setDashboardLogoFile] = useState<File | null>(null);
@@ -128,6 +135,8 @@ export function LandingPageSettingsModal({
         formData.append("step3Title", step3Title);
         formData.append("step3Desc", step3Desc);
         formData.append("footerText", footerText);
+        formData.append("seoTitle", seoTitle);
+        formData.append("seoDescription", seoDescription);
         
         if (dashboardLogoFile) {
           formData.append("dashboardLogoFile", dashboardLogoFile);
@@ -320,6 +329,86 @@ export function LandingPageSettingsModal({
                       Hapus
                     </button>
                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: SEO & Meta Website (Judul & Deskripsi) */}
+          <div className="bg-slate-950/60 border border-sky-500/30 rounded-2xl p-4.5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sky-400 font-semibold text-xs uppercase tracking-wider">
+                <Search className="w-4 h-4 text-sky-400" />
+                <span>SEO, Judul Tab Browser &amp; Deskripsi Website</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 font-medium border border-sky-500/20">
+                Google &amp; WhatsApp Preview
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-300">
+                  Judul Halaman / SEO Title (Tampil di Tab Browser &amp; Google) <span className="text-rose-400">*</span>
+                </label>
+                <span className={`text-[10px] font-mono ${seoTitle.length > 70 ? "text-amber-400 font-semibold" : "text-slate-400"}`}>
+                  {seoTitle.length}/70 karakter
+                </span>
+              </div>
+              <input
+                type="text"
+                required
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+                placeholder="Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis"
+                className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500 font-medium"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Judul utama website yang tampil pada tab browser dan judul tautan di hasil pencarian Google.
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-300">
+                  Deskripsi Halaman / SEO Meta Description <span className="text-rose-400">*</span>
+                </label>
+                <span className={`text-[10px] font-mono ${seoDescription.length > 160 ? "text-amber-400 font-semibold" : "text-slate-400"}`}>
+                  {seoDescription.length}/160 karakter
+                </span>
+              </div>
+              <textarea
+                required
+                rows={3}
+                value={seoDescription}
+                onChange={(e) => setSeoDescription(e.target.value)}
+                placeholder="Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan."
+                className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500 resize-none text-xs leading-relaxed"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Cuplikan deskripsi yang dibaca Google dan tampil saat link website dibagikan ke WhatsApp atau media sosial.
+              </p>
+            </div>
+
+            {/* Live Google Search Preview Card */}
+            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                <Globe className="w-3.5 h-3.5 text-sky-400" />
+                <span>Simulasi Tampilan di Hasil Pencarian Google &amp; WhatsApp:</span>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/60 font-sans space-y-1">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                  <div className="w-3.5 h-3.5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[9px] font-bold">
+                    G
+                  </div>
+                  <span className="truncate text-slate-400 text-[11px]">https://qr-inaja.vercel.app</span>
+                </div>
+                <div className="text-sm font-semibold text-sky-400 hover:underline cursor-pointer truncate">
+                  {seoTitle || "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis"}
+                </div>
+                <div className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                  {seoDescription ||
+                    "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan."}
                 </div>
               </div>
             </div>

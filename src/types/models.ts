@@ -28,6 +28,8 @@ export interface SiteSettingModel {
   step3Title: string;
   step3Desc: string;
   footerText: string;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   dashboardLogoUrl?: string | null;
   landingPageLogoUrl?: string | null;
   faviconUrl?: string | null;

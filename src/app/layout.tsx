@@ -5,29 +5,38 @@ import { prisma } from "@/lib/prisma";
 
 export async function generateMetadata(): Promise<Metadata> {
   let faviconUrl = "/favicon.ico";
+  let title = "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis";
+  let description =
+    "Platform SaaS Dynamic QR Code & Smart Review Card untuk akselerasi ulasan bintang 5 Google Maps bisnis Anda.";
+
   try {
     const setting = await prisma.siteSetting.findFirst();
     if (setting?.faviconUrl) {
       faviconUrl = setting.faviconUrl;
     }
+    if (setting?.seoTitle?.trim()) {
+      title = setting.seoTitle.trim();
+    }
+    if (setting?.seoDescription?.trim()) {
+      description = setting.seoDescription.trim();
+    }
   } catch (error) {
-    console.error("Gagal memuat metadata favicon:", error);
+    console.error("Gagal memuat metadata layout:", error);
   }
 
   return {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://qr-inaja.vercel.app"),
     title: {
-      default: "Smart QR Review — Dynamic Google Review Platform",
+      default: title,
       template: "%s | Smart QR Review",
     },
-    description:
-      "Platform SaaS Dynamic QR Code & Smart Review Card untuk akselerasi ulasan bintang 5 Google Maps bisnis Anda.",
+    description: description,
     icons: {
       icon: faviconUrl,
     },
     openGraph: {
-      title: "Smart QR Review — Dynamic Google Review Platform",
-      description: "Platform SaaS Dynamic QR Code & Smart Review Card untuk akselerasi ulasan bintang 5 Google Maps bisnis Anda.",
+      title: title,
+      description: description,
       images: [
         {
           url: "/api/og",

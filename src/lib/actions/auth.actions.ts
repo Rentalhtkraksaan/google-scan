@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
-import { createAdminSchema, registerOutletSchema } from "@/lib/validations";
+import { createAdminSchema, registerOutletSchema, strongPassword } from "@/lib/validations";
 import { resolveAndFormatGoogleUrl } from "@/lib/google-url";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -201,8 +201,11 @@ export async function updateAdminUserAction(
       return { success: false, message: "Email maksimal 30 karakter." };
     }
 
-    if (newPassword && (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50)) {
-      return { success: false, message: "Password harus berukuran 6 sampai 15 karakter." };
+    if (newPassword) {
+      const parsedPass = strongPassword.safeParse(newPassword);
+      if (!parsedPass.success) {
+        return { success: false, message: parsedPass.error.errors[0]?.message || "Password tidak memenuhi syarat keamanan." };
+      }
     }
 
     // Cek email duplikat jika email diubah
@@ -1045,8 +1048,9 @@ export async function updateOutletAction(
     }
 
     if (newPassword) {
-      if (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50) {
-        return { success: false, message: "Password baru harus berukuran 6 sampai 15 karakter." };
+      const parsedPass = strongPassword.safeParse(newPassword);
+      if (!parsedPass.success) {
+        return { success: false, message: parsedPass.error.errors[0]?.message || "Password baru tidak memenuhi syarat keamanan." };
       }
       userUpdateData.password = await bcrypt.hash(newPassword, 10);
     }
@@ -1491,8 +1495,11 @@ export async function updateSuperAdminUserAction(
       return { success: false, message: "Email maksimal 30 karakter." };
     }
 
-    if (newPassword && (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50)) {
-      return { success: false, message: "Password harus berukuran 6 sampai 15 karakter." };
+    if (newPassword) {
+      const parsedPass = strongPassword.safeParse(newPassword);
+      if (!parsedPass.success) {
+        return { success: false, message: parsedPass.error.errors[0]?.message || "Password tidak memenuhi syarat keamanan." };
+      }
     }
 
     if (email !== targetUser.email) {
@@ -1610,8 +1617,9 @@ export async function updateSelfProfileAction(formData: FormData): Promise<Actio
     }
 
     if (newPassword) {
-      if (newPassword.length < 8 || length < 6 || newPassword.length > 15.length > 50) {
-        return { success: false, message: "Password baru harus berukuran 6 sampai 15 karakter." };
+      const parsedPass = strongPassword.safeParse(newPassword);
+      if (!parsedPass.success) {
+        return { success: false, message: parsedPass.error.errors[0]?.message || "Password baru tidak memenuhi syarat keamanan." };
       }
       updateData.password = await bcrypt.hash(newPassword, 10);
     }

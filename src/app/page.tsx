@@ -15,13 +15,63 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis",
-  description:
-    "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  let title = "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis";
+  let description =
+    "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.";
+  let faviconUrl = "/favicon.ico";
+
+  try {
+    const siteSetting = await prisma.siteSetting.findUnique({
+      where: { id: "default" },
+      select: { seoTitle: true, seoDescription: true, faviconUrl: true },
+    });
+
+    if (siteSetting?.seoTitle?.trim()) {
+      title = siteSetting.seoTitle.trim();
+    }
+    if (siteSetting?.seoDescription?.trim()) {
+      description = siteSetting.seoDescription.trim();
+    }
+    if (siteSetting?.faviconUrl) {
+      faviconUrl = siteSetting.faviconUrl;
+    }
+  } catch (error) {
+    console.error("Gagal memuat metadata landing page:", error);
+  }
+
+  return {
+    title: {
+      absolute: title,
+    },
+    description,
+    icons: {
+      icon: faviconUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [
+        {
+          url: "/api/og",
+          width: 800,
+          height: 800,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function LandingPage() {
   const session = await auth();

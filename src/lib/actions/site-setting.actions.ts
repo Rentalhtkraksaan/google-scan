@@ -24,7 +24,7 @@ export async function getSiteSettingAction() {
         INSERT INTO site_settings (
           id, appVersion, whatsappNumber, globalFallbackUrl, heroBadge, heroHeadline, heroSubheadline,
           ctaPrimaryText, ctaSecondaryText, ctaSecondaryUrl, step1Title, step1Desc,
-          step2Title, step2Desc, step3Title, step3Desc, footerText, dashboardLogoUrl, landingPageLogoUrl, updatedAt
+          step2Title, step2Desc, step3Title, step3Desc, footerText, seoTitle, seoDescription, dashboardLogoUrl, landingPageLogoUrl, updatedAt
         ) VALUES (
           'default', 'V 1.1.2', '6281234567890', 'http://localhost:3000',
           '🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis',
@@ -34,7 +34,10 @@ export async function getSiteSettingAction() {
           'Letakkan di Meja / Kasir', 'Pasang kartu akrilik di kasir.',
           'Pelanggan Scan / Tap', 'Pelanggan scan dengan mudah.',
           'Pop-up Review Langsung Terbuka', 'Pop-up ulasan bintang 5 langsung terbuka.',
-          'Smart QR Review Platform. Seluruh hak cipta dilindungi.', NULL, NULL, NOW()
+          'Smart QR Review Platform. Seluruh hak cipta dilindungi.',
+          'Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis',
+          'Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.',
+          NULL, NULL, NOW()
         )
         ON DUPLICATE KEY UPDATE id = id;
       `;
@@ -97,6 +100,8 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
     const step3Title = (formData.get("step3Title") as string)?.trim();
     const step3Desc = (formData.get("step3Desc") as string)?.trim();
     const footerText = (formData.get("footerText") as string)?.trim();
+    const seoTitle = (formData.get("seoTitle") as string)?.trim();
+    const seoDescription = (formData.get("seoDescription") as string)?.trim();
     
     // Default to undefined so we don't update if not present
     let dashboardLogoUrl: string | undefined = undefined;
@@ -168,6 +173,10 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
       step3Title: step3Title || "Pop-up Review Langsung Terbuka",
       step3Desc: step3Desc || "Pop-up ulasan bintang 5 langsung terbuka.",
       footerText: footerText || "Smart QR Review Platform. Seluruh hak cipta dilindungi.",
+      seoTitle: seoTitle || "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis",
+      seoDescription:
+        seoDescription ||
+        "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.",
     };
 
     if (dashboardLogoUrl !== undefined) {

@@ -188,6 +188,9 @@ export default async function SuperAdminPage() {
         step3Title: "Pop-up Review Langsung Terbuka",
         step3Desc: "Pop-up ulasan bintang 5 langsung terbuka.",
         footerText: "Smart QR Review Platform. Seluruh hak cipta dilindungi.",
+        seoTitle: "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis",
+        seoDescription:
+          "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.",
       },
     });
   }
