@@ -268,7 +268,7 @@ export function SuperAdminDashboardClient({
     : localOutlets.filter((o) => !o.qrCard?.code || !isDemoCard(o.qrCard.code));
 
   // Global calculations
-  const totalScans = displayCards.reduce((acc, c) => acc + (c.scanCount || 0), 0);
+  const totalScans = localCards.reduce((acc, c) => acc + (c.scanCount || 0), 0);
   const totalCards = displayCards.length;
   const totalActiveCards = displayCards.filter((c) => c.status === "ACTIVE").length;
   const connectedCards = displayCards.filter((c) => c.outletId != null).length;
