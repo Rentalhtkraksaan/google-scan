@@ -181,6 +181,23 @@ export function SuperAdminDashboardClient({
   const [selectedAdminFilter, setSelectedAdminFilter] = useState<string>("ALL");
   const [cardFilter, setCardFilter] = useState<"ALL" | "BLANK" | "CLAIMED" | "ACTIVE" | "INACTIVE">("ALL");
 
+  // Optimistic UI State
+  const [localSuperAdmins, setLocalSuperAdmins] = useState(superAdmins);
+  const [localAdmins, setLocalAdmins] = useState(admins);
+  const [localOutlets, setLocalOutlets] = useState(allOutlets);
+
+  useEffect(() => {
+    setLocalSuperAdmins(superAdmins);
+  }, [superAdmins]);
+
+  useEffect(() => {
+    setLocalAdmins(admins);
+  }, [admins]);
+
+  useEffect(() => {
+    setLocalOutlets(allOutlets);
+  }, [allOutlets]);
+
   // Selection states untuk fitur Hapus All / Select All (Khusus Super Admin 1)
   const [selectedCardCodes, setSelectedCardCodes] = useState<string[]>([]);
   const [selectedAdminIds, setSelectedAdminIds] = useState<string[]>([]);
@@ -242,8 +259,8 @@ export function SuperAdminDashboardClient({
   // Hanya Super Admin 1 (Master) yang melihat Kartu & Outlet Demo Landing Page
   const displayCards = isMaster ? allCards : allCards.filter((c) => !isDemoCard(c.code));
   const displayOutlets = isMaster
-    ? allOutlets
-    : allOutlets.filter((o) => !o.qrCard?.code || !isDemoCard(o.qrCard.code));
+    ? localOutlets
+    : localOutlets.filter((o) => !o.qrCard?.code || !isDemoCard(o.qrCard.code));
 
   // Global calculations
   const totalScans = displayCards.reduce((acc, c) => acc + (c.scanCount || 0), 0);
@@ -252,8 +269,8 @@ export function SuperAdminDashboardClient({
   const connectedCards = displayCards.filter((c) => c.outletId != null).length;
   const unconnectedCards = totalCards - connectedCards;
   const totalOutlets = displayOutlets.length;
-  const totalAdmins = admins.length;
-  const totalSuperAdmins = superAdmins.length;
+  const totalAdmins = localAdmins.length;
+  const totalSuperAdmins = localSuperAdmins.length;
 
   // 1. Search matched cards (before cardFilter pill)
   const searchMatchedCards = displayCards.filter((card) => {
@@ -305,7 +322,7 @@ export function SuperAdminDashboardClient({
   });
 
   // Filter admins
-  const filteredAdmins = admins.filter((admin) => {
+  const filteredAdmins = localAdmins.filter((admin) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     return (
@@ -316,7 +333,7 @@ export function SuperAdminDashboardClient({
   });
 
   // Filter super admins
-  const filteredSuperAdmins = superAdmins.filter((sa) => {
+  const filteredSuperAdmins = localSuperAdmins.filter((sa) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     return (
@@ -735,14 +752,21 @@ export function SuperAdminDashboardClient({
       return;
     }
 
+    // Optimistic UI Update
+    setLocalSuperAdmins((prev) =>
+      prev.map((sa) => (sa.id === targetId ? { ...sa, canEditLandingPage: !sa.canEditLandingPage } : sa))
+    );
+
     try {
       const res = await toggleSuperAdminPermissionAction(targetId, "canEditLandingPage");
       if (res.success) {
         showSuccessAlert("Hak Akses Diperbarui", `Hak akses edit landing page untuk ${name} berhasil diubah.`, 1500);
       } else {
+        setLocalSuperAdmins(superAdmins); // revert
         showErrorAlert("Gagal", res.message);
       }
     } catch {
+      setLocalSuperAdmins(superAdmins); // revert
       showErrorAlert("Kesalahan", "Gagal memperbarui hak akses.");
     }
   };
@@ -754,14 +778,21 @@ export function SuperAdminDashboardClient({
       return;
     }
 
+    // Optimistic UI Update
+    setLocalSuperAdmins((prev) =>
+      prev.map((sa) => (sa.id === targetId ? { ...sa, canManagePrintTemplates: !sa.canManagePrintTemplates } : sa))
+    );
+
     try {
       const res = await toggleSuperAdminPermissionAction(targetId, "canManagePrintTemplates");
       if (res.success) {
         showSuccessAlert("Hak Akses Diperbarui", res.message, 1500);
       } else {
+        setLocalSuperAdmins(superAdmins); // revert
         showErrorAlert("Gagal", res.message);
       }
     } catch {
+      setLocalSuperAdmins(superAdmins); // revert
       showErrorAlert("Kesalahan", "Gagal memperbarui hak akses.");
     }
   };
@@ -773,14 +804,21 @@ export function SuperAdminDashboardClient({
       return;
     }
 
+    // Optimistic UI Update
+    setLocalSuperAdmins((prev) =>
+      prev.map((sa) => (sa.id === targetId ? { ...sa, canDeleteCards: !sa.canDeleteCards } : sa))
+    );
+
     try {
       const res = await toggleSuperAdminPermissionAction(targetId, "canDeleteCards");
       if (res.success) {
         showSuccessAlert("Hak Akses Diperbarui", res.message, 1500);
       } else {
+        setLocalSuperAdmins(superAdmins); // revert
         showErrorAlert("Gagal", res.message);
       }
     } catch {
+      setLocalSuperAdmins(superAdmins); // revert
       showErrorAlert("Kesalahan", "Gagal memperbarui hak akses.");
     }
   };
@@ -831,25 +869,39 @@ export function SuperAdminDashboardClient({
 
   // Toggle Admin / User Active Status (Matikan / Aktifkan Akun)
   const handleToggleUserActive = async (userId: string, name: string, currentStatus: boolean) => {
-    const actionText = currentStatus ? "Matikan / Nonaktifkan" : "Aktifkan Kembali";
-    const result = await showConfirmAlert(
-      `${actionText} Akun ${name}?`,
-      currentStatus
-        ? "Akun ini tidak akan bisa login ke sistem selama dinonaktifkan."
-        : "Akun ini akan dapat login kembali ke sistem.",
-      currentStatus ? "Ya, Matikan Akun" : "Ya, Aktifkan Akun"
+    const actionText = currentStatus ? "MEMATIKAN" : "MENGAKTIFKAN";
+    const confirmed = await showTwoStepDeleteConfirmAlert(
+      `${currentStatus ? "Matikan" : "Aktifkan"} Akun ${name}`,
+      `Anda yakin ingin <b class="${currentStatus ? 'text-rose-500' : 'text-emerald-500'}">${actionText}</b> akses masuk untuk akun <b>${name}</b>?`,
+      name,
+      currentStatus ? "MATIKAN" : "AKTIFKAN"
     );
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
+
+    // Optimistic Update
+    setLocalSuperAdmins((prev) => prev.map((sa) => (sa.id === userId ? { ...sa, isActive: !currentStatus } : sa)));
+    setLocalAdmins((prev) => prev.map((a) => (a.id === userId ? { ...a, isActive: !currentStatus } : a)));
+    setLocalOutlets((prev) =>
+      prev.map((o) => (o.owner?.id === userId ? { ...o, owner: { ...o.owner, isActive: !currentStatus } } : o))
+    );
 
     try {
       const res = await toggleUserActiveStatusAction(userId);
       if (res.success) {
-        showSuccessAlert("Status Akun Diperbarui", res.message, 1500);
+        showSuccessAlert("Status Diperbarui", res.message, 1500);
       } else {
+        // Revert
+        setLocalSuperAdmins(superAdmins);
+        setLocalAdmins(admins);
+        setLocalOutlets(allOutlets);
         showErrorAlert("Gagal", res.message);
       }
     } catch {
-      showErrorAlert("Kesalahan", "Gagal memperbarui status akun.");
+      // Revert
+      setLocalSuperAdmins(superAdmins);
+      setLocalAdmins(admins);
+      setLocalOutlets(allOutlets);
+      showErrorAlert("Kesalahan", "Gagal mengubah status akun.");
     }
   };
 
