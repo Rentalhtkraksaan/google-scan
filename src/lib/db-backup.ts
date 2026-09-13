@@ -1,8 +1,13 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { prisma } from "./prisma";
 
-const BACKUP_DIR = path.join(process.cwd(), "backups");
+// Vercel only allows writing to /tmp
+const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV || process.env.NODE_ENV === "production";
+const BACKUP_DIR = isVercel 
+  ? path.join(os.tmpdir(), "backups") 
+  : path.join(process.cwd(), "backups");
 
 /**
  * Format bytes into human readable format (KB, MB, GB)
