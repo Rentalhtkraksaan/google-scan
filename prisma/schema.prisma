@@ -79,6 +79,7 @@ model SiteSetting {
   footerText         String   @default("Smart QR Review Platform. Seluruh hak cipta dilindungi.")
   dashboardLogoUrl   String?  @db.LongText
   landingPageLogoUrl String?  @db.LongText
+  faviconUrl         String?  @db.LongText
   printTemplates     String?  @db.LongText
   visitorCount       Int      @default(0)
   updatedAt          DateTime @updatedAt

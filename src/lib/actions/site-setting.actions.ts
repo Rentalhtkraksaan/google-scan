@@ -123,6 +123,18 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
       landingPageLogoUrl = (formData.get("landingPageLogoUrl") as string)?.trim() || "";
     }
 
+    let faviconUrl: string | undefined = undefined;
+
+    // Check for File object first (new upload)
+    const faviconFile = formData.get("faviconFile") as File | null;
+    if (faviconFile && faviconFile.size > 0) {
+      const buffer = Buffer.from(await faviconFile.arrayBuffer());
+      faviconUrl = `data:${faviconFile.type};base64,${buffer.toString("base64")}`;
+    } else if (formData.has("faviconUrl")) {
+      // Fallback
+      faviconUrl = (formData.get("faviconUrl") as string)?.trim() || "";
+    }
+
     if (!whatsappNumber || !heroHeadline) {
       return { success: false, message: "Nomor WhatsApp dan Headline utama wajib diisi." };
     }
@@ -163,6 +175,9 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
     }
     if (landingPageLogoUrl !== undefined) {
       updateData.landingPageLogoUrl = landingPageLogoUrl;
+    }
+    if (faviconUrl !== undefined) {
+      updateData.faviconUrl = faviconUrl;
     }
 
     const updated = await prisma.siteSetting.upsert({

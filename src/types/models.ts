@@ -30,8 +30,9 @@ export interface SiteSettingModel {
   footerText: string;
   dashboardLogoUrl?: string | null;
   landingPageLogoUrl?: string | null;
+  faviconUrl?: string | null;
   printTemplates?: string | null;
-  visitorCount: number;
+  visitorCount?: number;
   updatedAt?: string | Date;
 }
 

@@ -66,6 +66,9 @@ export function LandingPageSettingsModal({
   const [landingPageLogoUrl, setLandingPageLogoUrl] = useState(initialSetting?.landingPageLogoUrl || "");
   const [landingPageLogoFile, setLandingPageLogoFile] = useState<File | null>(null);
 
+  const [faviconUrl, setFaviconUrl] = useState(initialSetting?.faviconUrl || "");
+  const [faviconFile, setFaviconFile] = useState<File | null>(null);
+
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
     setUrlSetter: React.Dispatch<React.SetStateAction<string>>,
@@ -138,6 +141,12 @@ export function LandingPageSettingsModal({
           formData.append("landingPageLogoUrl", ""); // User deleted the logo
         }
 
+        if (faviconFile) {
+          formData.append("faviconFile", faviconFile);
+        } else if (faviconUrl === "") {
+          formData.append("faviconUrl", ""); // User deleted the favicon
+        }
+
         const res = await updateSiteSettingAction(formData);
         if (res.success) {
           showSuccessAlert("Tersimpan!", res.message, 1800);
@@ -188,12 +197,13 @@ export function LandingPageSettingsModal({
               {/* Dashboard Logo */}
               <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-xl space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Logo Dashboard (Kiri Atas)</label>
-                  <p className="text-[10px] text-slate-500 mb-2">Menggantikan teks/ikon "Super Admin" di menu samping.</p>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Logo Dashboard</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Menggantikan tulisan "Sistem CRM & Dashboard..."</p>
                 </div>
-                
+
                 {dashboardLogoUrl && (
                   <div className="flex justify-center p-2 bg-slate-950 rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={dashboardLogoUrl} alt="Dashboard Logo Preview" className="h-8 object-contain" />
                   </div>
                 )}
@@ -236,6 +246,7 @@ export function LandingPageSettingsModal({
 
                 {landingPageLogoUrl && (
                   <div className="flex justify-center p-2 bg-slate-950 rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={landingPageLogoUrl} alt="Landing Page Logo Preview" className="h-8 object-contain" />
                   </div>
                 )}
@@ -260,6 +271,49 @@ export function LandingPageSettingsModal({
                       onClick={() => {
                         setLandingPageLogoUrl("");
                         setLandingPageLogoFile(null);
+                      }}
+                      className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Favicon Logo */}
+              <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-xl space-y-3 sm:col-span-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Favicon (Ikon Tab Browser)</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Ikon kotak untuk tab browser. Harus rasio 1:1.</p>
+                </div>
+
+                {faviconUrl && (
+                  <div className="flex justify-center p-2 bg-slate-950 rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={faviconUrl} alt="Favicon Preview" className="h-8 w-8 object-cover rounded-md" />
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="faviconInput"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e, setFaviconUrl, setFaviconFile)}
+                  />
+                  <label
+                    htmlFor="faviconInput"
+                    className="flex-1 text-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
+                  >
+                    {faviconUrl ? "Ganti Ikon" : "Upload Ikon"}
+                  </label>
+                  {faviconUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFaviconUrl("");
+                        setFaviconFile(null);
                       }}
                       className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-medium rounded-lg cursor-pointer transition-colors"
                     >
