@@ -151,7 +151,7 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
 
     // To dynamically handle optional logo updates, we will use Prisma's ORM method instead of raw SQL
     // so we don't overwrite the logos with NULL if they aren't provided in the form data.
-    const updateData: any = {
+    const updateData: Record<string, string> = {
       appVersion: appVersion,
       whatsappNumber: cleanWa,
       globalFallbackUrl: cleanFallback,

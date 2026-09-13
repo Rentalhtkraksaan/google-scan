@@ -198,7 +198,7 @@ export function LandingPageSettingsModal({
               <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-xl space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Logo Dashboard</label>
-                  <p className="text-[10px] text-slate-500 mb-2">Menggantikan tulisan "Sistem CRM & Dashboard..."</p>
+                  <p className="text-[10px] text-slate-500 mb-2">Menggantikan tulisan &quot;Sistem CRM &amp; Dashboard...&quot;</p>
                 </div>
 
                 {dashboardLogoUrl && (
