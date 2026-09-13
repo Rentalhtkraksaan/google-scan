@@ -2739,7 +2739,7 @@ export function SuperAdminDashboardClient({
 
       {isBatchExportOpen && (
         <BatchExportModal
-          cards={allCards as unknown as CardExportItem[]}
+          cards={displayCards as unknown as CardExportItem[]}
           onClose={() => setIsBatchExportOpen(false)}
         />
       )}
@@ -2747,7 +2747,7 @@ export function SuperAdminDashboardClient({
       {isBypassOutletOpen && (
         <RegisterOutletModal
           prefilledCode={prefilledCardCode}
-          blankCards={allCards.filter((c) => !c.outlet).map((c) => ({ code: c.code }))}
+          blankCards={displayCards.filter((c) => !c.outlet).map((c) => ({ code: c.code }))}
           onClose={() => {
             setIsBypassOutletOpen(false);
             setPrefilledCardCode("");
@@ -2772,7 +2772,7 @@ export function SuperAdminDashboardClient({
             fullName: sa.fullName,
             isSuperAdminMaster: sa.isSuperAdminMaster,
           }))}
-          outlets={allOutlets.map((o) => ({ id: o.id, name: o.name }))}
+          outlets={displayOutlets.map((o) => ({ id: o.id, name: o.name }))}
           onClose={() => setEditingCard(null)}
           onSuccess={() => router.refresh()}
         />
@@ -2788,7 +2788,7 @@ export function SuperAdminDashboardClient({
       {assigningOutlet && (
         <AssignCardToOutletModal
           outlet={assigningOutlet}
-          blankCards={allCards
+          blankCards={displayCards
             .filter((c) => !c.outletId && !c.outlet)
             .map((c) => ({ code: c.code, status: c.status }))}
           onClose={() => setAssigningOutlet(null)}
