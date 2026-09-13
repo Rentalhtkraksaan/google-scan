@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FadeIn } from "@/components/ui/FadeIn";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -141,168 +142,198 @@ export default async function LandingPage() {
 
       {/* Hero Section */}
       <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-semibold mb-6 animate-pulse">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>{heroBadge}</span>
-        </div>
+        <FadeIn delay={0}>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-semibold mb-6 animate-pulse">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{heroBadge}</span>
+          </div>
+        </FadeIn>
 
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-[1.15]">
-          {heroHeadline}
-        </h1>
+        <FadeIn delay={0.1}>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-[1.15]">
+            {heroHeadline}
+          </h1>
+        </FadeIn>
 
-        <p className="mt-6 text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          {heroSubheadline}
-        </p>
+        <FadeIn delay={0.2}>
+          <p className="mt-6 text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            {heroSubheadline}
+          </p>
+        </FadeIn>
 
         {/* CTA Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>{ctaPrimaryText}</span>
-          </a>
+        <FadeIn delay={0.3}>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>{ctaPrimaryText}</span>
+            </a>
 
-          <a
-            href={ctaSecondaryUrl}
-            target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
-            rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-sm sm:text-base rounded-2xl border border-slate-800 transition-all"
-          >
-            <Smartphone className="w-4 h-4 text-sky-400" />
-            <span>{ctaSecondaryText}</span>
-          </a>
-        </div>
+            <a
+              href={ctaSecondaryUrl}
+              target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
+              rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-sm sm:text-base rounded-2xl border border-slate-800 transition-all"
+            >
+              <Smartphone className="w-4 h-4 text-sky-400" />
+              <span>{ctaSecondaryText}</span>
+            </a>
+          </div>
+        </FadeIn>
 
         {/* 5-Star Social Proof Banner */}
-        <div className="mt-12 inline-flex items-center gap-3 p-3 px-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
-          <div className="flex -space-x-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-            ))}
+        <FadeIn delay={0.4}>
+          <div className="mt-12 inline-flex items-center gap-3 p-3 px-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
+            <div className="flex -space-x-1">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
+              ))}
+            </div>
+            <span className="text-xs text-slate-300 font-medium">
+              <strong className="text-white">100% Langsung</strong> membuka pop-up review resmi Google Maps
+            </span>
           </div>
-          <span className="text-xs text-slate-300 font-medium">
-            <strong className="text-white">100% Langsung</strong> membuka pop-up review resmi Google Maps
-          </span>
-        </div>
+        </FadeIn>
       </section>
 
       {/* How it Works (3 Steps) */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Bagaimana Smart Review Card Bekerja?
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-2">
-            3 langkah mudah dan tanpa hambatan bagi pelanggan toko Anda
-          </p>
-        </div>
+        <FadeIn>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Bagaimana Smart Review Card Bekerja?
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2">
+              3 langkah mudah dan tanpa hambatan bagi pelanggan toko Anda
+            </p>
+          </div>
+        </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Step 1 */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-7 relative group hover:border-indigo-500/40 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-              <span className="font-extrabold text-lg">01</span>
+          <FadeIn delay={0.1} direction="up">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-7 relative group hover:border-indigo-500/40 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <span className="font-extrabold text-lg">01</span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">{step1Title}</h3>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {step1Desc}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">{step1Title}</h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              {step1Desc}
-            </p>
-          </div>
+          </FadeIn>
 
           {/* Step 2 */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-7 relative group hover:border-sky-500/40 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-              <span className="font-extrabold text-lg">02</span>
+          <FadeIn delay={0.2} direction="up">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-7 relative group hover:border-sky-500/40 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <span className="font-extrabold text-lg">02</span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">{step2Title}</h3>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {step2Desc}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">{step2Title}</h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              {step2Desc}
-            </p>
-          </div>
+          </FadeIn>
 
           {/* Step 3 */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-7 relative group hover:border-emerald-500/40 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-              <span className="font-extrabold text-lg">03</span>
+          <FadeIn delay={0.3} direction="up">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-7 relative group hover:border-emerald-500/40 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <span className="font-extrabold text-lg">03</span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">{step3Title}</h3>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                {step3Desc}
+              </p>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">{step3Title}</h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              {step3Desc}
-            </p>
-          </div>
+          </FadeIn>
         </div>
       </section>
 
       {/* Key Advantages Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900/90 to-slate-950 border border-indigo-500/20 rounded-3xl p-8 sm:p-12 card-glow">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Keunggulan Teknologi</span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-1">
-              Kenapa Memilih Dynamic Smart Review?
-            </h2>
-          </div>
+          <FadeIn>
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">Keunggulan Teknologi</span>
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-1">
+                Kenapa Memilih Dynamic Smart Review?
+              </h2>
+            </div>
+          </FadeIn>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <Zap className="w-6 h-6 text-amber-400 mb-3" />
-              <h4 className="font-bold text-sm text-white mb-1">Dynamic Redirect</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Tautan review atau cabang toko bisa diganti kapan saja tanpa perlu mencetak kartu baru.
-              </p>
-            </div>
+            <FadeIn delay={0.1}>
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 h-full">
+                <Zap className="w-6 h-6 text-amber-400 mb-3" />
+                <h4 className="font-bold text-sm text-white mb-1">Dynamic Redirect</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Tautan review atau cabang toko bisa diganti kapan saja tanpa perlu mencetak kartu baru.
+                </p>
+              </div>
+            </FadeIn>
 
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <TrendingUp className="w-6 h-6 text-sky-400 mb-3" />
-              <h4 className="font-bold text-sm text-white mb-1">Real-time Analytics</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Pantau statistik scan secara real-time untuk melihat efektivitas tim kasir dan penempatan kartu.
-              </p>
-            </div>
+            <FadeIn delay={0.2}>
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 h-full">
+                <TrendingUp className="w-6 h-6 text-sky-400 mb-3" />
+                <h4 className="font-bold text-sm text-white mb-1">Real-time Analytics</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Pantau statistik scan secara real-time untuk melihat efektivitas tim kasir dan penempatan kartu.
+                </p>
+              </div>
+            </FadeIn>
 
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <Layers className="w-6 h-6 text-indigo-400 mb-3" />
-              <h4 className="font-bold text-sm text-white mb-1">Batch Export Percetakan</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Unduh file manifest CSV & arsip ZIP gambar QR code resolusi tinggi siap kirim ke percetakan.
-              </p>
-            </div>
+            <FadeIn delay={0.3}>
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 h-full">
+                <Layers className="w-6 h-6 text-indigo-400 mb-3" />
+                <h4 className="font-bold text-sm text-white mb-1">Batch Export Percetakan</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Unduh file manifest CSV & arsip ZIP gambar QR code resolusi tinggi siap kirim ke percetakan.
+                </p>
+              </div>
+            </FadeIn>
 
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
-              <ShieldCheck className="w-6 h-6 text-emerald-400 mb-3" />
-              <h4 className="font-bold text-sm text-white mb-1">Fallback Anti-Deadlink</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Proteksi otomatis bila kartu nonaktif akan diarahkan ke landing page dan tidak merusak user experience.
-              </p>
-            </div>
+            <FadeIn delay={0.4}>
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 h-full">
+                <ShieldCheck className="w-6 h-6 text-emerald-400 mb-3" />
+                <h4 className="font-bold text-sm text-white mb-1">Fallback Anti-Deadlink</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Proteksi otomatis bila kartu nonaktif akan diarahkan ke landing page dan tidak merusak user experience.
+                </p>
+              </div>
+            </FadeIn>
           </div>
         </div>
       </section>
 
       {/* CTA Bottom Banner */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="bg-gradient-to-r from-emerald-900/40 via-teal-900/30 to-slate-900 border border-emerald-500/30 rounded-3xl p-8 sm:p-12 shadow-2xl">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
-            Siap Melejitkan Rating Bisnis Anda di Google?
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto mb-6">
-            Dapatkan kartu Smart QR Google Review fisik berkualitas tinggi untuk outlet Anda hari ini.
-          </p>
+        <FadeIn direction="up">
+          <div className="bg-gradient-to-r from-emerald-900/40 via-teal-900/30 to-slate-900 border border-emerald-500/30 rounded-3xl p-8 sm:p-12 shadow-2xl">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+              Siap Melejitkan Rating Bisnis Anda di Google?
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto mb-6">
+              Dapatkan kartu Smart QR Google Review fisik berkualitas tinggi untuk outlet Anda hari ini.
+            </p>
 
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-105"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>Chat WhatsApp Customer Support</span>
-          </a>
-        </div>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-105"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Chat WhatsApp Customer Support</span>
+            </a>
+          </div>
+        </FadeIn>
       </section>
 
       {/* Footer */}
