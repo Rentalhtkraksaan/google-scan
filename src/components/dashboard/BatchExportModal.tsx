@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Download, FileSpreadsheet, Archive, Loader2, Info, CreditCard, QrCode, Layers } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, Download, FileSpreadsheet, Archive, Loader2, Info, CreditCard, QrCode, Layers, CheckSquare, Square, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { generateCardsCsv, generateQrZipBlob, CardExportItem } from "@/lib/qr-export";
 import { PrintSizeKey, PrintTemplateConfig, PRINT_SIZE_PRESETS } from "@/lib/card-canvas";
 import { getPrintTemplatesAction } from "@/lib/actions/site-setting.actions";
@@ -41,6 +41,11 @@ export function BatchExportModal({ cards, version = "V 1.1.2", initialPrintTempl
   });
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+
+  // Card selection state (for BLANK filter)
+  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
+  const [showCardPicker, setShowCardPicker] = useState(false);
+  const [cardSearch, setCardSearch] = useState("");
 
   // Load saved templates
   useEffect(() => {
@@ -86,13 +91,53 @@ export function BatchExportModal({ cards, version = "V 1.1.2", initialPrintTempl
       .catch((err) => console.error("Error loading templates in BatchExportModal:", err));
   }, [selectedSize]);
 
-  const filteredCards = cards.filter((c) => {
+  // All blank cards (for picker)
+  const blankCards = cards.filter((c) => !c.outlet);
+
+  // Base filtered cards by status
+  const baseFilteredCards = cards.filter((c) => {
     if (filterStatus === "BLANK") return !c.outlet;
     if (filterStatus === "CLAIMED") return !!c.outlet;
     if (filterStatus === "ACTIVE") return c.status === "ACTIVE";
     if (filterStatus === "INACTIVE") return c.status === "INACTIVE";
     return true;
   });
+
+  // Reset selections when filter changes
+  useEffect(() => {
+    setSelectedCodes(new Set());
+    setShowCardPicker(false);
+    setCardSearch("");
+  }, [filterStatus]);
+
+  // Actual cards to export: if BLANK and user picked specific ones, use those
+  const filteredCards = filterStatus === "BLANK" && selectedCodes.size > 0
+    ? baseFilteredCards.filter((c) => selectedCodes.has(c.code))
+    : baseFilteredCards;
+
+  // Cards matching search in picker
+  const searchedBlankCards = blankCards.filter((c) =>
+    c.code.toLowerCase().includes(cardSearch.toLowerCase())
+  );
+
+  const isAllSelected = blankCards.length > 0 && selectedCodes.size === blankCards.length;
+  const isNoneSelected = selectedCodes.size === 0;
+
+  const toggleCard = useCallback((code: string) => {
+    setSelectedCodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }, []);
+
+  const selectAll = () => setSelectedCodes(new Set(blankCards.map((c) => c.code)));
+  const clearAll = () => setSelectedCodes(new Set());
+
+  const exportCount = filterStatus === "BLANK" && selectedCodes.size > 0
+    ? selectedCodes.size
+    : baseFilteredCards.length;
 
   const currentSizePreset = templateConfigs[selectedSize] || PRINT_SIZE_PRESETS[selectedSize];
 
@@ -212,7 +257,117 @@ export function BatchExportModal({ cards, version = "V 1.1.2", initialPrintTempl
           </div>
         </div>
 
-        {/* Format Selection */}
+        {/* ── Card Picker (only when BLANK filter active) ── */}
+        {filterStatus === "BLANK" && blankCards.length > 0 && (
+          <div className="mb-4">
+            {/* Toggle header */}
+            <button
+              type="button"
+              onClick={() => setShowCardPicker((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-dashed border-indigo-500/50 bg-indigo-950/30 hover:bg-indigo-950/50 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-semibold text-indigo-300">
+                  {isNoneSelected
+                    ? "Pilih kartu tertentu yang mau di-download (opsional)"
+                    : `${selectedCodes.size} kartu dipilih dari ${blankCards.length}`}
+                </span>
+                {!isNoneSelected && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-600/40 text-indigo-200 font-mono">
+                    {selectedCodes.size}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {!isNoneSelected && (
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); clearAll(); }}
+                    className="text-[10px] text-slate-400 hover:text-red-400 underline transition-colors cursor-pointer"
+                  >
+                    reset
+                  </span>
+                )}
+                {showCardPicker
+                  ? <ChevronUp className="w-4 h-4 text-slate-400 group-hover:text-indigo-300 transition-colors" />
+                  : <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-indigo-300 transition-colors" />
+                }
+              </div>
+            </button>
+
+            {/* Expandable picker */}
+            {showCardPicker && (
+              <div className="mt-2 border border-slate-700 rounded-xl overflow-hidden bg-slate-950/60">
+                {/* Search + select-all bar */}
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800">
+                  <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Cari kode kartu…"
+                    value={cardSearch}
+                    onChange={(e) => setCardSearch(e.target.value)}
+                    className="flex-1 bg-transparent text-xs text-slate-200 placeholder:text-slate-600 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={isAllSelected ? clearAll : selectAll}
+                    className="text-[10px] font-semibold text-indigo-400 hover:text-indigo-200 whitespace-nowrap cursor-pointer transition-colors"
+                  >
+                    {isAllSelected ? "Batal Semua" : "Pilih Semua"}
+                  </button>
+                </div>
+
+                {/* Card list */}
+                <div className="max-h-44 overflow-y-auto custom-scrollbar divide-y divide-slate-800/60">
+                  {searchedBlankCards.length === 0 ? (
+                    <p className="text-center text-xs text-slate-500 py-4">Tidak ada kartu ditemukan</p>
+                  ) : (
+                    searchedBlankCards.map((card) => {
+                      const checked = selectedCodes.has(card.code);
+                      return (
+                        <button
+                          key={card.code}
+                          type="button"
+                          onClick={() => toggleCard(card.code)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors cursor-pointer ${
+                            checked
+                              ? "bg-indigo-900/25 hover:bg-indigo-900/40"
+                              : "hover:bg-slate-800/50"
+                          }`}
+                        >
+                          {checked
+                            ? <CheckSquare className="w-4 h-4 text-indigo-400 shrink-0" />
+                            : <Square className="w-4 h-4 text-slate-600 shrink-0" />
+                          }
+                          <span className={`font-mono text-xs ${checked ? "text-indigo-200" : "text-slate-400"}`}>
+                            {card.code}
+                          </span>
+                          <span className="ml-auto text-[10px] text-slate-600">
+                            {card.status}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer summary */}
+                <div className="px-3 py-2 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500">
+                    {isNoneSelected
+                      ? "Semua kartu kosong akan di-download"
+                      : `Hanya ${selectedCodes.size} kartu yang akan di-download`}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {searchedBlankCards.length} ditampilkan
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="mb-4">
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
             Pilihan Konten ZIP:
@@ -288,11 +443,13 @@ export function BatchExportModal({ cards, version = "V 1.1.2", initialPrintTempl
           <div className="text-xs text-slate-300 leading-relaxed">
             {exportFormat === "CARDS" || exportFormat === "BOTH" ? (
               <span>
-                Paket ZIP akan berisi file gambar desain <strong className="text-white">Kartu Google Review ({currentSizePreset.name} {currentSizePreset.badge} - 300+ DPI / {currentSizePreset.canvasWidth}x{currentSizePreset.canvasHeight} px)</strong> siap cetak, plus file spreadsheet <strong>daftar-kartu.csv</strong>.
+                Paket ZIP akan berisi <strong className="text-white">{exportCount} kartu</strong> desain{" "}
+                <strong className="text-white">Kartu Google Review ({currentSizePreset.name} {currentSizePreset.badge} - 300+ DPI / {currentSizePreset.canvasWidth}x{currentSizePreset.canvasHeight} px)</strong>{" "}
+                siap cetak, plus file spreadsheet <strong>daftar-kartu.csv</strong>.
               </span>
             ) : (
               <span>
-                Paket ZIP akan berisi file QR Code hitam putih polosan dan manifest spreadsheet <strong>daftar-kartu.csv</strong>.
+                Paket ZIP akan berisi <strong className="text-white">{exportCount} file QR Code</strong> hitam putih polosan dan manifest spreadsheet <strong>daftar-kartu.csv</strong>.
               </span>
             )}
           </div>
@@ -323,7 +480,7 @@ export function BatchExportModal({ cards, version = "V 1.1.2", initialPrintTempl
             ) : (
               <Archive className="w-4 h-4 text-white" />
             )}
-            <span>Download ZIP Cetak</span>
+            <span>Download ZIP{filterStatus === "BLANK" && !isNoneSelected ? ` (${exportCount})` : ""}</span>
           </button>
         </div>
       </div>
