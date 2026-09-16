@@ -3,8 +3,11 @@
 import { useState, useEffect, useTransition } from "react";
 import {
   getActivityLogsAction,
+  deleteActivityLogAction,
+  deleteAllActivityLogsAction,
   ActivityLogItem,
 } from "@/lib/actions/activity.actions";
+import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import {
   History,
   Search,
@@ -26,6 +29,8 @@ import {
   Trash2,
   ToggleLeft,
   Link,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 
 interface ActivityLogTableProps {
@@ -33,6 +38,8 @@ interface ActivityLogTableProps {
   subtitle?: string;
   defaultCategory?: string;
   isOutletView?: boolean;
+  canDelete?: boolean;
+  isMaster?: boolean;
 }
 
 export default function ActivityLogTable({
@@ -40,6 +47,8 @@ export default function ActivityLogTable({
   subtitle = "Audit trail & riwayat seluruh aktivitas operasional secara real-time.",
   defaultCategory = "ALL",
   isOutletView = false,
+  canDelete = false,
+  isMaster = false,
 }: ActivityLogTableProps) {
   const [logs, setLogs] = useState<ActivityLogItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -49,6 +58,8 @@ export default function ActivityLogTable({
   const [category, setCategory] = useState(defaultCategory);
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const fetchLogs = (targetPage = page, targetSearch = search, targetCat = category) => {
     startTransition(async () => {
@@ -79,6 +90,33 @@ export default function ActivityLogTable({
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchLogs(1, search, category);
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (!confirm("Hapus log aktivitas ini? Tindakan ini tidak dapat dibatalkan.")) return;
+    setDeletingId(logId);
+    const res = await deleteActivityLogAction(logId);
+    setDeletingId(null);
+    if (res.success) {
+      showSuccessAlert("Dihapus!", res.message, 1200);
+      fetchLogs(page, search, category);
+    } else {
+      showErrorAlert("Gagal", res.message);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!confirm(`Hapus SEMUA ${total} log aktivitas? Tindakan ini tidak dapat dibatalkan dan permanen!`)) return;
+    if (!confirm("Konfirmasi sekali lagi: yakin ingin menghapus semua log?")) return;
+    setIsDeletingAll(true);
+    const res = await deleteAllActivityLogsAction();
+    setIsDeletingAll(false);
+    if (res.success) {
+      showSuccessAlert("Semua Log Dihapus!", res.message, 1800);
+      fetchLogs(1, "", "ALL");
+    } else {
+      showErrorAlert("Gagal", res.message);
+    }
   };
 
   const formatTimestamp = (dateInput: Date | string) => {
@@ -228,6 +266,19 @@ export default function ActivityLogTable({
           </div>
 
           <div className="flex items-center gap-2">
+            {canDelete && isMaster && total > 0 && (
+              <button
+                onClick={handleDeleteAll}
+                disabled={isDeletingAll || isPending}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-900/30 hover:bg-rose-800/50 text-rose-400 hover:text-rose-300 border border-rose-700/40 text-xs font-medium transition-all shadow-sm disabled:opacity-50"
+                title="Hapus semua log (hanya Super Admin Master)"
+              >
+                {isDeletingAll
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <AlertTriangle className="w-3.5 h-3.5" />}
+                <span>Hapus Semua</span>
+              </button>
+            )}
             <button
               onClick={() => fetchLogs(page, search, category)}
               disabled={isPending}
@@ -332,6 +383,7 @@ export default function ActivityLogTable({
                   <th className="py-3.5 px-4">Tindakan</th>
                   <th className="py-3.5 px-4">Detail Aktivitas</th>
                   <th className="py-3.5 px-4 sm:px-5 text-right">Waktu</th>
+                  {canDelete && <th className="py-3.5 px-3 text-center w-12"></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50 text-slate-300">
@@ -392,6 +444,22 @@ export default function ActivityLogTable({
                         </p>
                       </div>
                     </td>
+
+                    {/* Delete button */}
+                    {canDelete && (
+                      <td className="py-3.5 px-3 align-top text-center">
+                        <button
+                          onClick={() => handleDeleteLog(log.id)}
+                          disabled={deletingId === log.id}
+                          className="p-1.5 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-40 cursor-pointer"
+                          title="Hapus log ini"
+                        >
+                          {deletingId === log.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

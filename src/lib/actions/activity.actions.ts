@@ -333,3 +333,66 @@ export async function getActivityLogsAction(
     };
   }
 }
+
+/**
+ * Delete a single activity log by ID.
+ * Hanya Super Admin yang boleh menghapus log.
+ */
+export async function deleteActivityLogAction(logId: string): Promise<ActionResult> {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false, message: "Sesi telah berakhir. Silakan login kembali." };
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, isSuperAdminMaster: true },
+    });
+
+    if (!currentUser || currentUser.role !== Role.SUPER_ADMIN || !currentUser.isSuperAdminMaster) {
+      return { success: false, message: "Hanya Super Admin Master yang dapat menghapus log aktivitas." };
+    }
+
+    await prisma.activityLog.delete({ where: { id: logId } });
+
+    return { success: true, message: "Log aktivitas berhasil dihapus." };
+  } catch (error) {
+    console.error("Error deleting activity log:", error);
+    return { success: false, message: "Gagal menghapus log aktivitas." };
+  }
+}
+
+/**
+ * Delete ALL activity logs.
+ * Hanya Super Admin Master (isSuperAdminMaster = true) yang boleh.
+ */
+export async function deleteAllActivityLogsAction(): Promise<ActionResult<{ count: number }>> {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false, message: "Sesi telah berakhir. Silakan login kembali." };
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, isSuperAdminMaster: true },
+    });
+
+    if (!currentUser || currentUser.role !== Role.SUPER_ADMIN || !currentUser.isSuperAdminMaster) {
+      return { success: false, message: "Hanya Super Admin Master yang dapat menghapus semua log." };
+    }
+
+    const { count } = await prisma.activityLog.deleteMany({});
+
+    return {
+      success: true,
+      message: `Berhasil menghapus ${count} log aktivitas.`,
+      data: { count },
+    };
+  } catch (error) {
+    console.error("Error deleting all activity logs:", error);
+    return { success: false, message: "Gagal menghapus semua log aktivitas." };
+  }
+}
+

@@ -1341,9 +1341,9 @@ export function SuperAdminDashboardClient({
               <Menu className="w-5 h-5" />
             </button>
 
-            <div>
+            <div className="min-w-0 overflow-hidden">
               <div className="flex items-center gap-2 mb-0.5">
-                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2 truncate">
                   {activeTab === "OVERVIEW" && "Dashboard Utama"}
                   {activeTab === "CARDS" && "Data Kartu QR"}
                   {activeTab === "OUTLETS" && "Data Outlet Mitra"}
@@ -1352,7 +1352,7 @@ export function SuperAdminDashboardClient({
                   {activeTab === "DATABASE_BACKUP" && "Database & Auto-Backup"}
                   {activeTab === "ACTIVITY_LOGS" && "Log Audit Sistem"}
                 </h1>
-                <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20">
+                <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 shrink-0">
                   {localSiteSetting?.appVersion || "V 1.1.2"}
                 </span>
               </div>
@@ -1366,11 +1366,11 @@ export function SuperAdminDashboardClient({
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={() => setIsScannerModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
               title="Pindai Kamera QR atau Pulihkan Banyak Kartu Sekaligus"
             >
               <Camera className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Scan / Pulihkan Kartu</span>
+              <span className="hidden sm:inline">Scan / Pulihkan Kartu</span>
             </button>
 
             <button
@@ -3261,6 +3261,8 @@ export function SuperAdminDashboardClient({
                   ? "Super Admin 1 (Master): Memiliki akses penuh audit trail seluruh Super Admin, Admin Lapangan, dan Outlet."
                   : "Super Admin 2: Memantau aktivitas operasional diri sendiri serta Admin Lapangan & Outlet binaan Anda."
               }
+              canDelete={isMaster}
+              isMaster={isMaster}
             />
           </div>
         )}
