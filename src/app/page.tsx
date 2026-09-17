@@ -269,7 +269,7 @@ export default async function LandingPage() {
 
       {/* ─── Section: Promo & Diskon ───────────────────────────────────── */}
       {activePromos.length > 0 && (
-        <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-8">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold mb-3">
@@ -281,65 +281,127 @@ export default async function LandingPage() {
             </div>
           </FadeIn>
 
-          <div className={`grid grid-cols-1 ${
-            activePromos.length === 1 ? "max-w-sm mx-auto" :
-            activePromos.length === 2 ? "sm:grid-cols-2 max-w-2xl mx-auto" :
-            "sm:grid-cols-2 lg:grid-cols-3"
-          } gap-5`}>
+          <div className="space-y-5">
             {activePromos.map((promo, i) => {
               const isExpiringSoon = promo.expiredAt
                 ? (new Date(promo.expiredAt).getTime() - Date.now()) < 7 * 24 * 3600 * 1000
                 : false;
+              const savedPct = Math.round(
+                (1 - Number(promo.discountPrice.replace(/[^0-9.]/g, "")) /
+                  Number(promo.originalPrice.replace(/[^0-9.]/g, ""))) * 100
+              );
               return (
                 <FadeIn key={promo.id} delay={i * 0.1}>
-                  <div className="relative bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-6 shadow-xl shadow-amber-900/20 overflow-hidden">
-                    {/* Glow effect */}
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl overflow-hidden shadow-xl shadow-amber-900/20">
+                    {/* Glow */}
+                    <div className="absolute -top-16 -right-16 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-600/5 rounded-full blur-2xl pointer-events-none" />
 
-                    {/* Badge */}
-                    {isExpiringSoon && promo.expiredAt && (
-                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold mb-3">
-                        ⏰ Segera Berakhir!
+                    {/* ── DESKTOP LAYOUT (md ke atas): horizontal ── */}
+                    <div className="hidden md:flex items-center gap-0">
+                      {/* Kiri: info */}
+                      <div className="flex-1 p-8 pr-6 border-r border-amber-500/20">
+                        <div className="flex items-center gap-2 flex-wrap mb-3">
+                          {isExpiringSoon && promo.expiredAt && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold">
+                              ⏰ Segera Berakhir!
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+                            Hemat {savedPct}%
+                          </span>
+                        </div>
+
+                        <h3 className="text-xl font-extrabold text-white mb-2">{promo.label}</h3>
+                        {promo.description && (
+                          <p className="text-sm text-slate-400 leading-relaxed mb-4">{promo.description}</p>
+                        )}
+
+                        {promo.expiredAt && (
+                          <p className="text-xs text-slate-500">
+                            📅 Berlaku s/d {new Date(promo.expiredAt).toLocaleDateString("id-ID", {
+                              day: "numeric", month: "long", year: "numeric",
+                            })}
+                          </p>
+                        )}
                       </div>
-                    )}
 
-                    <h3 className="text-base font-bold text-white mb-1">{promo.label}</h3>
-                    {promo.description && (
-                      <p className="text-xs text-slate-400 mb-4 leading-relaxed">{promo.description}</p>
-                    )}
+                      {/* Kanan: harga + CTA */}
+                      <div className="shrink-0 px-10 py-8 flex flex-col items-center justify-center text-center min-w-[260px]">
+                        {/* Harga coret */}
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-slate-500 line-through text-xl font-medium">
+                            {promo.originalPrice}{promo.priceUnit}
+                          </span>
+                        </div>
+                        {/* Harga diskon — BESAR di desktop */}
+                        <div className="text-amber-400 font-black text-6xl leading-none tracking-tight mb-1">
+                          {promo.discountPrice}
+                        </div>
+                        <div className="text-amber-300/70 font-bold text-lg mb-5">
+                          {promo.priceUnit}
+                        </div>
 
-                    {/* Harga */}
-                    <div className="flex items-baseline gap-3 mb-3">
-                      <span className="text-slate-500 line-through text-lg font-medium">
-                        {promo.originalPrice}{promo.priceUnit}
-                      </span>
-                      <span className="text-amber-400 font-extrabold text-4xl leading-none">
-                        {promo.discountPrice}{promo.priceUnit}
-                      </span>
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm rounded-2xl transition-all hover:scale-[1.03] active:scale-[0.97] shadow-lg shadow-amber-600/30 whitespace-nowrap"
+                        >
+                          🎉 Klaim Promo Ini
+                        </a>
+                      </div>
                     </div>
 
-                    {/* Diskon badge */}
-                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold mb-4">
-                      Hemat {Math.round((1 - Number(promo.discountPrice.replace(/[^0-9.]/g, "")) / Number(promo.originalPrice.replace(/[^0-9.]/g, ""))) * 100)}%
+                    {/* ── MOBILE LAYOUT (di bawah md): vertikal compact ── */}
+                    <div className="md:hidden p-5">
+                      {/* Badges */}
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        {isExpiringSoon && promo.expiredAt && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold">
+                            ⏰ Segera Berakhir!
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold">
+                          Hemat {savedPct}%
+                        </span>
+                      </div>
+
+                      <h3 className="text-base font-bold text-white mb-1">{promo.label}</h3>
+                      {promo.description && (
+                        <p className="text-xs text-slate-400 mb-3 leading-relaxed">{promo.description}</p>
+                      )}
+
+                      {/* Harga — inline di mobile */}
+                      <div className="flex items-end gap-3 mb-3">
+                        <span className="text-slate-500 line-through text-sm font-medium self-center">
+                          {promo.originalPrice}{promo.priceUnit}
+                        </span>
+                        <span className="text-amber-400 font-black text-4xl leading-none">
+                          {promo.discountPrice}
+                        </span>
+                        <span className="text-amber-300/70 font-bold text-base self-end mb-0.5">
+                          {promo.priceUnit}
+                        </span>
+                      </div>
+
+                      {promo.expiredAt && (
+                        <p className="text-[10px] text-slate-500 mb-3">
+                          📅 s/d {new Date(promo.expiredAt).toLocaleDateString("id-ID", {
+                            day: "numeric", month: "long", year: "numeric",
+                          })}
+                        </p>
+                      )}
+
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm rounded-xl transition-all"
+                      >
+                        🎉 Klaim Promo Ini
+                      </a>
                     </div>
-
-                    {/* Tanggal expired */}
-                    {promo.expiredAt && (
-                      <p className="text-[10px] text-slate-500 mt-2">
-                        Berlaku s/d {new Date(promo.expiredAt).toLocaleDateString("id-ID", {
-                          day: "numeric", month: "long", year: "numeric"
-                        })}
-                      </p>
-                    )}
-
-                    <a
-                      href={whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm rounded-xl transition-all hover:scale-[1.02]"
-                    >
-                      Klaim Promo Ini
-                    </a>
                   </div>
                 </FadeIn>
               );
@@ -347,6 +409,7 @@ export default async function LandingPage() {
           </div>
         </section>
       )}
+
 
       {/* How it Works (3 Steps) */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
