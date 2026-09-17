@@ -2,6 +2,8 @@ import Link from "next/link";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCachedSiteSetting } from "@/lib/site-settings-cache";
+import { after } from "next/server";
 import {
   QrCode,
   Sparkles,
@@ -17,8 +19,6 @@ import {
 
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   let title = "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis";
   let description =
@@ -26,10 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
   let faviconUrl = "/favicon.ico";
 
   try {
-    const siteSetting = await prisma.siteSetting.findUnique({
-      where: { id: "default" },
-      select: { seoTitle: true, seoDescription: true, faviconUrl: true },
-    });
+    // Pakai cached fetch — tidak hit DB jika cache masih valid
+    const siteSetting = await getCachedSiteSetting();
 
     if (siteSetting?.seoTitle?.trim()) {
       title = siteSetting.seoTitle.trim();
@@ -74,31 +72,42 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LandingPage() {
-  const session = await auth();
+  // Parallelkan auth check + fetch siteSetting dari cache
+  const [session, siteSetting] = await Promise.all([
+    auth(),
+    getCachedSiteSetting(),
+  ]);
 
-  // Ambil data konfigurasi landing page dari database dan increment jumlah pengunjung
-  const siteSetting = await prisma.siteSetting.update({
-    where: { id: "default" },
-    data: { visitorCount: { increment: 1 } },
+  // Visitor tracking dijalankan SETELAH response dikirim ke browser
+  // agar tidak memblokir render halaman (non-blocking)
+  after(async () => {
+    try {
+      await prisma.siteSetting.update({
+        where: { id: "default" },
+        data: { visitorCount: { increment: 1 } },
+      });
+    } catch (e) {
+      console.error("Gagal increment visitor count:", e);
+    }
+
+    try {
+      // Gunakan tanggal lokal Indonesia (WIB) untuk pencatatan harian
+      const dateOpts = { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+      const parts = new Intl.DateTimeFormat('en-CA', dateOpts).formatToParts(new Date());
+      const year = parts.find(p => p.type === 'year')?.value;
+      const month = parts.find(p => p.type === 'month')?.value;
+      const day = parts.find(p => p.type === 'day')?.value;
+      const today = `${year}-${month}-${day}`;
+
+      await prisma.dailyVisitor.upsert({
+        where: { date: today },
+        update: { visits: { increment: 1 } },
+        create: { date: today, visits: 1 },
+      });
+    } catch (e) {
+      console.error("Gagal mencatat kunjungan harian:", e);
+    }
   });
-
-  try {
-    // Gunakan tanggal lokal Indonesia (WIB) untuk pencatatan harian
-    const dateOpts = { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
-    const parts = new Intl.DateTimeFormat('en-CA', dateOpts).formatToParts(new Date());
-    const year = parts.find(p => p.type === 'year')?.value;
-    const month = parts.find(p => p.type === 'month')?.value;
-    const day = parts.find(p => p.type === 'day')?.value;
-    const today = `${year}-${month}-${day}`;
-
-    await prisma.dailyVisitor.upsert({
-      where: { date: today },
-      update: { visits: { increment: 1 } },
-      create: { date: today, visits: 1 },
-    });
-  } catch (e) {
-    console.error("Gagal mencatat kunjungan harian:", e);
-  }
 
   const whatsappNumber = siteSetting?.whatsappNumber || "6281234567890";
   const heroBadge = siteSetting?.heroBadge || "🔥 Solusi Cerdas Ulasan Bintang 5 Google Bisnis";

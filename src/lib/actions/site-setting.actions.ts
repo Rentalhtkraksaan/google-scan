@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
@@ -202,6 +202,7 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
 
     revalidatePath("/");
     revalidatePath("/super-admin");
+    revalidateTag("site-setting"); // invalidate landing page cache
 
     return {
       success: true,
