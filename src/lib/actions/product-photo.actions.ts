@@ -2,8 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 // ─── Helper: cek Super Admin 1 ──────────────────────────────────────────────
 async function requireSuperAdmin1() {
