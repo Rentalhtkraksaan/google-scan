@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 import { after } from "next/server";
+import { getActivePromosAction } from "@/lib/actions/promo.actions";
+import { getProductPhotosAction } from "@/lib/actions/product-photo.actions";
 import {
   QrCode,
   Sparkles,
@@ -72,10 +74,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LandingPage() {
-  // Parallelkan auth check + fetch siteSetting dari cache
-  const [session, siteSetting] = await Promise.all([
+  // Parallelkan auth check + fetch siteSetting + promo + foto dari cache/DB
+  const [session, siteSetting, activePromos, productPhotos] = await Promise.all([
     auth(),
     getCachedSiteSetting(),
+    getActivePromosAction(),
+    getProductPhotosAction(),
   ]);
 
   // Visitor tracking dijalankan SETELAH response dikirim ke browser
@@ -263,6 +267,87 @@ export default async function LandingPage() {
         </FadeIn>
       </section>
 
+      {/* ─── Section: Promo & Diskon ───────────────────────────────────── */}
+      {activePromos.length > 0 && (
+        <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-8">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold mb-3">
+                🔥 Penawaran Terbatas
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Harga Spesial untuk Anda
+              </h2>
+            </div>
+          </FadeIn>
+
+          <div className={`grid grid-cols-1 ${
+            activePromos.length === 1 ? "max-w-sm mx-auto" :
+            activePromos.length === 2 ? "sm:grid-cols-2 max-w-2xl mx-auto" :
+            "sm:grid-cols-2 lg:grid-cols-3"
+          } gap-5`}>
+            {activePromos.map((promo, i) => {
+              const isExpiringSoon = promo.expiredAt
+                ? (new Date(promo.expiredAt).getTime() - Date.now()) < 7 * 24 * 3600 * 1000
+                : false;
+              return (
+                <FadeIn key={promo.id} delay={i * 0.1}>
+                  <div className="relative bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-6 shadow-xl shadow-amber-900/20 overflow-hidden">
+                    {/* Glow effect */}
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                    {/* Badge */}
+                    {isExpiringSoon && promo.expiredAt && (
+                      <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold mb-3">
+                        ⏰ Segera Berakhir!
+                      </div>
+                    )}
+
+                    <h3 className="text-base font-bold text-white mb-1">{promo.label}</h3>
+                    {promo.description && (
+                      <p className="text-xs text-slate-400 mb-4 leading-relaxed">{promo.description}</p>
+                    )}
+
+                    {/* Harga */}
+                    <div className="flex items-baseline gap-3 mb-3">
+                      <span className="text-slate-500 line-through text-lg font-medium">
+                        {promo.originalPrice}{promo.priceUnit}
+                      </span>
+                      <span className="text-amber-400 font-extrabold text-4xl leading-none">
+                        {promo.discountPrice}{promo.priceUnit}
+                      </span>
+                    </div>
+
+                    {/* Diskon badge */}
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold mb-4">
+                      Hemat {Math.round((1 - Number(promo.discountPrice.replace(/[^0-9.]/g, "")) / Number(promo.originalPrice.replace(/[^0-9.]/g, ""))) * 100)}%
+                    </div>
+
+                    {/* Tanggal expired */}
+                    {promo.expiredAt && (
+                      <p className="text-[10px] text-slate-500 mt-2">
+                        Berlaku s/d {new Date(promo.expiredAt).toLocaleDateString("id-ID", {
+                          day: "numeric", month: "long", year: "numeric"
+                        })}
+                      </p>
+                    )}
+
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm rounded-xl transition-all hover:scale-[1.02]"
+                    >
+                      Klaim Promo Ini
+                    </a>
+                  </div>
+                </FadeIn>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* How it Works (3 Steps) */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
@@ -317,6 +402,53 @@ export default async function LandingPage() {
           </FadeIn>
         </div>
       </section>
+
+      {/* ─── Section: Galeri Foto Produk (Carousel) ───────────────────── */}
+      {productPhotos.length > 0 && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <FadeIn>
+            <div className="text-center mb-10">
+              <span className="text-xs font-bold uppercase tracking-wider text-sky-400">Produk Kami</span>
+              <h2 className="text-2xl sm:text-4xl font-extrabold text-white mt-1 tracking-tight">
+                Lihat Tampilan Kartu Kami
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 mt-2">Desain premium, siap dipajang di outlet Anda</p>
+            </div>
+          </FadeIn>
+
+          {/* Carousel wrapper */}
+          <div className="relative overflow-hidden">
+            <div
+              className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {productPhotos.map((photo, i) => (
+                <FadeIn key={photo.id} delay={i * 0.05}>
+                  <div className="snap-center shrink-0 w-64 sm:w-72 rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.imageData}
+                      alt={photo.caption || `Foto produk ${i + 1}`}
+                      className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {photo.caption && (
+                      <div className="px-4 py-3">
+                        <p className="text-xs text-slate-300 text-center font-medium">{photo.caption}</p>
+                      </div>
+                    )}
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+
+            {/* Fade edges */}
+            <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-[#070b14] to-transparent pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-[#070b14] to-transparent pointer-events-none" />
+          </div>
+
+          <p className="text-center text-xs text-slate-600 mt-2">← Geser untuk lihat lebih banyak →</p>
+        </section>
+      )}
 
       {/* Key Advantages Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">

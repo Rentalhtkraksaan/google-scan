@@ -185,3 +185,30 @@ model DatabaseBackup {
   @@map("database_backups")
 }
 
+model Promo {
+  id            String    @id @default(cuid())
+  label         String    // Judul promo, contoh: "Promo Spesial September"
+  description   String?   @db.Text // Deskripsi singkat opsional
+  originalPrice String    // Harga asli (string bebas, contoh: "50", "500.000")
+  discountPrice String    // Harga diskon (string bebas, contoh: "35", "350.000")
+  priceUnit     String    @default("rb") // Satuan tampil, contoh: "rb", "ribu", "K", ""
+  expiredAt     DateTime? // Null = promo selamanya
+  isActive      Boolean   @default(true)
+  order         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([isActive])
+  @@map("promos")
+}
+
+model ProductPhoto {
+  id        String   @id @default(cuid())
+  imageData String   @db.LongText // base64 — hapus row = hapus foto bersih dari DB
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("product_photos")
+}
+

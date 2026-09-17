@@ -37,6 +37,8 @@ import {
   LayoutDashboard,
   QrCode,
   Loader2,
+  Tag,
+  Images,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
@@ -56,6 +58,8 @@ import { EditCardModal } from "@/components/dashboard/EditCardModal";
 import { QrCodeModal } from "@/components/dashboard/QrCodeModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
 import { QrCameraScannerModal } from "@/components/dashboard/QrCameraScannerModal";
+import { PromoManagerModal } from "@/components/dashboard/PromoManagerModal";
+import { ProductPhotoManagerModal } from "@/components/dashboard/ProductPhotoManagerModal";
 import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from "@/lib/actions/qr.actions";
 import {
   deleteAdminAction,
@@ -298,6 +302,8 @@ export function SuperAdminDashboardClient({
     currentCards?: { code: string }[];
   } | null>(null);
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   // Helper: Cek apakah suatu kartu/outlet adalah Kartu Demo Landing Page
   const isDemoCard = (cardCode: string) => {
@@ -1271,6 +1277,28 @@ export function SuperAdminDashboardClient({
               >
                 <TrendingUp className="w-4 h-4 shrink-0 text-rose-400" />
                 <span className="truncate">Analitik Pengunjung</span>
+              </button>
+            )}
+
+            {/* Kelola Promo & Diskon (Khusus Super Admin 1) */}
+            {isMaster && (
+              <button
+                onClick={() => setIsPromoModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-amber-500/10 hover:text-amber-300 transition-all cursor-pointer text-left"
+              >
+                <Tag className="w-4 h-4 shrink-0 text-amber-400" />
+                <span className="truncate">Promo & Diskon</span>
+              </button>
+            )}
+
+            {/* Kelola Foto Produk (Khusus Super Admin 1) */}
+            {isMaster && (
+              <button
+                onClick={() => setIsPhotoModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-sky-500/10 hover:text-sky-300 transition-all cursor-pointer text-left"
+              >
+                <Images className="w-4 h-4 shrink-0 text-sky-400" />
+                <span className="truncate">Foto Produk</span>
               </button>
             )}
 
@@ -3445,6 +3473,18 @@ export function SuperAdminDashboardClient({
       {isVisitorModalOpen && (
         <VisitorAnalyticsModal onClose={() => setIsVisitorModalOpen(false)} />
       )}
+
+      {/* Promo & Diskon Manager (Khusus Super Admin 1) */}
+      <PromoManagerModal
+        isOpen={isPromoModalOpen}
+        onClose={() => setIsPromoModalOpen(false)}
+      />
+
+      {/* Foto Produk Manager (Khusus Super Admin 1) */}
+      <ProductPhotoManagerModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+      />
     </div>
   );
 }
