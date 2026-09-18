@@ -334,8 +334,16 @@ export async function deleteCardAction(code: string): Promise<ActionResult> {
 
     const currentUser = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isSuperAdminMaster: true },
+      select: { isSuperAdminMaster: true, canDeleteCards: true },
     });
+
+    // Validasi izin Super Admin 2
+    if (!currentUser?.isSuperAdminMaster && !currentUser?.canDeleteCards) {
+      return {
+        success: false,
+        message: "Akses ditolak: Akun Super Admin 2 Anda belum diberikan izin untuk menghapus kartu oleh Super Admin 1 (Master).",
+      };
+    }
 
     const card = await prisma.qrCard.findUnique({
       where: { code },
@@ -372,22 +380,15 @@ export async function deleteCardAction(code: string): Promise<ActionResult> {
 
     // Jika pemanggil adalah Super Admin 2 (bukan Master):
     if (!currentUser?.isSuperAdminMaster) {
-      // 1. Kartu tidak dialokasikan ke siapa pun (milik pool pusat Super Admin 1)
-      if (!card.assignedAdmin) {
-        return {
-          success: false,
-          message: "Akses ditolak: Kartu pada kolam umum pusat dikelola oleh Super Admin 1.",
-        };
-      }
-      // 2. Kartu dialokasikan ke Admin Lapangan buatan Super Admin 1
-      if (card.assignedAdmin.createdBy?.isSuperAdminMaster || !card.assignedAdmin.createdById) {
+      // 1. Kartu dialokasikan ke Admin Lapangan buatan Super Admin 1
+      if (card.assignedAdmin && (card.assignedAdmin.createdBy?.isSuperAdminMaster || !card.assignedAdmin.createdById)) {
         return {
           success: false,
           message:
             "Akses ditolak: Akun Super Admin 2 tidak memiliki izin untuk menghapus kartu yang dialokasikan ke Admin binaan Super Admin 1.",
         };
       }
-      // 3. Kartu terhubung ke outlet buatan Super Admin 1 atau Admin binaan Super Admin 1
+      // 2. Kartu terhubung ke outlet buatan Super Admin 1 atau Admin binaan Super Admin 1
       if (card.outlet?.owner) {
         const owner = card.outlet.owner;
         const createdByMasterDirectly = owner.createdBy?.isSuperAdminMaster || !owner.createdById;
@@ -605,23 +606,46 @@ export async function deleteBatchCardsAction(codes: string[]): Promise<ActionRes
     let finalTargetCodes = targetCodes;
 
     // Jika pemanggil adalah Super Admin 2 (bukan Master):
-    // Super Admin 2 HANYA boleh menghapus kartu jatah Admin binaannya sendiri
+    // Super Admin 2 dilarang menghapus kartu milik Admin binaan Super Admin 1 atau Outlet binaan Super Admin 1
     if (!currentUser?.isSuperAdminMaster) {
-      const allowedCards = await prisma.qrCard.findMany({
+      const protectedCards = await prisma.qrCard.findMany({
         where: {
           code: { in: targetCodes },
-          assignedAdmin: {
-            createdById: session.user.id,
-          },
+          OR: [
+            // Dialokasikan ke Admin binaan Super Admin 1
+            {
+              assignedAdmin: {
+                OR: [
+                  { isSuperAdminMaster: true },
+                  { createdBy: { isSuperAdminMaster: true } },
+                  { createdById: null },
+                ],
+              },
+            },
+            // Terhubung ke Outlet binaan Super Admin 1
+            {
+              outlet: {
+                owner: {
+                  OR: [
+                    { createdBy: { isSuperAdminMaster: true } },
+                    { createdBy: { createdBy: { isSuperAdminMaster: true } } },
+                    { createdById: null },
+                  ],
+                },
+              },
+            },
+          ],
         },
         select: { code: true },
       });
-      finalTargetCodes = allowedCards.map((c) => c.code);
+
+      const protectedCodes = new Set(protectedCards.map((c) => c.code));
+      finalTargetCodes = targetCodes.filter((code) => !protectedCodes.has(code));
 
       if (finalTargetCodes.length === 0) {
         return {
           success: false,
-          message: "Akses ditolak: Anda hanya dapat menghapus massal kartu yang dialokasikan ke Admin binaan Anda sendiri.",
+          message: "Akses ditolak: Kartu yang Anda pilih dikelola atau dimiliki oleh Super Admin 1.",
         };
       }
     }
