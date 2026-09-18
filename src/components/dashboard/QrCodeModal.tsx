@@ -91,7 +91,7 @@ export function QrCodeModal({
   onClose,
 }: QrCodeModalProps) {
   const [viewTab, setViewTab] = useState<"CARD" | "QR">("CARD");
-  const selectedSize: PrintSizeKey = "square";
+  const [selectedSize, setSelectedSize] = useState<PrintSizeKey>("square");
 
   // Instant synchronous initialization from Prop or Local Cache (0ms delay)
   const [templateConfigs, setTemplateConfigs] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(() => {
@@ -429,17 +429,33 @@ export function QrCodeModal({
           </div>
         )}
 
-        {/* Standard Format Info (Card Tab) */}
+        {/* Size Format Switcher (Square / A5) */}
         {viewTab === "CARD" && showPrintActions && (
-          <div className="mt-3.5 p-2.5 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">⏹️</span>
-              <span className="text-xs font-semibold text-slate-200">
-                Format Standar: <strong className="text-white">Stiker Meja Persegi (10 x 10 cm)</strong>
-              </span>
-            </div>
-            <span className="text-[11px] font-mono text-indigo-300">
-              1500 x 1500 px @ 300 DPI
+          <div className="mt-3.5 flex items-center gap-2">
+            <button
+              onClick={() => setSelectedSize("square")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedSize === "square"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                  : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              <span>⏹️</span>
+              <span>Persegi 10×10</span>
+            </button>
+            <button
+              onClick={() => setSelectedSize("a5")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedSize === "a5"
+                  ? "bg-sky-600 text-white shadow-md shadow-sky-600/30"
+                  : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              <span>📄</span>
+              <span>Flyer A5</span>
+            </button>
+            <span className="ml-auto text-[10px] font-mono text-slate-500">
+              {selectedSize === "square" ? "1500×1500" : "1748×2480"} px
             </span>
           </div>
         )}
