@@ -8,6 +8,7 @@ import { resolveAndFormatGoogleUrl } from "@/lib/google-url";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { recordActivityLog } from "@/lib/actions/activity.actions";
+import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
@@ -19,6 +20,13 @@ export type ActionResult<T = unknown> = {
 
 export async function getLoginRedirectPath(email: string): Promise<string> {
   try {
+    const session = await auth();
+    if (session?.user?.role) {
+      if (session.user.role === Role.SUPER_ADMIN) return "/super-admin";
+      if (session.user.role === Role.ADMIN) return "/admin";
+      return "/portal";
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
       select: { role: true },
@@ -298,6 +306,26 @@ export async function toggleUserActiveStatusAction(userId: string): Promise<Acti
     });
 
     if (!targetUser) return { success: false, message: "User tidak ditemukan." };
+
+    // Proteksi Keamanan: Akun Super Admin 1 (Master) tidak boleh dinonaktifkan oleh siapa pun!
+    if (targetUser.isSuperAdminMaster) {
+      return { success: false, message: "Akses ditolak: Akun Super Admin 1 (Master) tidak dapat dinonaktifkan!" };
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdminMaster: true },
+    });
+
+    // Validasi izin untuk Super Admin 2 (bukan Master)
+    if (session.user.role === Role.SUPER_ADMIN && !currentUser?.isSuperAdminMaster) {
+      if (targetUser.role === Role.SUPER_ADMIN) {
+        return { success: false, message: "Akses ditolak: Super Admin 2 tidak dapat mengubah status akun Super Admin lainnya." };
+      }
+      if (targetUser.role === Role.ADMIN && targetUser.createdById !== session.user.id) {
+        return { success: false, message: "Akses ditolak: Super Admin 2 hanya dapat mengubah status Admin binaannya sendiri." };
+      }
+    }
 
     // Validasi izin untuk Admin Lapangan
     if (session.user.role === Role.ADMIN) {
@@ -1376,6 +1404,15 @@ export async function resetForgotPasswordAction(formData: FormData): Promise<Act
       };
     }
 
+    // Rate limiting: max 5 reset attempts per 15 minutes per email
+    const rateCheck = checkRateLimit(`pwd_reset_${email}`, 5, 15 * 60 * 1000);
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        message: `Terlalu banyak percobaan reset password. Silakan coba lagi dalam ${rateCheck.retryAfterSeconds} detik.`,
+      };
+    }
+
     if (email.length > 30) {
       return {
         success: false,
@@ -1406,6 +1443,14 @@ export async function resetForgotPasswordAction(formData: FormData): Promise<Act
       return {
         success: false,
         message: "Data verifikasi tidak cocok. Pastikan Email dan No. WhatsApp sama dengan yang didaftarkan.",
+      };
+    }
+
+    // CRITICAL SECURITY: Admin & Super Admin CANNOT be reset via public form
+    if (user.role === Role.SUPER_ADMIN || user.role === Role.ADMIN) {
+      return {
+        success: false,
+        message: "Akses ditolak: Akun Admin & Super Admin tidak dapat direset via formulir publik. Silakan hubungi Super Admin 1 (Master).",
       };
     }
 
@@ -1617,6 +1662,18 @@ export async function updateSelfProfileAction(formData: FormData): Promise<Actio
     }
 
     if (newPassword) {
+      const currentPassword = (formData.get("currentPassword") as string)?.trim();
+      if (!currentPassword) {
+        return {
+          success: false,
+          message: "Password saat ini wajib diisi untuk verifikasi keamanan sebelum mengganti password baru.",
+        };
+      }
+      const isCurrentValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isCurrentValid) {
+        return { success: false, message: "Password saat ini yang Anda masukkan salah." };
+      }
+
       const parsedPass = strongPassword.safeParse(newPassword);
       if (!parsedPass.success) {
         return { success: false, message: parsedPass.error.errors[0]?.message || "Password baru tidak memenuhi syarat keamanan." };

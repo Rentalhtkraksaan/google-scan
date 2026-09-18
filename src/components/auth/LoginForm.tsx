@@ -70,8 +70,8 @@ export function LoginForm() {
       return;
     }
 
-    if (password.length > 15) {
-      showErrorAlert("Password Terlalu Panjang", "Password maksimal 15 karakter.");
+    if (password.length > 50) {
+      showErrorAlert("Password Terlalu Panjang", "Password maksimal 50 karakter.");
       return;
     }
 
@@ -176,7 +176,7 @@ export function LoginForm() {
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                maxLength={15}
+                maxLength={50}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"

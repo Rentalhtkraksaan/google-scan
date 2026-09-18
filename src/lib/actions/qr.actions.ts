@@ -602,11 +602,35 @@ export async function deleteBatchCardsAction(codes: string[]): Promise<ActionRes
       return { success: false, message: "Tidak ada kartu yang dapat dihapus (kartu demo dilindungi)." };
     }
 
+    let finalTargetCodes = targetCodes;
+
+    // Jika pemanggil adalah Super Admin 2 (bukan Master):
+    // Super Admin 2 HANYA boleh menghapus kartu jatah Admin binaannya sendiri
+    if (!currentUser?.isSuperAdminMaster) {
+      const allowedCards = await prisma.qrCard.findMany({
+        where: {
+          code: { in: targetCodes },
+          assignedAdmin: {
+            createdById: session.user.id,
+          },
+        },
+        select: { code: true },
+      });
+      finalTargetCodes = allowedCards.map((c) => c.code);
+
+      if (finalTargetCodes.length === 0) {
+        return {
+          success: false,
+          message: "Akses ditolak: Anda hanya dapat menghapus massal kartu yang dialokasikan ke Admin binaan Anda sendiri.",
+        };
+      }
+    }
+
     await prisma.qrCard.deleteMany({
-      where: { code: { in: targetCodes } },
+      where: { code: { in: finalTargetCodes } },
     });
 
-    const codeSnippet = targetCodes.length <= 5 ? targetCodes.join(", ") : `${targetCodes.slice(0, 5).join(", ")} dan ${targetCodes.length - 5} lainnya`;
+    const codeSnippet = finalTargetCodes.length <= 5 ? finalTargetCodes.join(", ") : `${finalTargetCodes.slice(0, 5).join(", ")} dan ${finalTargetCodes.length - 5} lainnya`;
 
     await recordActivityLog({
       userId: session.user.id,
@@ -614,8 +638,8 @@ export async function deleteBatchCardsAction(codes: string[]): Promise<ActionRes
       userRole: session.user.role,
       action: "DELETE_BATCH_CARDS",
       title: "Menghapus Massal Kartu QR",
-      description: `Super Admin 1 "${session.user.name || session.user.fullName}" menghapus ${targetCodes.length} kartu QR secara massal (${codeSnippet}).`,
-      targetName: `${targetCodes.length} Kartu (${codeSnippet})`,
+      description: `${session.user.role === Role.SUPER_ADMIN && currentUser?.isSuperAdminMaster ? 'Super Admin 1' : 'Super Admin 2'} "${session.user.name || session.user.fullName}" menghapus ${finalTargetCodes.length} kartu QR secara massal (${codeSnippet}).`,
+      targetName: `${finalTargetCodes.length} Kartu (${codeSnippet})`,
       superAdminId: session.user.id,
     });
 

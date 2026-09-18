@@ -41,6 +41,11 @@ export async function uploadProductPhotoAction(formData: FormData) {
       return { success: false, message: "File harus berupa gambar (JPG, PNG, WEBP, dll)." };
     }
 
+    // Validasi batas ukuran file (maksimal 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return { success: false, message: "Ukuran file foto maksimal 10MB." };
+    }
+
     // Konversi ke base64
     const buffer = Buffer.from(await file.arrayBuffer());
     const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;

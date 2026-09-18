@@ -84,8 +84,8 @@ export function ForgotPasswordModal({
       if (res?.error) {
         setLoading(false);
         await showErrorAlert(
-          "Data Tidak Cocok",
-          "Email, Nama Lengkap, atau No. WhatsApp tidak cocok dengan data akun terdaftar. Pastikan data yang dimasukkan benar."
+          "Verifikasi Gagal",
+          "Data tidak cocok atau akun tidak diizinkan login darurat. Akun Admin / Super Admin wajib login menggunakan password atau menghubungi Super Admin 1 (Master)."
         );
         return;
       }

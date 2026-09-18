@@ -4,6 +4,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./src/lib/prisma";
 import { authConfig } from "./auth.config";
 import { loginSchema } from "./src/lib/validations";
+import { checkRateLimit, resetRateLimit } from "./src/lib/rate-limit";
+
+if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET) {
+  console.warn("⚠️ [SECURITY WARNING] AUTH_SECRET is not configured in production! Please set AUTH_SECRET.");
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -20,6 +25,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
 
         const data = parsed.data;
+        const emailKey = data.email.toLowerCase().trim();
+        const rateLimitKey = `auth_login_${emailKey}`;
+
+        // Rate limit: max 10 failed login attempts per 15 minutes per email
+        const rateCheck = checkRateLimit(rateLimitKey, 10, 15 * 60 * 1000);
+        if (!rateCheck.allowed) {
+          console.warn(`[SECURITY ALERT] Rate limit exceeded for login on ${emailKey}. Retry in ${rateCheck.retryAfterSeconds}s`);
+          return null;
+        }
 
         if (data.loginType === "recovery") {
           const { email, whatsappNumber } = data;
@@ -29,7 +43,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (!user || user.isActive === false) return null;
 
-
+          // CRITICAL SECURITY FIX: Administrative accounts (SUPER_ADMIN and ADMIN) CANNOT use recovery login!
+          if (user.role !== "USER") {
+            console.warn(`[SECURITY ALERT] Blocked recovery login attempt on administrative account: ${user.email} (${user.role})`);
+            return null;
+          }
 
           let cleanInputWa = whatsappNumber.replace(/[^0-9]/g, "");
           if (cleanInputWa.startsWith("08")) cleanInputWa = "62" + cleanInputWa.slice(1);
@@ -39,14 +57,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (cleanInputWa !== cleanUserWa) return null;
 
-          const roleLabel =
-            user.role === "SUPER_ADMIN"
-              ? user.isSuperAdminMaster
-                ? "Super Admin 1 (Master)"
-                : "Super Admin 2"
-              : user.role === "ADMIN"
-              ? "Admin Lapangan"
-              : "Pemilik Outlet";
+          // Clear failed attempts counter upon successful recovery login
+          resetRateLimit(rateLimitKey);
+
+          const roleLabel = "Pemilik Outlet";
 
           try {
             await prisma.activityLog.create({
@@ -59,8 +73,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 description: `${roleLabel} "${user.fullName}" (${user.email}) berhasil masuk ke sistem via pemulihan akun.`,
                 targetId: user.id,
                 targetName: user.fullName,
-                adminId: user.role === "ADMIN" ? user.id : (user.createdById || null),
-                superAdminId: user.role === "SUPER_ADMIN" ? user.id : null,
+                adminId: user.createdById || null,
+                superAdminId: null,
               },
             });
           } catch (e) {
@@ -88,6 +102,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const passwordMatch = await bcrypt.compare(password, user.password);
           if (!passwordMatch) return null;
+
+          // Clear failed attempts counter upon successful authentication
+          resetRateLimit(rateLimitKey);
 
           const roleLabel =
             user.role === "SUPER_ADMIN"

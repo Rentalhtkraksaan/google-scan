@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 import { after } from "next/server";
+import { headers } from "next/headers";
 import { getActivePromosAction } from "@/lib/actions/promo.actions";
 import { getProductPhotosAction } from "@/lib/actions/product-photo.actions";
 import {
@@ -85,6 +86,17 @@ export default async function LandingPage() {
   // Visitor tracking dijalankan SETELAH response dikirim ke browser
   // agar tidak memblokir render halaman (non-blocking)
   after(async () => {
+    try {
+      const headerList = await headers();
+      const userAgent = (headerList.get("user-agent") || "").toLowerCase();
+      // Proteksi Write Flooding: Abaikan crawler, spider, headless bot, atau security scanner
+      if (/bot|crawl|spider|slurp|curl|wget|python|scanner|headless|postman/i.test(userAgent)) {
+        return;
+      }
+    } catch {
+      // Abaikan jika headers tidak dapat diakses
+    }
+
     try {
       await prisma.siteSetting.update({
         where: { id: "default" },

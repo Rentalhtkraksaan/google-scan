@@ -72,6 +72,46 @@ export function formatGoogleReviewUrl(inputUrl: string): string {
 }
 
 /**
+ * Helper to validate that a URL targets legitimate Google domains
+ * and prevents Server-Side Request Forgery (SSRF) to internal/private IPs.
+ */
+function isAllowedGoogleDomain(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block localhost, loopback, private IP ranges and cloud metadata
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("169.254.") ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    ) {
+      return false;
+    }
+
+    const allowedGoogleSuffixes = [
+      "google.com",
+      "google.co.id",
+      "goo.gl",
+      "maps.app.goo.gl",
+      "g.page",
+      "page.link",
+    ];
+
+    return allowedGoogleSuffixes.some(
+      (allowed) => hostname === allowed || hostname.endsWith("." + allowed)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Server-side asynchronous resolver that expands shortened URLs (e.g. maps.app.goo.gl),
  * follows redirects, and extracts official Google Place IDs automatically.
  */
@@ -84,8 +124,11 @@ export async function resolveAndFormatGoogleUrl(inputUrl: string): Promise<strin
     return initial;
   }
 
-  // If it's a web URL that might redirect (e.g., maps.app.goo.gl, goo.gl, etc.)
-  if (initial.startsWith("http://") || initial.startsWith("https://")) {
+  // Only resolve web URLs that pass SSRF Google domain checks
+  if (
+    (initial.startsWith("http://") || initial.startsWith("https://")) &&
+    isAllowedGoogleDomain(initial)
+  ) {
     try {
       const response = await fetch(initial, {
         method: "GET",
@@ -99,6 +142,11 @@ export async function resolveAndFormatGoogleUrl(inputUrl: string): Promise<strin
       });
 
       const finalUrl = response.url;
+      
+      // Ensure redirected URL is also safe
+      if (!isAllowedGoogleDomain(finalUrl)) {
+        return initial;
+      }
       
       // Check for ChIJ in final redirected URL
       const chijInFinalUrl = finalUrl.match(/(ChIJ[a-zA-Z0-9_-]{20,})/);
