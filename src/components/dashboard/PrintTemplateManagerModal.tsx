@@ -40,12 +40,13 @@ export function PrintTemplateManagerModal({
   onClose,
   onSaved,
 }: PrintTemplateManagerModalProps) {
-  const activeSize: PrintSizeKey = "square";
+  const [activeSize, setActiveSize] = useState<PrintSizeKey>("square");
   const [templates, setTemplates] = useState<Record<PrintSizeKey, PrintTemplateConfig>>(PRINT_SIZE_PRESETS);
   const [currentVersion, setCurrentVersion] = useState<string>(version || "V 1.1.2");
   const [isLoading, setIsLoading] = useState(true);
   const [customFiles, setCustomFiles] = useState<Record<PrintSizeKey, File | null>>({
     square: null,
+    a5: null,
   });
 
   useEffect(() => {
@@ -320,13 +321,13 @@ export function PrintTemplateManagerModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-lg text-white">Manajemen Template Cetak Stiker Persegi</h2>
+                <h2 className="font-bold text-lg text-white">Manajemen Template Cetak Kartu QR</h2>
                 <span className="text-[11px] font-semibold text-emerald-400 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                   Super Admin
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Upload template custom dan atur posisi QR Code secara visual untuk format standar Stiker Persegi (10 x 10 cm).
+                Upload template custom dan atur posisi QR Code untuk format Persegi (10×10 cm) dan A5 (14.8×21 cm).
               </p>
             </div>
           </div>
@@ -338,17 +339,43 @@ export function PrintTemplateManagerModal({
           </button>
         </div>
 
-        {/* Standard Format Banner */}
-        <div className="px-5 sm:px-6 py-2.5 border-b border-slate-800/80 bg-slate-950/40 shrink-0 flex items-center justify-between">
+        {/* Tab Size Switcher */}
+        <div className="px-5 sm:px-6 py-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-base">⏹️</span>
-            <span className="text-xs font-bold text-white">Format Standar: Stiker Meja Persegi</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              10 x 10 cm (1:1)
-            </span>
+            {/* Square Tab */}
+            <button
+              onClick={() => setActiveSize("square")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSize === "square"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              <span>⏹️</span>
+              <span>Persegi 10×10</span>
+              {activeSize === "square" && (
+                <span className="text-[10px] font-mono px-1.5 py-0.5 bg-white/20 rounded-md">Aktif</span>
+              )}
+            </button>
+
+            {/* A5 Tab */}
+            <button
+              onClick={() => setActiveSize("a5")}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSize === "a5"
+                  ? "bg-sky-600 text-white shadow-lg shadow-sky-600/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              <span>📄</span>
+              <span>Flyer A5</span>
+              {activeSize === "a5" && (
+                <span className="text-[10px] font-mono px-1.5 py-0.5 bg-white/20 rounded-md">Aktif</span>
+              )}
+            </button>
           </div>
           <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-            Resolusi Cetak: 1500 x 1500 px @ 300 DPI
+            {activeSize === "square" ? "1500 × 1500 px @ 300 DPI" : "1748 × 2480 px @ 300 DPI"}
           </span>
         </div>
 

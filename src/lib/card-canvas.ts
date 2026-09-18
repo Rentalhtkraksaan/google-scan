@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
 
-export type PrintSizeKey = "square";
+export type PrintSizeKey = "square" | "a5";
 
 export interface TemplateElementPosition {
   x: number; // percentage 0 - 100
@@ -78,6 +78,45 @@ export const PRINT_SIZE_PRESETS: Record<PrintSizeKey, PrintTemplateConfig> = {
       x: 50,
       y: 89,
       fontSize: 28,
+      show: true,
+    },
+  },
+
+  a5: {
+    sizeKey: "a5",
+    name: "Flyer A5 Portrait",
+    badge: "14.8 x 21 cm",
+    widthMm: 148,
+    heightMm: 210,
+    canvasWidth: 1748,
+    canvasHeight: 2480,
+    aspectRatio: "1748/2480",
+    description: "Ukuran flyer A5 portrait (14.8 x 21 cm) untuk brosur meja, flyer promosi, atau insert kemasan.",
+    isActive: true,
+    backgroundUrl: null,
+    qr: {
+      x: 50,
+      y: 55,
+      size: 42,
+      borderRadius: 10,
+      show: true,
+    },
+    versionTag: {
+      x: 6,
+      y: 3,
+      fontSize: 26,
+      show: true,
+    },
+    codeTag: {
+      x: 94,
+      y: 3,
+      fontSize: 26,
+      show: true,
+    },
+    outletNameTag: {
+      x: 50,
+      y: 78,
+      fontSize: 36,
       show: true,
     },
   },
@@ -301,6 +340,108 @@ function drawDefaultBackground(
 }
 
 /**
+ * Draw Beautiful Built-in Default Background for A5 Portrait (14.8 x 21 cm)
+ */
+function drawDefaultBackgroundA5(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  outletName?: string
+) {
+  // White base
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, width, height);
+
+  // Full-width Google Rainbow top bar (thicker for A5)
+  const grad = ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0, "#4285F4");
+  grad.addColorStop(0.33, "#EA4335");
+  grad.addColorStop(0.66, "#FBBC04");
+  grad.addColorStop(1, "#34A853");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, 22);
+
+  // Bottom color bar
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, height - 22, width, 22);
+
+  ctx.save();
+  ctx.textAlign = "center";
+
+  // Header area
+  ctx.fillStyle = "#1E293B";
+  ctx.font = `bold 52px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.fillText("REVIEW KAMI DI", width / 2, 160);
+
+  // Google colored letters
+  const googleColors = [
+    { letter: "G", color: "#4285F4" },
+    { letter: "o", color: "#EA4335" },
+    { letter: "o", color: "#FBBC04" },
+    { letter: "g", color: "#4285F4" },
+    { letter: "l", color: "#34A853" },
+    { letter: "e", color: "#EA4335" },
+  ];
+  ctx.font = `900 120px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  let totalGWidth = 0;
+  for (const item of googleColors) {
+    totalGWidth += ctx.measureText(item.letter).width + 3;
+  }
+  let curX = width / 2 - totalGWidth / 2;
+  for (const item of googleColors) {
+    ctx.fillStyle = item.color;
+    ctx.fillText(item.letter, curX + ctx.measureText(item.letter).width / 2, 320);
+    curX += ctx.measureText(item.letter).width + 3;
+  }
+
+  // 5 Stars
+  drawFiveStars(ctx, width / 2, 430, 60, 14);
+
+  // Divider line
+  ctx.strokeStyle = "#E2E8F0";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(width * 0.1, 510);
+  ctx.lineTo(width * 0.9, 510);
+  ctx.stroke();
+
+  // QR placeholder box (will be drawn over by actual QR)
+  const qrBoxW = width * 0.48;
+  const qrBoxX = (width - qrBoxW) / 2;
+  const qrBoxY = height * 0.38;
+
+  ctx.strokeStyle = "#CBD5E1";
+  ctx.lineWidth = 5;
+  ctx.fillStyle = "#F8FAFC";
+  ctx.beginPath();
+  ctx.roundRect(qrBoxX - 20, qrBoxY - 20, qrBoxW + 40, qrBoxW + 40, 40);
+  ctx.fill();
+  ctx.stroke();
+
+  // Outlet name area
+  if (outletName) {
+    ctx.fillStyle = "#334155";
+    ctx.font = `bold 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    ctx.fillText(outletName, width / 2, qrBoxY + qrBoxW + 100);
+  }
+
+  // CTA text
+  ctx.fillStyle = "#0F172A";
+  ctx.font = `800 44px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.fillText("SCAN & BERI ULASAN BINTANG 5!", width / 2, height * 0.86);
+
+  ctx.fillStyle = "#64748B";
+  ctx.font = `500 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.fillText("Gunakan kamera HP Anda — Mudah & Cepat!", width / 2, height * 0.91);
+
+  ctx.fillStyle = "#94A3B8";
+  ctx.font = `500 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.fillText("Google Reviews", width / 2, height - 50);
+
+  ctx.restore();
+}
+
+/**
  * Universal Card Canvas Renderer for Square format
  */
 export async function renderCardCanvasBySize(
@@ -343,11 +484,19 @@ export async function renderCardCanvasBySize(
       ctx.drawImage(bgImg, 0, 0, config.canvasWidth, config.canvasHeight);
     } catch (err) {
       console.warn("Failed to load custom background, falling back to default:", err);
-      drawDefaultBackground(ctx, sizeKey, config.canvasWidth, config.canvasHeight, options?.outletName);
+      if (sizeKey === "a5") {
+        drawDefaultBackgroundA5(ctx, config.canvasWidth, config.canvasHeight, options?.outletName);
+      } else {
+        drawDefaultBackground(ctx, sizeKey, config.canvasWidth, config.canvasHeight, options?.outletName);
+      }
     }
   } else {
-    // Draw built-in high-quality default square background
-    drawDefaultBackground(ctx, sizeKey, config.canvasWidth, config.canvasHeight, options?.outletName);
+    // Draw built-in high-quality default background
+    if (sizeKey === "a5") {
+      drawDefaultBackgroundA5(ctx, config.canvasWidth, config.canvasHeight, options?.outletName);
+    } else {
+      drawDefaultBackground(ctx, sizeKey, config.canvasWidth, config.canvasHeight, options?.outletName);
+    }
   }
 
   // 2. Generate and Render High-Resolution QR Code
