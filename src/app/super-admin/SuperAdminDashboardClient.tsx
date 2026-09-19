@@ -1215,41 +1215,27 @@ export function SuperAdminDashboardClient({
               Alat & Manajemen
             </div>
 
-            {/* Template Cetak */}
-            <button
-              onClick={() => {
-                if (!canManageTemplates) {
-                  showErrorAlert(
-                    "Akses Terkunci",
-                    "Akun Super Admin 2 Anda belum diberikan izin oleh Super Admin 1 (Master) untuk mengelola template cetak multi-ukuran."
-                  );
-                  return;
-                }
-                setIsPrintTemplateModalOpen(true);
-              }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-            >
-              <Layers className="w-4 h-4 shrink-0 text-purple-400" />
-              <span className="truncate">Template Cetak</span>
-            </button>
+            {/* Template Cetak - hanya tampil jika memiliki izin */}
+            {canManageTemplates && (
+              <button
+                onClick={() => setIsPrintTemplateModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+              >
+                <Layers className="w-4 h-4 shrink-0 text-purple-400" />
+                <span className="truncate">Template Cetak</span>
+              </button>
+            )}
 
-            {/* Pengaturan Landing Page */}
-            <button
-              onClick={() => {
-                if (canEditLanding) {
-                  setIsLandingPageModalOpen(true);
-                } else {
-                  showErrorAlert(
-                    "Akses Terbatas",
-                    "Akun Super Admin 2 Anda belum memiliki izin untuk mengedit konten Landing Page & WhatsApp. Silakan minta akses ke Super Admin 1."
-                  );
-                }
-              }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-            >
-              <Globe className="w-4 h-4 shrink-0 text-sky-400" />
-              <span className="truncate">Pengaturan Web & SEO</span>
-            </button>
+            {/* Pengaturan Landing Page & SEO - hanya tampil jika memiliki izin */}
+            {canEditLanding && (
+              <button
+                onClick={() => setIsLandingPageModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+              >
+                <Globe className="w-4 h-4 shrink-0 text-sky-400" />
+                <span className="truncate">Pengaturan Web & SEO</span>
+              </button>
+            )}
 
             {/* Ekspor Percetakan Batch */}
             <button
@@ -3310,7 +3296,7 @@ export function SuperAdminDashboardClient({
       </div>
 
       {/* Modals */}
-      {isLandingPageModalOpen && (
+      {isLandingPageModalOpen && canEditLanding && (
         <LandingPageSettingsModal
           isOpen={isLandingPageModalOpen}
           initialSetting={localSiteSetting}
@@ -3324,7 +3310,7 @@ export function SuperAdminDashboardClient({
         />
       )}
 
-      {isPrintTemplateModalOpen && (
+      {isPrintTemplateModalOpen && canManageTemplates && (
         <PrintTemplateManagerModal
           isOpen={isPrintTemplateModalOpen}
           version={localSiteSetting?.appVersion || "V 1.1.2"}
