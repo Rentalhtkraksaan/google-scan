@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generator Pesan WA — Penawaran Kartu QR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080f1f;
+      --surface: #0f1a2e;
+      --card: #131f35;
+      --border: #1e2f4a;
+      --border-focus: #3b82f6;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #3b82f6;
+      --green: #25D366;
+      --green-dark: #128C7E;
+      --wa-bubble: #005c4b;
+      --wa-bg: #0a1628;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+    .header-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+    header p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .header-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(37,211,102,0.1);
+      border: 1px solid rgba(37,211,102,0.2);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media(max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      width: 3px; height: 16px;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input, textarea, select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    input::placeholder, textarea::placeholder {
+      color: rgba(100,116,139,0.6);
+    }
+    textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── TEMPLATE EDITOR ── */
+    .template-box {
+      background: rgba(59,130,246,0.04);
+      border: 1px dashed rgba(59,130,246,0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .template-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .tag {
+      display: inline-block;
+      background: rgba(59,130,246,0.15);
+      color: #93c5fd;
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 6px;
+      margin: 2px;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: monospace;
+    }
+    .tag:hover { background: rgba(59,130,246,0.3); }
+
+    /* ── WA PREVIEW ── */
+    .wa-phone {
+      background: var(--wa-bg);
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(37,211,102,0.2);
+    }
+    .wa-header {
+      background: #1f2c34;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .wa-avatar {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .wa-contact-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e9edef;
+    }
+    .wa-status {
+      font-size: 11px;
+      color: #8696a0;
+    }
+    .wa-body {
+      background: #0b141a;
+      padding: 16px;
+      min-height: 220px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%230b141a'/%3E%3C/svg%3E");
+    }
+    .wa-date {
+      text-align: center;
+      font-size: 11px;
+      color: #8696a0;
+      background: rgba(17,27,33,0.8);
+      padding: 3px 10px;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 0 auto 12px;
+      width: 100%;
+    }
+    .wa-bubble {
+      background: var(--wa-bubble);
+      border-radius: 8px 8px 0 8px;
+      padding: 10px 14px;
+      max-width: 85%;
+      margin-left: auto;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    .wa-bubble::after {
+      content: '';
+      position: absolute;
+      right: -8px; bottom: 0;
+      border: 8px solid transparent;
+      border-bottom-color: var(--wa-bubble);
+      border-right: none;
+    }
+    .wa-message {
+      font-size: 13.5px;
+      color: #e9edef;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .wa-time {
+      font-size: 11px;
+      color: rgba(134,150,160,0.8);
+      text-align: right;
+      margin-top: 4px;
+    }
+    .wa-check { color: #53bdeb; }
+
+    /* ── BUTTONS ── */
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-copy {
+      background: rgba(59,130,246,0.15);
+      color: #93c5fd;
+      border: 1px solid rgba(59,130,246,0.3);
+    }
+    .btn-copy:hover { background: rgba(59,130,246,0.25); }
+    .btn-wa {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: #fff;
+    }
+    .btn-wa:hover { opacity: 0.9; }
+    .btn-clear {
+      background: rgba(239,68,68,0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.2);
+      grid-column: 1 / -1;
+    }
+    .btn-clear:hover { background: rgba(239,68,68,0.2); }
+    .btn-save {
+      background: rgba(34,197,94,0.1);
+      color: #86efac;
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+    .btn-save:hover { background: rgba(34,197,94,0.2); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: rgba(34,197,94,0.3); color: #86efac; }
+    .toast.error { border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+
+    /* ── HISTORY ── */
+    .history-section {
+      grid-column: 1 / -1;
+    }
+    .history-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .history-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .history-item:hover { border-color: var(--accent); background: rgba(59,130,246,0.05); }
+    .history-item-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .history-item-sub { font-size: 11px; color: var(--muted); }
+    .history-item-del {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: none; border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color 0.15s;
+    }
+    .history-item-del:hover { color: var(--danger); }
+    .empty-history {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 20px;
+      grid-column: 1/-1;
+    }
+
+    /* ── CHAR COUNT ── */
+    .char-count {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    .wa-number-display {
+      font-size: 12px;
+      color: #8696a0;
+      padding: 0 16px 12px;
+      text-align: center;
+      background: #0b141a;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">💬</div>
+  <div>
+    <h1>Generator Pesan WA</h1>
+    <p>Penawaran Kartu QR Google Review ke Outlet</p>
+  </div>
+  <span class="header-badge">✦ Offline Tool</span>
+</header>
+
+<div class="container">
+
+  <!-- ── LEFT: FORM ── -->
+  <div>
+    <div class="card">
+      <div class="card-title">Data Kontak Outlet</div>
+
+      <div class="field">
+        <label>🏪 Nama Outlet</label>
+        <input type="text" id="namaOutlet" placeholder="cth: Warung Makan Bahagia" oninput="updatePreview()" />
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>👤 Nama Kontak</label>
+          <input type="text" id="namaKontak" placeholder="cth: Pak Budi" oninput="updatePreview()" />
+        </div>
+        <div class="field">
+          <label>💼 Jabatan</label>
+          <input type="text" id="jabatan" placeholder="cth: Owner / Manager" oninput="updatePreview()" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>🤝 Tau dari siapa</label>
+        <input type="text" id="tauDari" placeholder="cth: Referral dari Pak Ahmad, atau lewat Google Maps" oninput="updatePreview()" />
+      </div>
+
+      <div class="field">
+        <label>📱 Nomor WhatsApp</label>
+        <input type="tel" id="nomorWA" placeholder="cth: 08123456789 atau +628123456789" oninput="updatePreview()" />
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Template Editor -->
+      <div class="card-title">✏️ Edit Template Pesan</div>
+
+      <div class="template-box">
+        <label style="margin-bottom:8px;display:block;">Klik variabel untuk insert ke template:</label>
+        <div>
+          <span class="tag" onclick="insertTag('{{NAMA_KONTAK}}')">{{NAMA_KONTAK}}</span>
+          <span class="tag" onclick="insertTag('{{JABATAN}}')">{{JABATAN}}</span>
+          <span class="tag" onclick="insertTag('{{NAMA_OUTLET}}')">{{NAMA_OUTLET}}</span>
+          <span class="tag" onclick="insertTag('{{TAU_DARI}}')">{{TAU_DARI}}</span>
+          <span class="tag" onclick="insertTag('{{NOMOR_WA}}')">{{NOMOR_WA}}</span>
+        </div>
+        <p class="template-hint">💡 Gunakan *teks* untuk <strong>bold</strong> di WhatsApp. Contoh: *{{NAMA_KONTAK}}*</p>
+      </div>
+
+      <div class="field">
+        <label>Template Pesan</label>
+        <textarea id="templatePesan" oninput="updatePreview(); updateCharCount()">Halo *{{NAMA_KONTAK}}* 👋
+
+Sebelumnya mohon maaf mengganggu ya kak.
+
+Saya Rifki, dari tim *Rentalhtkraksaan* — kami bergerak di bidang solusi digital review Google untuk UMKM & bisnis kuliner.
+
+Kami mengetahui *{{NAMA_OUTLET}}* dari {{TAU_DARI}}, dan tertarik ingin menawarkan solusi yang bisa bantu meningkatkan ulasan Google bisnis kakak secara otomatis. 🌟
+
+Caranya simpel kak — kami sediakan *Kartu QR* meja yang kalau di-scan langsung bawa pelanggan ke halaman Google Review outlet kakak. Terbukti efektif meningkatkan review!
+
+Boleh kira-kira kita ngobrol sebentar kak? 🙏
+
+Terima kasih banyak ya kak {{NAMA_KONTAK}}! 😊</textarea>
+        <div class="char-count" id="charCount">0 karakter</div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-save" onclick="saveTemplate()">💾 Simpan Template</button>
+        <button class="btn btn-copy" onclick="resetTemplate()">🔄 Reset Template</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: PREVIEW ── -->
+  <div>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="wa-phone">
+        <div class="wa-header">
+          <div class="wa-avatar">👤</div>
+          <div>
+            <div class="wa-contact-name" id="previewContactName">Nama Kontak</div>
+            <div class="wa-status" id="previewNomor">+62 ...</div>
+          </div>
+          <div style="margin-left:auto; font-size:18px;">📞</div>
+        </div>
+
+        <div class="wa-body">
+          <div class="wa-date" id="previewDate">Hari ini</div>
+          <div class="wa-bubble">
+            <div class="wa-message" id="previewMessage">Isi form di sebelah kiri untuk melihat preview pesan WA kamu di sini...</div>
+            <div class="wa-time" id="previewTime">--:-- <span class="wa-check">✓✓</span></div>
+          </div>
+        </div>
+        <div class="wa-number-display" id="previewNomorBottom"></div>
+      </div>
+
+      <div style="padding: 16px; border-top: 1px solid var(--border);">
+        <div class="btn-group">
+          <button class="btn btn-copy" onclick="copyMessage()">📋 Copy Pesan</button>
+          <button class="btn btn-wa" onclick="openWhatsApp()">💬 Buka WA</button>
+          <button class="btn btn-clear" onclick="clearForm()">🗑️ Bersihkan Form</button>
+        </div>
+
+        <!-- Riwayat -->
+        <div class="divider"></div>
+        <div class="card-title" style="margin-bottom:10px;">📂 Simpan Kontak</div>
+        <div id="historyList" class="history-list">
+          <p class="empty-history">Belum ada kontak tersimpan.<br>Isi form → klik "Simpan Kontak"</p>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn btn-save" style="width:100%" onclick="saveContact()">💾 Simpan Kontak Ini</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✅ Berhasil!</div>
+
+<script>
+  // ── STATE ──
+  const DEFAULT_TEMPLATE = `Halo *{{NAMA_KONTAK}}* 👋
+
+Sebelumnya mohon maaf mengganggu ya kak.
+
+Saya Rifki, dari tim *Rentalhtkraksaan* — kami bergerak di bidang solusi digital review Google untuk UMKM & bisnis kuliner.
+
+Kami mengetahui *{{NAMA_OUTLET}}* dari {{TAU_DARI}}, dan tertarik ingin menawarkan solusi yang bisa bantu meningkatkan ulasan Google bisnis kakak secara otomatis. 🌟
+
+Caranya simpel kak — kami sediakan *Kartu QR* meja yang kalau di-scan langsung bawa pelanggan ke halaman Google Review outlet kakak. Terbukti efektif meningkatkan review!
+
+Boleh kira-kira kita ngobrol sebentar kak? 🙏
+
+Terima kasih banyak ya kak {{NAMA_KONTAK}}! 😊`;
+
+  // Load saved template
+  const savedTpl = localStorage.getItem('wa_template');
+  if (savedTpl) document.getElementById('templatePesan').value = savedTpl;
+
+  // ── HELPERS ──
+  function getField(id) { return document.getElementById(id).value.trim(); }
+
+  function buildMessage() {
+    const tpl = document.getElementById('templatePesan').value;
+    return tpl
+      .replace(/{{NAMA_KONTAK}}/g, getField('namaKontak') || '{{NAMA_KONTAK}}')
+      .replace(/{{JABATAN}}/g, getField('jabatan') || '{{JABATAN}}')
+      .replace(/{{NAMA_OUTLET}}/g, getField('namaOutlet') || '{{NAMA_OUTLET}}')
+      .replace(/{{TAU_DARI}}/g, getField('tauDari') || '{{TAU_DARI}}')
+      .replace(/{{NOMOR_WA}}/g, getField('nomorWA') || '{{NOMOR_WA}}');
+  }
+
+  function updatePreview() {
+    const msg = buildMessage();
+    // Render *bold* as <strong>
+    const htmlMsg = msg
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    document.getElementById('previewMessage').innerHTML = htmlMsg;
+
+    const kontak = getField('namaKontak') || 'Nama Kontak';
+    const jabatan = getField('jabatan');
+    document.getElementById('previewContactName').textContent = kontak + (jabatan ? ` (${jabatan})` : '');
+
+    const nomor = getField('nomorWA');
+    const nomorFormatted = nomor ? formatNomor(nomor) : '+62 ...';
+    document.getElementById('previewNomor').textContent = nomorFormatted;
+    document.getElementById('previewNomorBottom').textContent = nomor ? `📱 ${nomorFormatted}` : '';
+
+    const now = new Date();
+    document.getElementById('previewTime').innerHTML =
+      now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) +
+      ' <span class="wa-check">✓✓</span>';
+    document.getElementById('previewDate').textContent =
+      now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  function updateCharCount() {
+    const len = document.getElementById('templatePesan').value.length;
+    document.getElementById('charCount').textContent = len + ' karakter';
+  }
+
+  function formatNomor(nomor) {
+    let n = nomor.replace(/\D/g, '');
+    if (n.startsWith('0')) n = '62' + n.slice(1);
+    if (!n.startsWith('62')) n = '62' + n;
+    return '+' + n;
+  }
+
+  function getWALink() {
+    const nomor = getField('nomorWA');
+    if (!nomor) return null;
+    const n = formatNomor(nomor).replace(/\D/g, '');
+    const msg = encodeURIComponent(buildMessage());
+    return `https://wa.me/${n}?text=${msg}`;
+  }
+
+  // ── ACTIONS ──
+  function copyMessage() {
+    const msg = buildMessage();
+    if (!msg || msg.includes('{{')) {
+      showToast('⚠️ Lengkapi dulu semua field!', 'error'); return;
+    }
+    navigator.clipboard.writeText(msg)
+      .then(() => showToast('✅ Pesan berhasil di-copy!', 'success'))
+      .catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = msg;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('✅ Pesan berhasil di-copy!', 'success');
+      });
+  }
+
+  function openWhatsApp() {
+    const link = getWALink();
+    if (!link) { showToast('⚠️ Masukkan nomor WA dulu!', 'error'); return; }
+    window.open(link, '_blank');
+  }
+
+  function clearForm() {
+    ['namaOutlet','namaKontak','jabatan','tauDari','nomorWA'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    updatePreview();
+    showToast('🗑️ Form berhasil dibersihkan', 'success');
+  }
+
+  function saveTemplate() {
+    localStorage.setItem('wa_template', document.getElementById('templatePesan').value);
+    showToast('💾 Template tersimpan!', 'success');
+  }
+
+  function resetTemplate() {
+    if (!confirm('Reset ke template default? Template kustom akan hilang.')) return;
+    document.getElementById('templatePesan').value = DEFAULT_TEMPLATE;
+    localStorage.removeItem('wa_template');
+    updatePreview();
+    showToast('🔄 Template direset', 'success');
+  }
+
+  function insertTag(tag) {
+    const ta = document.getElementById('templatePesan');
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = ta.value;
+    ta.value = val.slice(0, start) + tag + val.slice(end);
+    ta.selectionStart = ta.selectionEnd = start + tag.length;
+    ta.focus();
+    updatePreview();
+  }
+
+  // ── CONTACTS HISTORY ──
+  function getContacts() {
+    try { return JSON.parse(localStorage.getItem('wa_contacts') || '[]'); } catch { return []; }
+  }
+
+  function saveContact() {
+    const nama = getField('namaOutlet');
+    const kontak = getField('namaKontak');
+    const jabatan = getField('jabatan');
+    const tauDari = getField('tauDari');
+    const nomor = getField('nomorWA');
+    if (!nama || !kontak) { showToast('⚠️ Isi minimal nama outlet & kontak!', 'error'); return; }
+
+    const contacts = getContacts();
+    contacts.unshift({ id: Date.now(), namaOutlet: nama, namaKontak: kontak, jabatan, tauDari, nomorWA: nomor, savedAt: new Date().toLocaleDateString('id-ID') });
+    localStorage.setItem('wa_contacts', JSON.stringify(contacts.slice(0, 50)));
+    renderHistory();
+    showToast('💾 Kontak tersimpan!', 'success');
+  }
+
+  function loadContact(c) {
+    document.getElementById('namaOutlet').value = c.namaOutlet || '';
+    document.getElementById('namaKontak').value = c.namaKontak || '';
+    document.getElementById('jabatan').value = c.jabatan || '';
+    document.getElementById('tauDari').value = c.tauDari || '';
+    document.getElementById('nomorWA').value = c.nomorWA || '';
+    updatePreview();
+    showToast('📂 Kontak dimuat!', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteContact(id) {
+    const contacts = getContacts().filter(c => c.id !== id);
+    localStorage.setItem('wa_contacts', JSON.stringify(contacts));
+    renderHistory();
+    showToast('🗑️ Kontak dihapus', 'success');
+  }
+
+  function renderHistory() {
+    const contacts = getContacts();
+    const list = document.getElementById('historyList');
+    if (contacts.length === 0) {
+      list.innerHTML = '<p class="empty-history">Belum ada kontak tersimpan.<br>Isi form → klik "Simpan Kontak"</p>';
+      return;
+    }
+    list.innerHTML = contacts.map(c => `
+      <div class="history-item" onclick="loadContact(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+        <button class="history-item-del" onclick="event.stopPropagation(); deleteContact(${c.id})" title="Hapus">✕</button>
+        <div class="history-item-name">${escHtml(c.namaOutlet)}</div>
+        <div class="history-item-sub">${escHtml(c.namaKontak)}${c.jabatan ? ` · ${escHtml(c.jabatan)}` : ''}</div>
+        <div class="history-item-sub" style="margin-top:2px; font-size:10px; color:#475569;">${c.savedAt || ''}</div>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── TOAST ──
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.className = 'toast'; }, 2500);
+  }
+
+  // ── INIT ──
+  updatePreview();
+  updateCharCount();
+  renderHistory();
+</script>
+</body>
+</html>
