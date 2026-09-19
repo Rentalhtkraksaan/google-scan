@@ -6,6 +6,11 @@ declare module "next-auth" {
       id: string;
       role: string;
       fullName: string;
+      isSuperAdminMaster?: boolean;
+      canEditLandingPage?: boolean;
+      canManagePrintTemplates?: boolean;
+      canDeleteCards?: boolean;
+      canViewAnalytics?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -13,6 +18,11 @@ declare module "next-auth" {
     id: string;
     role: string;
     fullName: string;
+    isSuperAdminMaster?: boolean;
+    canEditLandingPage?: boolean;
+    canManagePrintTemplates?: boolean;
+    canDeleteCards?: boolean;
+    canViewAnalytics?: boolean;
   }
 }
 
@@ -21,5 +31,10 @@ declare module "next-auth/jwt" {
     id: string;
     role: string;
     fullName: string;
+    isSuperAdminMaster?: boolean;
+    canEditLandingPage?: boolean;
+    canManagePrintTemplates?: boolean;
+    canDeleteCards?: boolean;
+    canViewAnalytics?: boolean;
   }
 }
