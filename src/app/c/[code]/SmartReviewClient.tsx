@@ -78,7 +78,7 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
         if (outlet.googleReviewUrl) {
           window.location.href = outlet.googleReviewUrl;
         }
-      }, 800);
+      }, 350);
     } else {
       // 1-3 Stars -> Langsung Auto Redirect ke WhatsApp Pengelola (Tanpa Form)
       let cleanTargetPhone = (outlet.whatsappNumber || "").replace(/[^0-9]/g, "");
@@ -100,7 +100,7 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
       setTargetUrl(waUrl);
       setTimeout(() => {
         window.location.href = waUrl;
-      }, 700);
+      }, 350);
     }
   };
 

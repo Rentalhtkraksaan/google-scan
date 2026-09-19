@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { AdminDashboardClient } from "./AdminDashboardClient";
 import { AuthenticatedUser, OutletUserItem, QrCardModel } from "@/types/models";
+import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -25,50 +26,93 @@ export default async function AdminPage() {
 
   const adminId = session.user.id;
 
-  // Fetch all cards allocated to this admin
-  const assignedCards = await prisma.qrCard.findMany({
-    where: { assignedAdminId: adminId },
-    include: {
-      assignedAdmin: {
-        select: { id: true, fullName: true, email: true },
-      },
-      outlet: {
-        include: {
-          owner: {
-            select: { id: true, fullName: true, email: true, whatsappNumber: true },
-          },
+  // Parallel fetch: jalankan seluruh query Admin Lapangan serentak (Promise.all)
+  const [
+    assignedCards,
+    rawUsers,
+    currentAdminUser,
+    masterSuperAdmin,
+    siteSetting,
+  ] = await Promise.all([
+    // 1. Fetch all cards allocated to this admin
+    prisma.qrCard.findMany({
+      where: { assignedAdminId: adminId },
+      include: {
+        assignedAdmin: {
+          select: { id: true, fullName: true, email: true },
         },
-      },
-    },
-    orderBy: { code: "asc" },
-  });
-
-  // Fetch all outlets/users associated with this admin's currently assigned cards or created by this admin
-  const rawUsers = await prisma.user.findMany({
-    where: {
-      role: "USER",
-      OR: [
-        { createdById: adminId },
-        {
-          outlet: {
-            qrCards: {
-              some: {
-                assignedAdminId: adminId,
-              },
+        outlet: {
+          include: {
+            owner: {
+              select: { id: true, fullName: true, email: true, whatsappNumber: true },
             },
           },
         },
-      ],
-    },
-    include: {
-      outlet: {
-        include: {
-          qrCards: true,
+      },
+      orderBy: { code: "asc" },
+    }),
+
+    // 2. Fetch all outlets/users associated with this admin
+    prisma.user.findMany({
+      where: {
+        role: "USER",
+        OR: [
+          { createdById: adminId },
+          {
+            outlet: {
+              qrCards: {
+                some: {
+                  assignedAdminId: adminId,
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        outlet: {
+          include: {
+            qrCards: true,
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+
+    // 3. Fetch current admin info along with its creator (Super Admin)
+    prisma.user.findUnique({
+      where: { id: adminId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        whatsappNumber: true,
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            whatsappNumber: true,
+            email: true,
+            isSuperAdminMaster: true,
+          },
+        },
+      },
+    }),
+
+    // 4. Fallback: master super admin
+    prisma.user.findFirst({
+      where: { role: "SUPER_ADMIN", isSuperAdminMaster: true },
+      select: {
+        id: true,
+        fullName: true,
+        whatsappNumber: true,
+        email: true,
+      },
+    }),
+
+    // 5. Cached site setting
+    getCachedSiteSetting(),
+  ]);
 
   const createdUsers = rawUsers.map((u) => ({
     ...u,
@@ -80,41 +124,6 @@ export default async function AdminPage() {
         }
       : null,
   }));
-
-  // Fetch current admin info along with its creator (Super Admin)
-  const currentAdminUser = await prisma.user.findUnique({
-    where: { id: adminId },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      whatsappNumber: true,
-      createdBy: {
-        select: {
-          id: true,
-          fullName: true,
-          whatsappNumber: true,
-          email: true,
-          isSuperAdminMaster: true,
-        },
-      },
-    },
-  });
-
-  // Fallback: master super admin or default site setting
-  const masterSuperAdmin = await prisma.user.findFirst({
-    where: { role: "SUPER_ADMIN", isSuperAdminMaster: true },
-    select: {
-      id: true,
-      fullName: true,
-      whatsappNumber: true,
-      email: true,
-    },
-  });
-
-  const siteSetting = await prisma.siteSetting.findUnique({
-    where: { id: "default" },
-  });
 
   const superAdminContact = currentAdminUser?.createdBy || masterSuperAdmin || {
     fullName: "Super Admin",

@@ -1,11 +1,28 @@
+import { cache } from "react";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { formatGoogleReviewUrl } from "@/lib/google-url";
 import { redirect } from "next/navigation";
 import { SmartReviewClient } from "./SmartReviewClient";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
+import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 
 export const dynamic = "force-dynamic";
+
+// Cache per-request data kartu agar query tidak diduplikasi antara generateMetadata & page render
+const getCardByCode = cache(async (code: string) => {
+  return prisma.qrCard.findUnique({
+    where: { code },
+    include: {
+      outlet: {
+        include: {
+          owner: true,
+        },
+      },
+    },
+  });
+});
 
 export async function generateMetadata({
   params,
@@ -14,11 +31,9 @@ export async function generateMetadata({
 }) {
   const { code } = await params;
   const cleanCode = code?.trim().toLowerCase();
+  if (!cleanCode) return { title: "Smart QR Review" };
 
-  const card = await prisma.qrCard.findUnique({
-    where: { code: cleanCode },
-    include: { outlet: true },
-  });
+  const card = await getCardByCode(cleanCode);
 
   return {
     title: card?.outlet?.name
@@ -50,22 +65,12 @@ export default async function SmartReviewPage({
     );
   }
 
-  // 1. Ambil data kartu beserta relasi outlet & pemilik
-  const card = await prisma.qrCard.findUnique({
-    where: { code: cleanCode },
-    include: {
-      outlet: {
-        include: {
-          owner: true,
-        },
-      },
-    },
-  });
+  // 1. Ambil data kartu (memanfaatkan cache dari metadata jika sudah di-fetch) & site setting secara paralel
+  const [card, siteSetting] = await Promise.all([
+    getCardByCode(cleanCode),
+    getCachedSiteSetting(),
+  ]);
 
-  // Ambil site setting untuk fallback global
-  const siteSetting = await prisma.siteSetting.findUnique({
-    where: { id: "default" },
-  });
   const masterFallback =
     siteSetting?.globalFallbackUrl ||
     card?.fallbackUrl ||
@@ -105,13 +110,15 @@ export default async function SmartReviewPage({
 
   // 4. Status INACTIVE atau Akun Pemilik Dimatikan -> Redirect ke fallback URL
   if (isCardInactive || isOwnerDisabled) {
-    await prisma.qrCard.update({
-      where: { code: cleanCode },
-      data: {
-        scanCount: {
-          increment: 1,
-        },
-      },
+    after(async () => {
+      try {
+        await prisma.qrCard.update({
+          where: { code: cleanCode },
+          data: { scanCount: { increment: 1 } },
+        });
+      } catch (e) {
+        console.error("Gagal update scanCount:", e);
+      }
     });
 
     const targetFallback =
@@ -122,14 +129,16 @@ export default async function SmartReviewPage({
     redirect(targetFallback);
   }
 
-  // 5. Update Scan Count & Rekam Activity Log
-  await prisma.qrCard.update({
-    where: { code: cleanCode },
-    data: {
-      scanCount: {
-        increment: 1,
-      },
-    },
+  // 5. Update Scan Count di background (non-blocking) agar pelanggan tidak menunggu
+  after(async () => {
+    try {
+      await prisma.qrCard.update({
+        where: { code: cleanCode },
+        data: { scanCount: { increment: 1 } },
+      });
+    } catch (e) {
+      console.error("Gagal update scanCount:", e);
+    }
   });
 
   // Log activity removed to save database storage per user request

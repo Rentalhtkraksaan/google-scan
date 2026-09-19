@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toaster";
-import { prisma } from "@/lib/prisma";
+import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 
 export async function generateMetadata(): Promise<Metadata> {
   let faviconUrl = "/favicon.ico";
@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Platform SaaS Dynamic QR Code & Smart Review Card untuk akselerasi ulasan bintang 5 Google Maps bisnis Anda.";
 
   try {
-    const setting = await prisma.siteSetting.findFirst();
+    const setting = await getCachedSiteSetting();
     if (setting?.faviconUrl) {
       faviconUrl = setting.faviconUrl;
     }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { PortalClientView } from "./PortalClientView";
 import { AuthenticatedUser } from "@/types/models";
+import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -18,39 +19,42 @@ export default async function PortalPage() {
     redirect("/login");
   }
 
-  // Fetch user with outlet and QR cards & feedbacks
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      outlet: {
-        include: {
-          feedbacks: {
-            orderBy: {
-              createdAt: "desc",
+  // Parallel fetch: ambil data user outlet dan site setting serentak (Promise.all)
+  const [user, siteSetting] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        outlet: {
+          include: {
+            feedbacks: {
+              orderBy: {
+                createdAt: "desc",
+              },
             },
-          },
-          qrCards: {
-            include: {
-              assignedAdmin: {
-                select: {
-                  fullName: true,
-                  whatsappNumber: true,
-                  email: true,
+            qrCards: {
+              include: {
+                assignedAdmin: {
+                  select: {
+                    fullName: true,
+                    whatsappNumber: true,
+                    email: true,
+                  },
                 },
               },
             },
           },
         },
-      },
-      createdBy: {
-        select: {
-          fullName: true,
-          whatsappNumber: true,
-          email: true,
+        createdBy: {
+          select: {
+            fullName: true,
+            whatsappNumber: true,
+            email: true,
+          },
         },
       },
-    },
-  });
+    }),
+    getCachedSiteSetting(),
+  ]);
 
   if (!user) {
     redirect("/login");
@@ -86,10 +90,6 @@ export default async function PortalPage() {
         feedbacks: user.outlet.feedbacks || [],
       }
     : null;
-
-  const siteSetting = await prisma.siteSetting.findUnique({
-    where: { id: "default" },
-  });
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">

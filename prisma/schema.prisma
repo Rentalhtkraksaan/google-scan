@@ -57,6 +57,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([createdById])
+  @@index([role])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -138,6 +140,8 @@ model QrCard {
   updatedAt       DateTime   @updatedAt
 
   @@index([assignedAdminId])
+  @@index([outletId])
+  @@index([status])
   @@map("qr_cards")
 }
 

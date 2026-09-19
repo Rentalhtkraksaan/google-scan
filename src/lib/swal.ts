@@ -1,7 +1,7 @@
 import Swal from "sweetalert2";
 
 // Custom dark styled SweetAlert2 configuration
-export const showSuccessAlert = (title: string, message?: string, timer = 1500) => {
+export const showSuccessAlert = (title: string, message?: string, timer = 1000) => {
   return Swal.fire({
     icon: "success",
     title: title,

@@ -28,6 +28,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  compress: true,
   poweredByHeader: false,
   eslint: {
     ignoreDuringBuilds: true,
@@ -39,6 +40,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
   },
   async headers() {
     return [
