@@ -432,6 +432,7 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
       canEditLandingPage: formData.get("canEditLandingPage") === "true",
       canManagePrintTemplates: formData.get("canManagePrintTemplates") === "true",
       canDeleteCards: formData.get("canDeleteCards") === "true",
+      canViewAnalytics: formData.get("canViewAnalytics") === "true",
     };
 
     if (!raw.email || !raw.password || !raw.fullName) {
@@ -475,6 +476,7 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
         canEditLandingPage: raw.canEditLandingPage,
         canManagePrintTemplates: raw.canManagePrintTemplates,
         canDeleteCards: raw.canDeleteCards,
+        canViewAnalytics: raw.canViewAnalytics,
         createdById: session.user.id,
       },
     });
@@ -508,7 +510,7 @@ export async function createSuperAdminAction(formData: FormData): Promise<Action
 // ─── Super Admin 1: Toggle Hak Akses Super Admin 2 ──────────────────────────
 export async function toggleSuperAdminPermissionAction(
   targetUserId: string,
-  permission: "canEditLandingPage" | "canManagePrintTemplates" | "canDeleteCards"
+  permission: "canEditLandingPage" | "canManagePrintTemplates" | "canDeleteCards" | "canViewAnalytics"
 ): Promise<ActionResult> {
   try {
     const session = await getSession();
@@ -550,6 +552,8 @@ export async function toggleSuperAdminPermissionAction(
         ? "Kelola Template Cetak Multi-Ukuran"
         : permission === "canDeleteCards"
         ? "Hapus Kartu QR Permanen"
+        : permission === "canViewAnalytics"
+        ? "Lihat Analitik Pengunjung Web"
         : "Edit Landing Page & WhatsApp";
 
     await recordActivityLog({
@@ -1531,6 +1535,7 @@ export async function updateSuperAdminUserAction(
     const canEditLandingPage = formData.get("canEditLandingPage") === "true";
     const canManagePrintTemplates = formData.get("canManagePrintTemplates") === "true";
     const canDeleteCards = formData.get("canDeleteCards") === "true";
+    const canViewAnalytics = formData.get("canViewAnalytics") === "true";
 
     if (!fullName || !email) {
       return { success: false, message: "Nama lengkap dan email wajib diisi." };
@@ -1566,6 +1571,7 @@ export async function updateSuperAdminUserAction(
       canEditLandingPage: boolean;
       canManagePrintTemplates: boolean;
       canDeleteCards: boolean;
+      canViewAnalytics: boolean;
       password?: string;
     } = {
       fullName,
@@ -1574,6 +1580,7 @@ export async function updateSuperAdminUserAction(
       canEditLandingPage,
       canManagePrintTemplates,
       canDeleteCards,
+      canViewAnalytics,
     };
 
     if (newPassword && newPassword.length >= 6) {

@@ -275,6 +275,7 @@ export function SuperAdminDashboardClient({
 
   const canEditLanding = isMaster || currentUser?.canEditLandingPage === true;
   const canManageTemplates = isMaster || currentUser?.canManagePrintTemplates === true;
+  const canViewVisitorAnalytics = isMaster || currentUser?.canViewAnalytics === true;
 
   // Modals state
   const [isLandingPageModalOpen, setIsLandingPageModalOpen] = useState(false);
@@ -918,6 +919,32 @@ export function SuperAdminDashboardClient({
     }
   };
 
+  // Toggle Super Admin Permission (Visitor Analytics permission)
+  const handleToggleAnalyticsPermission = async (targetId: string, name?: string) => {
+    if (!isMaster) {
+      showErrorAlert("Akses Ditolak", "Hanya Super Admin 1 yang dapat mengubah hak akses ini.");
+      return;
+    }
+
+    // Optimistic UI Update
+    setLocalSuperAdmins((prev) =>
+      prev.map((sa) => (sa.id === targetId ? { ...sa, canViewAnalytics: !sa.canViewAnalytics } : sa))
+    );
+
+    try {
+      const res = await toggleSuperAdminPermissionAction(targetId, "canViewAnalytics");
+      if (res.success) {
+        showSuccessAlert("Hak Akses Diperbarui", name ? `${name}: ${res.message}` : res.message, 1500);
+      } else {
+        setLocalSuperAdmins(superAdmins); // revert
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      setLocalSuperAdmins(superAdmins); // revert
+      showErrorAlert("Kesalahan", "Gagal memperbarui hak akses.");
+    }
+  };
+
   // Delete Outlet (Validasi 2 Langkah & Proteksi Super Admin 1 / Admin binaan SA1 / Kartu > 2)
   const handleDeleteOutlet = async (userId: string, name: string, isProtectedFromSA2?: boolean) => {
     if (!isMaster && isProtectedFromSA2) {
@@ -1255,8 +1282,8 @@ export function SuperAdminDashboardClient({
               <span className="truncate">Scan Kamera QR</span>
             </button>
 
-            {/* Analitik Pengunjung (SA1) */}
-            {isMaster && (
+            {/* Analitik Pengunjung (SA1 atau SA2 berizin) */}
+            {canViewVisitorAnalytics && (
               <button
                 onClick={() => setIsVisitorModalOpen(true)}
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
@@ -1474,8 +1501,8 @@ export function SuperAdminDashboardClient({
               <span className="text-[11px] text-slate-400 mt-1 block">Manajemen operasional</span>
             </div>
 
-            {/* Total Pengunjung (SA1) */}
-            {isMaster && (
+            {/* Total Pengunjung (SA1 atau SA2 berizin) */}
+            {canViewVisitorAnalytics && (
               <div
                 onClick={() => setIsVisitorModalOpen(true)}
                 className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-rose-500/50 transition-all cursor-pointer"
@@ -3035,6 +3062,7 @@ export function SuperAdminDashboardClient({
                     <th className="py-3 px-4 text-center">Izin Landing Page</th>
                     <th className="py-3 px-4 text-center">Izin Template Cetak</th>
                     <th className="py-3 px-4 text-center">Izin Hapus Kartu</th>
+                    <th className="py-3 px-4 text-center">Izin Pengunjung Web</th>
                     <th className="py-3 px-4 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -3203,6 +3231,34 @@ export function SuperAdminDashboardClient({
                               {sa.canDeleteCards ? (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 group-hover:bg-indigo-500/20">
                                   <Layers className="w-3 h-3" /> Diizinkan
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 group-hover:border-slate-600">
+                                  <Lock className="w-3 h-3 text-slate-500" /> Terkunci
+                                </span>
+                              )}
+                            </button>
+                          )}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-center">
+                          {isSaMaster ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                              <TrendingUp className="w-3 h-3" /> Izin Penuh
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleAnalyticsPermission(sa.id, sa.fullName)}
+                              className="inline-flex items-center gap-1.5 focus:outline-none group cursor-pointer"
+                              title={
+                                sa.canViewAnalytics
+                                  ? "Klik untuk mencabut izin lihat Pengunjung Web"
+                                  : "Klik untuk memberikan izin lihat Pengunjung Web"
+                              }
+                            >
+                              {sa.canViewAnalytics ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 group-hover:bg-rose-500/20">
+                                  <TrendingUp className="w-3 h-3" /> Diizinkan
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 group-hover:border-slate-600">
@@ -3455,8 +3511,8 @@ export function SuperAdminDashboardClient({
         onCardRestored={() => router.refresh()}
       />
 
-      {/* Visitor Analytics Modal (Khusus Super Admin 1) */}
-      {isVisitorModalOpen && (
+      {/* Visitor Analytics Modal (Super Admin 1 atau Super Admin 2 berizin) */}
+      {isVisitorModalOpen && canViewVisitorAnalytics && (
         <VisitorAnalyticsModal onClose={() => setIsVisitorModalOpen(false)} />
       )}
 

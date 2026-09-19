@@ -90,6 +90,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             isSuperAdminMaster: user.isSuperAdminMaster,
             canEditLandingPage: user.canEditLandingPage,
             canManagePrintTemplates: user.canManagePrintTemplates,
+            canDeleteCards: user.canDeleteCards,
+            canViewAnalytics: user.canViewAnalytics,
           };
         } else {
           const { email, password } = data;
@@ -143,6 +145,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             isSuperAdminMaster: user.isSuperAdminMaster,
             canEditLandingPage: user.canEditLandingPage,
             canManagePrintTemplates: user.canManagePrintTemplates,
+            canDeleteCards: user.canDeleteCards,
+            canViewAnalytics: user.canViewAnalytics,
           };
         }
       },

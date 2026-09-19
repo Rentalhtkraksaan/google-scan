@@ -34,6 +34,7 @@ export default async function SuperAdminPage() {
       canEditLandingPage: true,
       canManagePrintTemplates: true,
       canDeleteCards: true,
+      canViewAnalytics: true,
     },
   });
 
@@ -50,6 +51,7 @@ export default async function SuperAdminPage() {
       canEditLandingPage: true,
       canManagePrintTemplates: true,
       canDeleteCards: true,
+      canViewAnalytics: true,
       createdAt: true,
     },
     orderBy: [{ isSuperAdminMaster: "desc" }, { createdAt: "asc" }],
@@ -203,6 +205,7 @@ export default async function SuperAdminPage() {
     canEditLandingPage: !!freshCurrentUser?.canEditLandingPage,
     canManagePrintTemplates: !!freshCurrentUser?.canManagePrintTemplates,
     canDeleteCards: !!freshCurrentUser?.canDeleteCards,
+    canViewAnalytics: !!freshCurrentUser?.canViewAnalytics,
   };
 
   return (

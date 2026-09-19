@@ -11,6 +11,16 @@ export async function GET(req: NextRequest) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Cek izin Super Admin: Master selalu boleh, Super Admin 2 harus memiliki izin canViewAnalytics
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdminMaster: true, canViewAnalytics: true },
+    });
+
+    if (!dbUser || (!dbUser.isSuperAdminMaster && !dbUser.canViewAnalytics)) {
+      return new NextResponse("Forbidden: Anda tidak memiliki izin untuk melihat analitik pengunjung.", { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") || "weekly";
     const yearStr = searchParams.get("year");

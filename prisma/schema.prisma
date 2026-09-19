@@ -44,6 +44,7 @@ model User {
   canEditLandingPage      Boolean @default(false) // Izin khusus Super Admin 2 untuk edit teks & WA Landing Page
   canManagePrintTemplates Boolean @default(false) // Izin khusus Super Admin 2 untuk kelola template cetak multi-ukuran
   canDeleteCards          Boolean @default(false) // Izin khusus Super Admin 2 untuk menghapus kartu
+  canViewAnalytics        Boolean @default(false) // Izin khusus Super Admin 2 untuk melihat data pengunjung & analitik web
 
   outlet Outlet?
 

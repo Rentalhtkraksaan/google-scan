@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { X, ShieldCheck, Mail, User, Phone, Loader2, Plus, Lock, Globe, Layers, Trash2 } from "lucide-react";
+import { X, ShieldCheck, Mail, User, Phone, Loader2, Plus, Lock, Globe, Layers, Trash2, TrendingUp } from "lucide-react";
 import { createSuperAdminAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 
@@ -20,6 +20,7 @@ export function CreateSuperAdminModal({ isOpen, onClose }: CreateSuperAdminModal
   const [canEditLandingPage, setCanEditLandingPage] = useState(false);
   const [canManagePrintTemplates, setCanManagePrintTemplates] = useState(false);
   const [canDeleteCards, setCanDeleteCards] = useState(false);
+  const [canViewAnalytics, setCanViewAnalytics] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,6 +46,7 @@ export function CreateSuperAdminModal({ isOpen, onClose }: CreateSuperAdminModal
         formData.append("canEditLandingPage", canEditLandingPage ? "true" : "false");
         formData.append("canManagePrintTemplates", canManagePrintTemplates ? "true" : "false");
         formData.append("canDeleteCards", canDeleteCards ? "true" : "false");
+        formData.append("canViewAnalytics", canViewAnalytics ? "true" : "false");
 
         const res = await createSuperAdminAction(formData);
         if (res.success) {
@@ -56,6 +58,7 @@ export function CreateSuperAdminModal({ isOpen, onClose }: CreateSuperAdminModal
           setCanEditLandingPage(false);
           setCanManagePrintTemplates(false);
           setCanDeleteCards(false);
+          setCanViewAnalytics(false);
           onClose();
         } else {
           showErrorAlert("Gagal Membuat Akun", res.message);
@@ -249,6 +252,33 @@ export function CreateSuperAdminModal({ isOpen, onClose }: CreateSuperAdminModal
               <span
                 className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
                   canDeleteCards ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Permission Toggle: View Visitor Analytics */}
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-start justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
+                <span>Izin Lihat Pengunjung Web & Analitik</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Jika diaktifkan, Super Admin 2 ini diperbolehkan melihat data statistik dan grafik pengunjung website.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCanViewAnalytics(!canViewAnalytics)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                canViewAnalytics ? "bg-emerald-600" : "bg-slate-800"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  canViewAnalytics ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>

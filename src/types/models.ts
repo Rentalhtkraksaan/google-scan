@@ -8,6 +8,7 @@ export interface AuthenticatedUser {
   canEditLandingPage?: boolean;
   canManagePrintTemplates?: boolean;
   canDeleteCards?: boolean;
+  canViewAnalytics?: boolean;
 }
 
 export interface SiteSettingModel {
@@ -48,6 +49,7 @@ export interface SuperAdminItem {
   canEditLandingPage: boolean;
   canManagePrintTemplates: boolean;
   canDeleteCards: boolean;
+  canViewAnalytics: boolean;
   createdAt: string | Date;
 }
 

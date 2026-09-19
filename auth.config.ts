@@ -46,6 +46,8 @@ export const authConfig: NextAuthConfig = {
         token.isSuperAdminMaster = (user as unknown as { isSuperAdminMaster?: boolean }).isSuperAdminMaster;
         token.canEditLandingPage = (user as unknown as { canEditLandingPage?: boolean }).canEditLandingPage;
         token.canManagePrintTemplates = (user as unknown as { canManagePrintTemplates?: boolean }).canManagePrintTemplates;
+        token.canDeleteCards = (user as unknown as { canDeleteCards?: boolean }).canDeleteCards;
+        token.canViewAnalytics = (user as unknown as { canViewAnalytics?: boolean }).canViewAnalytics;
       }
       return token;
     },
@@ -57,6 +59,8 @@ export const authConfig: NextAuthConfig = {
         (session.user as unknown as { isSuperAdminMaster?: boolean }).isSuperAdminMaster = !!token.isSuperAdminMaster;
         (session.user as unknown as { canEditLandingPage?: boolean }).canEditLandingPage = !!token.canEditLandingPage;
         (session.user as unknown as { canManagePrintTemplates?: boolean }).canManagePrintTemplates = !!token.canManagePrintTemplates;
+        (session.user as unknown as { canDeleteCards?: boolean }).canDeleteCards = !!token.canDeleteCards;
+        (session.user as unknown as { canViewAnalytics?: boolean }).canViewAnalytics = !!token.canViewAnalytics;
       }
       return session;
     },

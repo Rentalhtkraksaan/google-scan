@@ -67,6 +67,8 @@ export const createSuperAdminSchema = z.object({
     .or(z.literal("")),
   canEditLandingPage: z.boolean().default(false),
   canManagePrintTemplates: z.boolean().default(false),
+  canDeleteCards: z.boolean().default(false),
+  canViewAnalytics: z.boolean().default(false),
 });
 
 export type CreateSuperAdminInput = z.infer<typeof createSuperAdminSchema>;

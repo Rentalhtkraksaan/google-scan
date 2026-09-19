@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, ShieldCheck, Mail, User, Phone, KeyRound, Eye, EyeOff, Loader2, Globe, Layers, Trash2 } from "lucide-react";
+import { X, ShieldCheck, Mail, User, Phone, KeyRound, Eye, EyeOff, Loader2, Globe, Layers, Trash2, TrendingUp } from "lucide-react";
 import { updateSuperAdminUserAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import { SuperAdminItem } from "@/types/models";
@@ -21,6 +21,7 @@ export function EditSuperAdminModal({ admin, onClose, onSuccess }: EditSuperAdmi
   const [canEditLandingPage, setCanEditLandingPage] = useState(!!admin.canEditLandingPage);
   const [canManagePrintTemplates, setCanManagePrintTemplates] = useState(!!admin.canManagePrintTemplates);
   const [canDeleteCards, setCanDeleteCards] = useState(!!admin.canDeleteCards);
+  const [canViewAnalytics, setCanViewAnalytics] = useState(!!admin.canViewAnalytics);
   const [password, setPassword] = useState("");
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function EditSuperAdminModal({ admin, onClose, onSuccess }: EditSuperAdmi
       formData.set("canEditLandingPage", String(canEditLandingPage));
       formData.set("canManagePrintTemplates", String(canManagePrintTemplates));
       formData.set("canDeleteCards", String(canDeleteCards));
+      formData.set("canViewAnalytics", String(canViewAnalytics));
       if (password) {
         formData.set("password", password);
       }
@@ -194,6 +196,26 @@ export function EditSuperAdminModal({ admin, onClose, onSuccess }: EditSuperAdmi
                 type="checkbox"
                 checked={canDeleteCards}
                 onChange={(e) => setCanDeleteCards(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600"></div>
+            </label>
+          </div>
+
+          {/* Izin Pengunjung Web / Analitik */}
+          <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <TrendingUp className="w-4 h-4 text-rose-400" />
+              <div>
+                <span className="text-xs font-semibold text-slate-200 block">Izin Pengunjung Web & Analitik</span>
+                <span className="text-[11px] text-slate-400">Bolehkan Super Admin 2 melihat grafik & analitik web</span>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={canViewAnalytics}
+                onChange={(e) => setCanViewAnalytics(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600"></div>
