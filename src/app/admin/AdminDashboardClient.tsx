@@ -17,7 +17,6 @@ import {
   X,
   ChevronDown,
   History,
-  Camera,
   Power,
   Lock,
   UserCheck,
@@ -28,7 +27,6 @@ import { EditOutletModal } from "@/components/forms/EditOutletModal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
-import { QrCameraScannerModal } from "@/components/dashboard/QrCameraScannerModal";
 import { useRouter } from "next/navigation";
 import { deleteOutletUserAction, toggleUserActiveStatusAction } from "@/lib/actions/auth.actions";
 import { toggleCardStatusAction } from "@/lib/actions/qr.actions";
@@ -100,7 +98,6 @@ export function AdminDashboardClient({
     name: string;
     currentCards?: { code: string }[];
   } | null>(null);
-  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
 
   // Derived metrics
   const totalAssignedCards = assignedCards.length;
@@ -239,15 +236,6 @@ export function AdminDashboardClient({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={() => setIsScannerModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
-            title="Pindai Kartu Fisik QR dengan Kamera untuk Cek Status / Pulihkan Kartu"
-          >
-            <Camera className="w-4 h-4 text-indigo-400" />
-            <span>Scan Kamera QR</span>
-          </button>
-
           <button
             onClick={() => setIsRequestCardModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm"
@@ -863,17 +851,6 @@ export function AdminDashboardClient({
           onSuccess={() => router.refresh()}
         />
       )}
-
-      {/* QR Camera Scanner & Physical Card Recovery Modal */}
-      <QrCameraScannerModal
-        isOpen={isScannerModalOpen}
-        onClose={() => setIsScannerModalOpen(false)}
-        currentUserRole="ADMIN"
-        outlets={createdUsers
-          .filter((u) => u.outlet)
-          .map((u) => ({ id: u.outlet!.id, name: u.outlet!.name }))}
-        onCardRestored={() => router.refresh()}
-      />
     </div>
   );
 }
