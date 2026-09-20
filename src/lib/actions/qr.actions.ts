@@ -751,11 +751,10 @@ async function internalLookupSingleCard(
       }
     } else if (currentUserRole === Role.ADMIN) {
       if (existingCard.assignedAdminId !== currentUserId) {
-        const ownerAdminName = existingCard.assignedAdmin?.fullName || "Admin Lapangan Lain";
         return {
           status: "ACCESS_DENIED",
           code: cleanCode,
-          message: `Akses Ditolak: Kartu fisik ini bukan jatah Anda (dialokasikan ke ${ownerAdminName}).`,
+          message: `Kamu tidak diberi jatah kartu nomor ${cleanCode} oleh Super Admin. Harap hubungi Super Admin.`,
           canRestore: false,
         };
       }
@@ -822,11 +821,11 @@ async function internalLookupSingleCard(
         }
       }
     } else if (currentUserRole === Role.ADMIN) {
-      if (lastLog.adminId && lastLog.adminId !== currentUserId) {
+      if (!lastLog.adminId || lastLog.adminId !== currentUserId) {
         return {
           status: "ACCESS_DENIED",
           code: cleanCode,
-          message: "Akses Ditolak: Kartu fisik ini sebelumnya bukan jatah Anda. Anda tidak memiliki wewenang untuk memulihkannya.",
+          message: `Kamu tidak diberi jatah kartu nomor ${cleanCode} oleh Super Admin. Harap hubungi Super Admin.`,
           canRestore: false,
         };
       }
@@ -858,7 +857,7 @@ async function internalLookupSingleCard(
     return {
       status: "ACCESS_DENIED",
       code: cleanCode,
-      message: `Kode kartu "${cleanCode}" belum terdaftar di sistem dan belum dialokasikan oleh Super Admin ke akun Anda.`,
+      message: `Kamu tidak diberi jatah kartu nomor ${cleanCode} oleh Super Admin. Harap hubungi Super Admin.`,
       canRestore: false,
     };
   }
@@ -972,6 +971,13 @@ export async function restoreOrRegisterCardAction(data: {
       targetAdminId = data.assignedAdminId && data.assignedAdminId !== "unassigned" ? data.assignedAdminId : null;
     } else if (currentUserRole === Role.ADMIN) {
       targetAdminId = currentUserId;
+      const check = await internalLookupSingleCard(cleanCode, currentUserId, currentUserRole, isMaster);
+      if (!check.canRestore) {
+        return {
+          success: false,
+          message: check.message || `Kamu tidak diberi jatah kartu nomor ${cleanCode} oleh Super Admin. Harap hubungi Super Admin.`,
+        };
+      }
     } else {
       return { success: false, message: "Akses ditolak." };
     }

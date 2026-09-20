@@ -573,25 +573,41 @@ export function QrCameraScannerModal({
     }
   };
 
-  // Lifecycle on modal open/close
+  // Lifecycle on modal open/close & keyboard shortcuts
   useEffect(() => {
     if (isOpen) {
       setScannedResult(null);
       if (activeMode === "camera") {
         startCamera();
       }
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          stopCamera();
+          onClose();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        stopCamera();
+      };
     } else {
       stopCamera();
     }
-    return () => {
-      stopCamera();
-    };
-  }, [isOpen, activeMode, startCamera, stopCamera]);
+  }, [isOpen, activeMode, startCamera, stopCamera, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          stopCamera();
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+    >
       <div
         className={`relative w-full ${
           batchResults ? "max-w-2xl sm:max-w-3xl" : "max-w-xl"
@@ -617,11 +633,13 @@ export function QrCameraScannerModal({
           </div>
 
           <button
+            type="button"
             onClick={() => {
               stopCamera();
               onClose();
             }}
             className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title="Tutup Modal Scanner"
           >
             <X className="w-5 h-5" />
           </button>
@@ -951,24 +969,24 @@ export function QrCameraScannerModal({
             <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
               {/* Access Denied Alert */}
               {scannedResult.status === "ACCESS_DENIED" && (
-                <div className="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 space-y-3">
+                <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+                    <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
                       <ShieldAlert className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-rose-200">Akses Ditolak (Proteksi Kepemilikan)</h3>
-                      <p className="text-xs font-mono font-bold text-rose-400 mt-0.5">
+                      <h3 className="text-sm font-bold text-amber-200">Bukan Jatah Kartu Anda</h3>
+                      <p className="text-xs font-mono font-bold text-amber-400 mt-0.5">
                         Kode Kartu: {scannedResult.code}
                       </p>
                     </div>
                   </div>
-                  <p className="text-xs text-rose-300 leading-relaxed bg-rose-950/40 p-3 rounded-xl border border-rose-500/20">
+                  <div className="p-3.5 bg-amber-500/10 rounded-xl border border-amber-500/20 text-xs text-amber-200 font-medium leading-relaxed">
                     {scannedResult.message}
-                  </p>
+                  </div>
                   <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span>Sistem isolasi hierarki mencegah akses lintas jatah Super Admin & Admin Lapangan.</span>
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Hanya kartu yang dialokasikan oleh Super Admin ke akun Anda yang dapat dipindai atau dipulihkan.</span>
                   </div>
                 </div>
               )}
@@ -1054,8 +1072,17 @@ export function QrCameraScannerModal({
                   </div>
 
                   <p className="text-xs text-amber-200/90 leading-relaxed bg-amber-950/30 p-3 rounded-xl border border-amber-500/20">
-                    Kartu fisik ini sudah ada di sistem dan siap dihubungkan ke Outlet baru melalui menu pendaftaran outlet atau tombol <strong>+ Kartu</strong>.
+                    Kartu fisik ini berstatus jatah kosong Anda dan siap dihubungkan ke data outlet baru klien.
                   </p>
+
+                  <a
+                    href={`/claim?code=${encodeURIComponent(scannedResult.card.code)}`}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/25 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Aktivasi & Hubungkan Outlet ke Kartu Ini</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               )}
 
@@ -1416,6 +1443,7 @@ export function QrCameraScannerModal({
             <span>Hak akses terlindungi ({currentUserRole === "SUPER_ADMIN" ? (isMaster ? "Super Admin 1 (Master)" : "Super Admin 2") : "Admin Lapangan"})</span>
           </span>
           <button
+            type="button"
             onClick={() => {
               stopCamera();
               onClose();
