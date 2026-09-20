@@ -13,7 +13,6 @@ import {
   MessageCircle,
   CheckCircle2,
   User,
-  Phone,
 } from "lucide-react";
 import { submitCustomerFeedbackAction } from "@/lib/actions/feedback.actions";
 
@@ -24,6 +23,7 @@ interface SmartReviewClientProps {
     name: string;
     googleReviewUrl: string;
     whatsappNumber?: string | null;
+    ownerName?: string | null;
   };
 }
 
@@ -100,7 +100,6 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
 
   // 1-3 Stars Feedback Form State
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
@@ -278,31 +277,30 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
         cardCode,
         rating: selectedRating,
         customerName: customerName.trim() || undefined,
-        phone: customerPhone.trim() || undefined,
         message: feedbackMessage.trim(),
       }).catch((err) => console.error("Error logging feedback:", err));
 
-      // 2. Format pesan WhatsApp dengan pesan yang diketik pengunjung
+      // 2. Format pesan WhatsApp sesuai format yang ditentukan:
+      // halo (nama owner) pemilik dari outlet (nama outlet)
+      // saya (nama yg di isi di form) pengunjung outlet anda dari meja (kode kartu)
+      // saya memberikan bintang (bintang yg di isi di form)
+      // dan ingin menyampaikan masukan langsung terkait: (isi pesan di form itu)
       let cleanTargetPhone = (outlet.whatsappNumber || "").replace(/[^0-9]/g, "");
       if (cleanTargetPhone.startsWith("0")) {
         cleanTargetPhone = "62" + cleanTargetPhone.slice(1);
       }
 
-      const starsText = "⭐".repeat(selectedRating);
-      const ratingLabel = RATING_INFO[selectedRating]?.label || "Kritik & Saran";
+      const ownerSalutation = outlet.ownerName
+        ? `halo ${outlet.ownerName} pemilik dari outlet ${outlet.name}`
+        : `halo pemilik dari outlet ${outlet.name}`;
+      const visitorName = customerName.trim();
 
       const waText =
-`Halo Pengelola *${outlet.name}*, 👋
-
-Saya pelanggan/pengunjung outlet Anda (Kode Meja/Kartu: *${cardCode}*).
-Penilaian Layanan: ${starsText} (${selectedRating}/5 - ${ratingLabel})
-
-*Kritik / Kendala / Masukan Saya:*
-"${feedbackMessage.trim()}"
-
-- Pengirim: ${customerName.trim() || "Pelanggan"}
-${customerPhone.trim() ? `- No. Kontak: ${customerPhone.trim()}\n` : ""}
-Mohon ditindaklanjuti demi peningkatan kualitas layanan. Terima kasih!`;
+`${ownerSalutation}
+saya ${visitorName} pengunjung outlet anda dari meja ${cardCode}
+saya memberikan bintang ${selectedRating} ⭐
+dan ingin menyampaikan masukan langsung terkait:
+${feedbackMessage.trim()}`;
 
       const waUrl = cleanTargetPhone
         ? `https://api.whatsapp.com/send?phone=${cleanTargetPhone}&text=${encodeURIComponent(waText)}`
@@ -310,10 +308,10 @@ Mohon ditindaklanjuti demi peningkatan kualitas layanan. Terima kasih!`;
 
       setSubmittedSuccess(true);
 
-      // 3. Arahkan langsung ke WhatsApp dengan isi chat yang sudah terisi
+      // 3. Arahkan langsung ke WhatsApp dengan pesan otomatis terisi
       setTimeout(() => {
         window.location.href = waUrl;
-      }, 700);
+      }, 500);
     } catch (err) {
       console.error("Gagal mengirim masukan:", err);
     } finally {
@@ -545,38 +543,21 @@ Mohon ditindaklanjuti demi peningkatan kualitas layanan. Terima kasih!`;
                 </div>
               ) : (
                 <form onSubmit={handleSubmitFeedback} className="space-y-3.5">
-                  {/* Nama Pengunjung (Opsional) */}
+                  {/* Nama Pengunjung */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Nama Anda <span className="text-slate-500 font-normal">(Opsional)</span>
+                      Nama Anda <span className="text-rose-400">*</span>
                     </label>
                     <div className="relative">
                       <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
+                        required
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Contoh: Budi"
                         maxLength={100}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Nomor WhatsApp (Opsional) */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Nomor WhatsApp Anda <span className="text-slate-500 font-normal">(Opsional)</span>
-                    </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="Contoh: 08123456789"
-                        maxLength={20}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500 font-mono"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
                       />
                     </div>
                   </div>
@@ -584,14 +565,14 @@ Mohon ditindaklanjuti demi peningkatan kualitas layanan. Terima kasih!`;
                   {/* Pesan Masukan / Keluhan (Wajib) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Kritik, Kendala, atau Masukan Perbaikan <span className="text-rose-400">*</span>
+                      Kritik, Kendala, atau Masukan Terkait Layanan <span className="text-rose-400">*</span>
                     </label>
                     <textarea
                       rows={3}
                       required
                       value={feedbackMessage}
                       onChange={(e) => setFeedbackMessage(e.target.value)}
-                      placeholder="Ceritakan kendala yang Anda alami secara langsung..."
+                      placeholder="Tuliskan kendala atau masukan yang ingin Anda sampaikan..."
                       className="w-full p-3 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500 resize-none leading-relaxed"
                     />
                   </div>
@@ -599,13 +580,13 @@ Mohon ditindaklanjuti demi peningkatan kualitas layanan. Terima kasih!`;
                   {/* Submit Button to WA */}
                   <button
                     type="submit"
-                    disabled={isSubmitting || !feedbackMessage.trim()}
+                    disabled={isSubmitting || !feedbackMessage.trim() || !customerName.trim()}
                     className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Menyiapkan Chat WhatsApp...</span>
+                        <span>Menyiapkan WhatsApp...</span>
                       </>
                     ) : (
                       <>

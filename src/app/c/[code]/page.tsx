@@ -153,6 +153,7 @@ export default async function SmartReviewPage({
         name: card.outlet.name,
         googleReviewUrl: formattedGoogleUrl,
         whatsappNumber: card.outlet.owner?.whatsappNumber || null,
+        ownerName: card.outlet.owner?.fullName || null,
       }}
     />
   );
