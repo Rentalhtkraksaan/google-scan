@@ -771,10 +771,10 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
 
     // 2. Jika login sebagai ADMIN lapangan, pastikan kartu ini memang jatahnya
     if (session.user.role === Role.ADMIN) {
-      if (card.assignedAdminId && card.assignedAdminId !== session.user.id) {
+      if (card.assignedAdminId !== session.user.id) {
         return {
           success: false,
-          message: `Akses ditolak: Kartu "${code}" bukan merupakan inventaris jatah akun Anda.`,
+          message: `Kamu tidak diberi jatah kartu nomor ${card.code} oleh Super Admin. Harap hubungi Super Admin.`,
         };
       }
     }

@@ -1,13 +1,26 @@
 import { Suspense } from "react";
+import { auth } from "@root/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { QrCode, ArrowLeft } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Login Portal",
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await auth();
+
+  // Jika pengguna sudah login, langsung alihkan ke dashboard masing-masing seketika (0 lag)
+  if (session?.user) {
+    if (session.user.role === "SUPER_ADMIN") redirect("/super-admin");
+    if (session.user.role === "ADMIN") redirect("/admin");
+    if (session.user.role === "USER") redirect("/portal");
+  }
+
   return (
     <div className="min-h-screen bg-[#070b14] flex flex-col justify-between relative overflow-hidden">
       {/* Background glowing gradients */}
@@ -18,7 +31,8 @@ export default function LoginPage() {
       <header className="p-6 max-w-7xl mx-auto w-full flex items-center justify-between">
         <Link
           href="/"
-          className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/60 hover:border-indigo-500/50 shadow-lg shadow-black/40 hover:shadow-indigo-500/10 backdrop-blur-md transition-all duration-300 hover:scale-[1.02]"
+          prefetch={true}
+          className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/60 hover:border-indigo-500/50 shadow-lg shadow-black/40 hover:shadow-indigo-500/10 backdrop-blur-md transition-all duration-200 active:scale-95"
         >
           <div className="w-6 h-6 rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/25 border border-indigo-500/20 group-hover:border-indigo-500/40 flex items-center justify-center text-indigo-400 group-hover:text-indigo-300 transition-colors">
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -27,6 +41,7 @@ export default function LoginPage() {
         </Link>
         <Link
           href="/"
+          prefetch={true}
           className="group flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 transition-all backdrop-blur-md"
         >
           <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 group-hover:scale-105 transition-transform">

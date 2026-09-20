@@ -818,6 +818,9 @@ export function AdminDashboardClient({
             setIsRegisterModalOpen(false);
             setPrefilledCardCode("");
           }}
+          onSuccess={() => {
+            router.refresh();
+          }}
         />
       )}
 

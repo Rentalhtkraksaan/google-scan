@@ -12,6 +12,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Lock,
 } from "lucide-react";
 import { registerOutletAndClaimCardAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -37,11 +38,24 @@ export function RegisterOutletModal({
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    if (prefilledCode) {
+      setSelectedCode(prefilledCode);
+    }
+  }, [prefilledCode]);
+
+  useEffect(() => {
     document.body.style.overflow = "hidden";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = "unset";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,8 +64,9 @@ export function RegisterOutletModal({
     try {
       const form = e.currentTarget;
       const formData = new FormData(form);
-      if (selectedCode) {
-        formData.set("code", selectedCode);
+      const codeToSubmit = prefilledCode || selectedCode;
+      if (codeToSubmit) {
+        formData.set("code", codeToSubmit);
       }
       formData.set("outletName", outletName);
       formData.set("googleReviewUrl", googleReviewUrl);
@@ -74,7 +89,14 @@ export function RegisterOutletModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 p-3 sm:p-4 bg-black/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 p-3 sm:p-4 bg-black/80 backdrop-blur-sm flex items-center justify-center animate-in fade-in"
+    >
       <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
@@ -88,8 +110,10 @@ export function RegisterOutletModal({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Tutup Modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -98,10 +122,30 @@ export function RegisterOutletModal({
         <form onSubmit={handleSubmit} className="space-y-4 my-5">
           {/* Pilihan Kode Kartu */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Pilih / Masukkan Kode Kartu QR <span className="text-rose-400">*</span>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Pilih / Kode Kartu QR <span className="text-rose-400">*</span></span>
+              {prefilledCode && (
+                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  <Lock className="w-3 h-3" /> Terkunci Otomatis
+                </span>
+              )}
             </label>
-            {blankCards.length > 0 && !prefilledCode ? (
+            {prefilledCode ? (
+              <div className="relative">
+                <QrCode className="w-4 h-4 text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  name="code"
+                  required
+                  readOnly
+                  value={prefilledCode}
+                  className="w-full pl-9 pr-24 py-2.5 bg-slate-950/90 border border-emerald-500/40 rounded-xl text-sm text-emerald-300 font-mono font-bold cursor-not-allowed select-none focus:outline-none"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Terkunci
+                </span>
+              </div>
+            ) : blankCards.length > 0 ? (
               <div className="relative">
                 <QrCode className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <select
@@ -132,6 +176,11 @@ export function RegisterOutletModal({
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-100 font-mono placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
+            )}
+            {prefilledCode && (
+              <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                <span>Kode kartu dikunci sesuai nomor kartu yang discan / dipilih dan tidak dapat diubah.</span>
+              </p>
             )}
           </div>
 

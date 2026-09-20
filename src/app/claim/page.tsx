@@ -1,7 +1,7 @@
 import { auth } from "@root/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { QrCode, AlertCircle, ArrowRight, CheckCircle2, Home } from "lucide-react";
+import { QrCode, AlertCircle, ArrowRight, CheckCircle2, Home, ShieldAlert, ArrowLeft } from "lucide-react";
 import { ClaimClientView } from "./ClaimClientView";
 import { Navbar } from "@/components/layout/Navbar";
 import { AuthenticatedUser } from "@/types/models";
@@ -166,6 +166,43 @@ export default async function ClaimPage({
     );
   }
 
+  // If user is logged in as ADMIN, strictly enforce quota allocation
+  if (session.user.role === "ADMIN" && card.assignedAdminId !== session.user.id) {
+    return (
+      <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center card-glow shadow-2xl animate-in fade-in">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Bukan Jatah Kartu Anda</h2>
+          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-6 text-left">
+            <p className="text-sm font-medium text-amber-200 leading-relaxed">
+              Kamu tidak diberi jatah kartu nomor <span className="font-mono font-bold text-amber-300">{card.code}</span> oleh Super Admin. Harap hubungi Super Admin.
+            </p>
+          </div>
+          <div className="space-y-2.5">
+            <Link
+              href="/admin"
+              prefetch={true}
+              className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-black/40"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Kembali ke Dashboard Admin Lapangan</span>
+            </Link>
+            <Link
+              href="/"
+              prefetch={true}
+              className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 text-slate-400 hover:text-slate-200 text-xs transition-colors"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Kembali ke Beranda Utama</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const authUser: AuthenticatedUser = {
     id: session.user.id,
     fullName: session.user.fullName || "User",
@@ -187,7 +224,8 @@ export default async function ClaimPage({
           </div>
           <Link
             href={session.user.role === "SUPER_ADMIN" ? "/super-admin" : "/admin"}
-            className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg bg-slate-800 transition-colors"
+            prefetch={true}
+            className="text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors"
           >
             Kembali ke Dashboard
           </Link>

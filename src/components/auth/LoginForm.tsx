@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Mail,
   KeyRound,
   ArrowRight,
+  ArrowLeft,
   Loader2,
   Sparkles,
   Eye,
@@ -102,12 +104,12 @@ export function LoginForm() {
       }
 
       // Show sleek centered SweetAlert
-      showSuccessAlert("Login Berhasil!", "Mengalihkan ke dashboard...", 800);
+      showSuccessAlert("Login Berhasil!", "Mengalihkan ke dashboard...", 600);
 
       // Instant fast navigation
       setTimeout(() => {
-        window.location.href = targetUrl!;
-      }, 300);
+        window.location.replace(targetUrl!);
+      }, 100);
     } catch (err) {
       console.error("Login error:", err);
       setLoading(false);
@@ -261,6 +263,18 @@ export function LoginForm() {
               </>
             )}
           </button>
+
+          {/* Tombol Cepat Kembali ke Beranda */}
+          <div className="pt-2 text-center">
+            <Link
+              href="/"
+              prefetch={true}
+              className="inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800/60"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Kembali ke Beranda Utama</span>
+            </Link>
+          </div>
         </form>
       </div>
 

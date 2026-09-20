@@ -3455,6 +3455,9 @@ export function SuperAdminDashboardClient({
             setIsBypassOutletOpen(false);
             setPrefilledCardCode("");
           }}
+          onSuccess={() => {
+            router.refresh();
+          }}
         />
       )}
 
