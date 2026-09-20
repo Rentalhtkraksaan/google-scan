@@ -396,3 +396,81 @@ export async function deleteAllActivityLogsAction(): Promise<ActionResult<{ coun
   }
 }
 
+export interface LiveTickerItem {
+  id: string;
+  type: "SCAN" | "REGISTER" | "CARD" | "AUTH" | "DEFAULT";
+  title: string;
+  description: string;
+  userName: string;
+  timeAgo: string;
+  createdAt: string;
+}
+
+/**
+ * Mendapatkan event aktivitas terkini untuk Ticker Realtime
+ */
+export async function getLiveTickerEventsAction(): Promise<ActionResult<LiveTickerItem[]>> {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false, message: "Unauthorized", data: [] };
+    }
+
+    const logs = await prisma.activityLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    const now = Date.now();
+
+    const formatted: LiveTickerItem[] = logs.map((log) => {
+      const diffMs = now - new Date(log.createdAt).getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMins / 60);
+
+      let timeAgo = "Baru saja";
+      if (diffMins >= 1 && diffMins < 60) {
+        timeAgo = `${diffMins}m lalu`;
+      } else if (diffHours >= 1 && diffHours < 24) {
+        timeAgo = `${diffHours}j lalu`;
+      } else if (diffHours >= 24) {
+        timeAgo = `${Math.floor(diffHours / 24)}h lalu`;
+      }
+
+      let type: LiveTickerItem["type"] = "DEFAULT";
+      const act = log.action.toUpperCase();
+      const tit = log.title.toUpperCase();
+
+      if (act.includes("SCAN") || tit.includes("SCAN")) {
+        type = "SCAN";
+      } else if (act.includes("REGISTER") || tit.includes("DAFTAR") || tit.includes("OUTLET")) {
+        type = "REGISTER";
+      } else if (act.includes("CARD") || tit.includes("KARTU") || act.includes("ASSIGN")) {
+        type = "CARD";
+      } else if (act.includes("LOGIN") || act.includes("AUTH")) {
+        type = "AUTH";
+      }
+
+      return {
+        id: log.id,
+        type,
+        title: log.title,
+        description: log.description,
+        userName: log.userName || "Sistem",
+        timeAgo,
+        createdAt: log.createdAt.toISOString(),
+      };
+    });
+
+    return {
+      success: true,
+      message: "Data realtime berhasil dimuat.",
+      data: formatted,
+    };
+  } catch (error) {
+    console.error("Error loading live ticker:", error);
+    return { success: false, message: "Gagal memuat ticker realtime.", data: [] };
+  }
+}
+
+

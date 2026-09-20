@@ -17,12 +17,15 @@ import {
   CreditCard,
   PlusCircle,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
+import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
+import { WebsiteReviewWidgetModal } from "@/components/dashboard/WebsiteReviewWidgetModal";
 
 interface PortalClientViewProps {
   user: {
@@ -59,6 +62,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   const [copied, setCopied] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
+  const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
   useEffect(() => {
@@ -200,58 +204,15 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               </div>
             )}
 
-            {/* Visual Digital Smart Card Widget (No raw physical layout/download) */}
-            <div className="w-full my-2 p-5 bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 border border-slate-800 rounded-2xl shadow-xl relative overflow-hidden text-left space-y-3">
-              {/* Background ambient light */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    <QrCode className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold block">
-                      Kode Fisik QR
-                    </span>
-                    <span className="font-mono text-sm font-black text-white">
-                      {activeCard?.code || "-"}
-                    </span>
-                  </div>
-                </div>
-
-                <span
-                  className={`text-[11px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1 ${
-                    activeCard?.status === "ACTIVE"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                      : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${activeCard?.status === "ACTIVE" ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-                  {activeCard?.status === "ACTIVE" ? "AKTIF" : "NONAKTIF"}
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800/80 space-y-1 relative z-10">
-                <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>Aktivitas Scan Kartu Ini:</span>
-                  <strong className="text-emerald-400 text-xs font-bold">{activeCard?.scanCount ?? 0} kali</strong>
-                </div>
-                <div className="text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>Outlet Terhubung:</span>
-                  <strong className="text-white text-xs truncate max-w-[150px]">{outlet.name}</strong>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 pt-1 relative z-10">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Kartu fisik dicetak & didistribusikan khusus oleh Super Admin.</span>
-              </div>
+            {/* Visual Digital 3D Interactive Card Widget */}
+            <div className="w-full my-2">
+              <Interactive3DCard
+                cardCode={activeCard?.code || "-"}
+                outletName={outlet.name}
+                scanUrl={scanUrl}
+                scanCount={activeCard?.scanCount || 0}
+              />
             </div>
-
-            <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Kartu pintar Anda siap digunakan di kasir & meja makan untuk mengumpulkan ulasan pelanggan.
-            </p>
           </div>
 
           <div className="w-full mt-5 space-y-2.5">
@@ -264,28 +225,37 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               <span>Minta Tambah Kartu QR</span>
             </button>
 
-            {/* Secondary Actions: Tes Link Scan & Salin Link */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Secondary Actions: Tes Link Scan, Salin Link, & Widget Website */}
+            <div className="grid grid-cols-3 gap-2">
               <a
                 href={scanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
-                <span>Tes Link Scan</span>
+                <ExternalLink className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <span>Tes Scan</span>
               </a>
 
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
                 {copied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Copy className="w-3.5 h-3.5 text-indigo-400" />
+                  <Copy className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                 )}
                 <span>{copied ? "Tersalin" : "Salin Link"}</span>
+              </button>
+
+              <button
+                onClick={() => setIsWidgetModalOpen(true)}
+                className="flex items-center justify-center gap-1 py-2 px-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-colors cursor-pointer"
+                title="Pasang badge ulasan melayang di website toko Anda"
+              >
+                <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span>Widget Web</span>
               </button>
             </div>
           </div>
@@ -429,6 +399,17 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           currentCardCount={cards.length}
           targetContact={adminContact}
           onClose={() => setIsRequestCardModalOpen(false)}
+        />
+      )}
+
+      {/* Website Floating Review Widget Modal */}
+      {isWidgetModalOpen && (
+        <WebsiteReviewWidgetModal
+          isOpen={isWidgetModalOpen}
+          onClose={() => setIsWidgetModalOpen(false)}
+          outletName={outlet.name}
+          cardCode={activeCard?.code || "c-001"}
+          reviewUrl={scanUrl}
         />
       )}
     </div>

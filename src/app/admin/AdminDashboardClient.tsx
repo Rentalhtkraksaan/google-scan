@@ -20,8 +20,10 @@ import {
   Power,
   Lock,
   UserCheck,
+  Send,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
+import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
 import { RegisterOutletModal } from "@/components/forms/RegisterOutletModal";
 import { EditOutletModal } from "@/components/forms/EditOutletModal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
@@ -212,6 +214,32 @@ export function AdminDashboardClient({
     return `https://wa.me/${clean}?text=${text}`;
   };
 
+  const getWaOnboardingLink = (
+    waNumber: string | null,
+    outletName?: string,
+    email?: string,
+    ownerName?: string,
+    cardCode?: string
+  ) => {
+    if (!waNumber) return "#";
+    let clean = waNumber.replace(/[^0-9]/g, "");
+    if (clean.startsWith("08")) clean = "62" + clean.slice(1);
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
+    const reviewUrl = cardCode && typeof window !== "undefined" ? `${window.location.origin}/c/${cardCode}` : "";
+    const msg = 
+`Halo Kak ${ownerName || ""} dari *${outletName || "Outlet"}*! 👋✨
+
+Berikut detail akun Portal Mitra Google Review Anda:
+🌐 *Link Portal*: ${portalUrl}
+📧 *Email*: ${email || "-"}
+${cardCode ? `💳 *Kode Kartu*: ${cardCode}\n⭐ *Link Scan Review*: ${reviewUrl}\n` : ""}
+Gunakan portal ini untuk melihat analitik scan ulasan, download materi promosi kartu QR, dan kelola widget ulasan toko Anda.
+
+Salam sukses,
+Tim Layanan Smart QR`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+  };
+
   if (!mounted) {
     return null;
   }
@@ -267,6 +295,9 @@ export function AdminDashboardClient({
           </button>
         </div>
       </div>
+
+      {/* Realtime Live Activity Ticker Bar */}
+      <LiveActivityTicker />
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -519,15 +550,33 @@ export function AdminDashboardClient({
                                 </div>
                               </div>
                               {user.whatsappNumber && (
-                                <a
-                                  href={getWaLink(user.whatsappNumber, user.outlet?.name)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
-                                  title="Chat WhatsApp Pemilik Toko"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" />
-                                </a>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <a
+                                    href={getWaLink(user.whatsappNumber, user.outlet?.name)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
+                                    title="Chat WhatsApp Pemilik Toko"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                  </a>
+                                  <a
+                                    href={getWaOnboardingLink(
+                                      user.whatsappNumber,
+                                      user.outlet?.name,
+                                      user.email,
+                                      user.fullName,
+                                      cards[0]?.code
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors inline-flex items-center gap-1 text-[10px] font-semibold"
+                                    title="Kirim / Forward Detail Akses Portal ke WhatsApp Klien"
+                                  >
+                                    <Send className="w-3 h-3" />
+                                    <span className="hidden xl:inline">Kirim Akses</span>
+                                  </a>
+                                </div>
                               )}
                             </div>
                           </td>

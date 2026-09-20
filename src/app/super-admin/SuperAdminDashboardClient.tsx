@@ -39,9 +39,13 @@ import {
   Loader2,
   Tag,
   Images,
+  Send,
+  Trophy,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
+import { FieldAdminLeaderboard } from "@/components/dashboard/FieldAdminLeaderboard";
+import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
 import { CreateAdminModal } from "@/components/dashboard/CreateAdminModal";
 import { EditAdminModal } from "@/components/dashboard/EditAdminModal";
 import { CreateSuperAdminModal } from "@/components/dashboard/CreateSuperAdminModal";
@@ -208,7 +212,7 @@ export function SuperAdminDashboardClient({
     return false;
   };
 
-  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "ADMINS" | "CARDS" | "OUTLETS" | "SUPER_ADMINS" | "ACTIVITY_LOGS" | "DATABASE_BACKUP">("OVERVIEW");
+  const [activeTab, setActiveTab] = useState<"OVERVIEW" | "ADMINS" | "CARDS" | "OUTLETS" | "SUPER_ADMINS" | "ACTIVITY_LOGS" | "DATABASE_BACKUP" | "LEADERBOARD">("OVERVIEW");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -1039,6 +1043,32 @@ export function SuperAdminDashboardClient({
     return `https://wa.me/${clean}?text=${text}`;
   };
 
+  const getWaOnboardingLink = (
+    waNumber: string | null,
+    outletName?: string,
+    email?: string,
+    ownerName?: string,
+    cardCode?: string
+  ) => {
+    if (!waNumber) return "#";
+    let clean = waNumber.replace(/[^0-9]/g, "");
+    if (clean.startsWith("08")) clean = "62" + clean.slice(1);
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
+    const reviewUrl = cardCode && typeof window !== "undefined" ? `${window.location.origin}/c/${cardCode}` : "";
+    const msg = 
+`Halo Kak ${ownerName || ""} dari *${outletName || "Outlet"}*! 👋✨
+
+Berikut detail akun Portal Mitra Google Review untuk bisnis Anda:
+🌐 *Link Portal*: ${portalUrl}
+📧 *Email*: ${email || "-"}
+${cardCode ? `💳 *Kode Kartu*: ${cardCode}\n⭐ *Link Scan Review*: ${reviewUrl}\n` : ""}
+Gunakan portal ini untuk melihat analitik scan ulasan, download materi promosi kartu QR, dan widget website ulasan toko Anda.
+
+Salam sukses,
+Tim Layanan Smart QR`;
+    return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+  };
+
   if (!mounted) {
     return null;
   }
@@ -1175,6 +1205,27 @@ export function SuperAdminDashboardClient({
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">
                 {admins.length}
+              </span>
+            </button>
+
+            {/* Leaderboard Admin */}
+            <button
+              onClick={() => {
+                setActiveTab("LEADERBOARD");
+                setIsMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "LEADERBOARD"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/30 font-bold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/60"
+              }`}
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Trophy className="w-4 h-4 shrink-0 text-amber-400" />
+                <span className="truncate">Leaderboard Admin</span>
+              </div>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                TOP
               </span>
             </button>
 
@@ -1392,6 +1443,7 @@ export function SuperAdminDashboardClient({
                   {activeTab === "SUPER_ADMINS" && "Kelola Super Admin"}
                   {activeTab === "DATABASE_BACKUP" && "Database & Auto-Backup"}
                   {activeTab === "ACTIVITY_LOGS" && "Log Audit Sistem"}
+                  {activeTab === "LEADERBOARD" && "Leaderboard Mitra Lapangan"}
                 </h1>
                 <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 shrink-0">
                   {localSiteSetting?.appVersion || "V 1.1.2"}
@@ -1434,6 +1486,9 @@ export function SuperAdminDashboardClient({
 
         {/* Viewport Body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+          {/* Realtime Live Activity Ticker Bar */}
+          <LiveActivityTicker />
+
           {/* 5 Modern Squircle Stat Cards (4 for SA2) */}
           <div className={`grid grid-cols-2 ${isMaster ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
             {/* Total Kartu QR */}
@@ -2370,6 +2425,31 @@ export function SuperAdminDashboardClient({
         {/* TAB 2: MANAGE ADMINS (LAPANGAN) */}
         {activeTab === "ADMINS" && (
           <div className="mt-5 space-y-4">
+            {/* Leaderboard Quick Banner in ADMINS Tab */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-slate-900 border border-amber-500/20 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-xs sm:text-sm flex items-center gap-1.5">
+                    <span>Leaderboard & Peringkat Performa Mitra</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      GAMIFIKASI
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400">Pantau klasemen peringkat, rasio efisiensi kartu, dan total scan review mitra lapangan.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab("LEADERBOARD")}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer self-start sm:self-auto shrink-0 flex items-center gap-1.5"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                <span>Buka Klasemen Leaderboard</span>
+              </button>
+            </div>
+
             {/* Floating / Sticky Bulk Action Bar for Admins (Khusus Super Admin 1) */}
             {isMaster && selectedAdminIds.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-gradient-to-r from-rose-950/90 to-red-950/90 border border-rose-500/50 rounded-2xl text-xs text-rose-200 shadow-xl shadow-rose-950/50 animate-in fade-in slide-in-from-top-2">
@@ -2617,6 +2697,13 @@ export function SuperAdminDashboardClient({
           </div>
         )}
 
+        {/* TAB: FIELD ADMIN LEADERBOARD */}
+        {activeTab === "LEADERBOARD" && (
+          <div className="mt-5">
+            <FieldAdminLeaderboard admins={localAdmins} />
+          </div>
+        )}
+
         {/* TAB 3: ALL OUTLETS */}
         {activeTab === "OUTLETS" && (
           <div className="mt-5 space-y-4">
@@ -2776,15 +2863,33 @@ export function SuperAdminDashboardClient({
                                 </div>
                               </div>
                               {outlet.owner?.whatsappNumber && (
-                                <a
-                                  href={getWaLink(outlet.owner.whatsappNumber, outlet.name)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
-                                  title="Chat WhatsApp Pemilik"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" />
-                                </a>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <a
+                                    href={getWaLink(outlet.owner.whatsappNumber, outlet.name)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
+                                    title="Chat WhatsApp Pemilik"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                  </a>
+                                  <a
+                                    href={getWaOnboardingLink(
+                                      outlet.owner.whatsappNumber,
+                                      outlet.name,
+                                      outlet.owner.email,
+                                      outlet.owner.fullName,
+                                      outletCards[0]?.code || outlet.qrCard?.code
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors inline-flex items-center gap-1 text-[10px] font-semibold"
+                                    title="Kirim / Forward Detail Akses Portal ke WhatsApp Klien"
+                                  >
+                                    <Send className="w-3 h-3" />
+                                    <span className="hidden xl:inline">Kirim Akses</span>
+                                  </a>
+                                </div>
                               )}
                             </div>
                           </td>

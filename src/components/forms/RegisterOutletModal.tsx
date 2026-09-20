@@ -13,6 +13,11 @@ import {
   Eye,
   EyeOff,
   Lock,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  MessageCircle,
+  Check,
 } from "lucide-react";
 import { registerOutletAndClaimCardAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -23,6 +28,15 @@ interface RegisterOutletModalProps {
   blankCards?: { code: string }[];
   onClose: () => void;
   onSuccess?: () => void;
+}
+
+interface SuccessRegistrationData {
+  outletName: string;
+  fullName: string;
+  whatsappNumber: string;
+  email: string;
+  password?: string;
+  cardCode: string;
 }
 
 export function RegisterOutletModal({
@@ -36,6 +50,8 @@ export function RegisterOutletModal({
   const [outletName, setOutletName] = useState("");
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessRegistrationData | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (prefilledCode) {
@@ -47,6 +63,9 @@ export function RegisterOutletModal({
     document.body.style.overflow = "hidden";
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (successData) {
+          onSuccess?.();
+        }
         onClose();
       }
     };
@@ -55,7 +74,7 @@ export function RegisterOutletModal({
       document.body.style.overflow = "unset";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, successData, onSuccess]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -71,12 +90,23 @@ export function RegisterOutletModal({
       formData.set("outletName", outletName);
       formData.set("googleReviewUrl", googleReviewUrl);
 
+      const submittedFullName = String(formData.get("fullName") || "");
+      const submittedWa = String(formData.get("whatsappNumber") || "");
+      const submittedEmail = String(formData.get("email") || "");
+      const submittedPassword = String(formData.get("password") || "");
+
       const result = await registerOutletAndClaimCardAction(formData);
 
       if (result.success) {
-        onSuccess?.();
-        onClose();
-        showSuccessAlert("Outlet Berhasil Didaftarkan!", result.message, 2000);
+        setSuccessData({
+          outletName: outletName || "Outlet Baru",
+          fullName: submittedFullName,
+          whatsappNumber: submittedWa,
+          email: submittedEmail,
+          password: submittedPassword,
+          cardCode: codeToSubmit,
+        });
+        showSuccessAlert("Outlet Berhasil Didaftarkan!", "Silakan kirim detail akun portal ke WhatsApp pemilik toko.");
       } else {
         showErrorAlert("Gagal Mendaftarkan Outlet", result.message);
       }
@@ -85,6 +115,63 @@ export function RegisterOutletModal({
       showErrorAlert("Kesalahan Server", "Terjadi kesalahan pada sistem.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getWaDispatchUrl = () => {
+    if (!successData?.whatsappNumber) return "#";
+    let clean = successData.whatsappNumber.replace(/[^0-9]/g, "");
+    if (clean.startsWith("08")) clean = "62" + clean.slice(1);
+    
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
+    const reviewUrl = typeof window !== "undefined" ? `${window.location.origin}/c/${successData.cardCode}` : `https://qr-inaja.vercel.app/c/${successData.cardCode}`;
+
+    const text = 
+`Halo Kak *${successData.fullName}* dari *${successData.outletName}*! 👋✨
+
+Terima kasih telah bergabung dengan kami! Kartu Smart QR Google Review toko Anda telah *BERHASIL DIAKTIFKAN* dan siap digunakan.
+
+Berikut detail akun Portal Mitra Anda untuk melihat analitik & kelola review:
+🌐 *Link Login*: ${portalUrl}
+📧 *Email*: ${successData.email}
+🔑 *Password*: ${successData.password || "Admin123!"}
+
+💳 *Kode Kartu*: ${successData.cardCode}
+⭐ *Link Scan Review*: ${reviewUrl}
+
+Simpan pesan ini untuk kemudahan akses di masa mendatang. Semoga review bintang 5 bisnis Anda semakin melesat! 🚀⭐
+
+Salam sukses,
+Tim Layanan Smart QR`;
+
+    return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+  };
+
+  const handleCopyMessage = async () => {
+    if (!successData) return;
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
+    const reviewUrl = typeof window !== "undefined" ? `${window.location.origin}/c/${successData.cardCode}` : `https://qr-inaja.vercel.app/c/${successData.cardCode}`;
+
+    const text = 
+`Halo Kak ${successData.fullName} dari ${successData.outletName}! 👋✨
+
+Kartu Smart QR Google Review Anda telah BERHASIL DIAKTIFKAN.
+Detail Akses Portal Mitra:
+- Link Login: ${portalUrl}
+- Email: ${successData.email}
+- Password: ${successData.password || "Admin123!"}
+- Kode Kartu: ${successData.cardCode}
+- Link Review: ${reviewUrl}
+
+Salam sukses,
+Tim Layanan Smart QR`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      console.error("Gagal menyalin pesan:", err);
     }
   };
 
@@ -119,6 +206,107 @@ export function RegisterOutletModal({
           </button>
         </div>
 
+        {successData ? (
+          <div className="py-4 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            {/* Success Badge */}
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-xl shadow-emerald-500/10">
+                <CheckCircle2 className="w-10 h-10 animate-bounce" />
+              </div>
+              <h4 className="text-xl font-bold text-white tracking-tight">🎉 Outlet & Kartu Berhasil Diaktivasi!</h4>
+              <p className="text-xs text-slate-300 max-w-sm mx-auto">
+                Kartu <strong className="text-emerald-400 font-mono">{successData.cardCode}</strong> kini telah aktif dan terhubung ke toko <strong className="text-white">{successData.outletName}</strong>.
+              </p>
+            </div>
+
+            {/* Credential Card */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Detail Akses Portal Mitra Klien
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                  Status: Siap Digunakan
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Nama Pemilik</span>
+                  <span className="font-semibold text-slate-200">{successData.fullName}</span>
+                </div>
+                <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">No. WhatsApp</span>
+                  <span className="font-mono text-emerald-300 font-semibold">{successData.whatsappNumber}</span>
+                </div>
+                <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Email Login Portal</span>
+                  <span className="font-mono text-slate-200 truncate block">{successData.email}</span>
+                </div>
+                <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Password Sementara</span>
+                  <span className="font-mono text-amber-400 font-bold">{successData.password || "Admin123!"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Big WhatsApp CTA Button */}
+            <a
+              href={getWaDispatchUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <MessageCircle className="w-5 h-5 fill-white/20" />
+              <span>Kirim Detail Akses ke WhatsApp Klien (1-Click)</span>
+            </a>
+
+            {/* Secondary Actions */}
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleCopyMessage}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400 font-bold">Pesan Tersalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-400" />
+                    <span>Salin Format Teks</span>
+                  </>
+                )}
+              </button>
+
+              <a
+                href={`/c/${successData.cardCode}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4 text-slate-400" />
+                <span>Uji Scan Kartu</span>
+              </a>
+            </div>
+
+            {/* Done Button */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onSuccess?.();
+                  onClose();
+                }}
+                className="w-full py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold border border-slate-800 transition-colors cursor-pointer"
+              >
+                Selesai & Ke Dashboard
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4 my-5">
           {/* Pilihan Kode Kartu */}
           <div>
@@ -304,6 +492,7 @@ export function RegisterOutletModal({
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
