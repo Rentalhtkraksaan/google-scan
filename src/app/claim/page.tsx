@@ -1,5 +1,6 @@
 import { auth } from "@root/auth";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { QrCode, AlertCircle, ArrowRight, CheckCircle2, Home, ShieldAlert, ArrowLeft } from "lucide-react";
 import { ClaimClientView } from "./ClaimClientView";
@@ -74,51 +75,9 @@ export default async function ClaimPage({
     );
   }
 
-  // If card is already claimed/active
+  // If card is already claimed/active -> Langsung alihkan ke form ulasan bintang 5 (tanpa menampilkan info outlet/pemilik/scan)
   if (card.outlet) {
-    return (
-      <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center card-glow">
-          <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-1">Kartu Sudah Terhubung</h2>
-          <p className="text-xs text-slate-400 mb-4 font-mono">Kode Kartu: {card.code}</p>
-
-          <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 text-left mb-6 space-y-2 text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Nama Toko / Outlet:</span>
-              <strong className="text-white">{card.outlet.name}</strong>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Pemilik:</span>
-              <strong className="text-slate-200">{card.outlet.owner?.fullName || "-"}</strong>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Total Scan:</span>
-              <span className="text-emerald-400 font-bold">{card.scanCount} kali</span>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <a
-              href={card.outlet.googleReviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg shadow-indigo-600/25"
-            >
-              Buka Form Review Bintang 5 Google
-            </a>
-
-            <Link
-              href="/"
-              className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition-colors"
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>Kembali ke Beranda Utama</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    redirect(`/c/${encodeURIComponent(card.code)}`);
   }
 
   // If card is blank and user is not logged in as Admin/Super Admin
