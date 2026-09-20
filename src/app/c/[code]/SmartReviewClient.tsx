@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   User,
 } from "lucide-react";
-import { submitCustomerFeedbackAction } from "@/lib/actions/feedback.actions";
 
 interface SmartReviewClientProps {
   cardCode: string;
@@ -264,32 +263,24 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
     setSubmittedSuccess(false);
   };
 
-  // Submit Feedback 1-3 Stars -> Kirim ke WhatsApp Pengelola
-  const handleSubmitFeedback = async (e: React.FormEvent) => {
+  // Submit Feedback 1-3 Stars -> Langsung Bawa Pesan ke WhatsApp Pengelola (Tanpa Simpan DB)
+  const handleSubmitFeedback = (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedbackMessage.trim() || !selectedRating) return;
 
     setIsSubmitting(true);
     try {
-      // 1. Simpan masukan ke database secara non-blocking
-      submitCustomerFeedbackAction({
-        outletId: outlet.id,
-        cardCode,
-        rating: selectedRating,
-        customerName: customerName.trim() || undefined,
-        message: feedbackMessage.trim(),
-      }).catch((err) => console.error("Error logging feedback:", err));
+      // 1. Bersihkan nomor WhatsApp pengelola
+      let cleanTargetPhone = (outlet.whatsappNumber || "").replace(/[^0-9]/g, "");
+      if (cleanTargetPhone.startsWith("0")) {
+        cleanTargetPhone = "62" + cleanTargetPhone.slice(1);
+      }
 
       // 2. Format pesan WhatsApp sesuai format yang ditentukan:
       // halo (nama owner) pemilik dari outlet (nama outlet)
       // saya (nama yg di isi di form) pengunjung outlet anda dari meja (kode kartu)
       // saya memberikan bintang (bintang yg di isi di form)
       // dan ingin menyampaikan masukan langsung terkait: (isi pesan di form itu)
-      let cleanTargetPhone = (outlet.whatsappNumber || "").replace(/[^0-9]/g, "");
-      if (cleanTargetPhone.startsWith("0")) {
-        cleanTargetPhone = "62" + cleanTargetPhone.slice(1);
-      }
-
       const ownerSalutation = outlet.ownerName
         ? `halo ${outlet.ownerName} pemilik dari outlet ${outlet.name}`
         : `halo pemilik dari outlet ${outlet.name}`;
@@ -308,12 +299,12 @@ ${feedbackMessage.trim()}`;
 
       setSubmittedSuccess(true);
 
-      // 3. Arahkan langsung ke WhatsApp dengan pesan otomatis terisi
+      // 3. Arahkan langsung ke WhatsApp dengan pesan otomatis terisi (instan tanpa database)
       setTimeout(() => {
         window.location.href = waUrl;
-      }, 500);
+      }, 400);
     } catch (err) {
-      console.error("Gagal mengirim masukan:", err);
+      console.error("Gagal membuka WhatsApp:", err);
     } finally {
       setIsSubmitting(false);
     }
