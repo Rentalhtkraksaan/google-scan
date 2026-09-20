@@ -5,13 +5,17 @@ import {
   Star,
   Store,
   Sparkles,
-  MessageSquareHeart,
   ExternalLink,
   RotateCcw,
   ShieldCheck,
   Loader2,
   PartyPopper,
+  MessageCircle,
+  CheckCircle2,
+  User,
+  Phone,
 } from "lucide-react";
+import { submitCustomerFeedbackAction } from "@/lib/actions/feedback.actions";
 
 interface SmartReviewClientProps {
   cardCode: string;
@@ -88,8 +92,19 @@ function playCelebrationChime() {
 export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [targetUrl, setTargetUrl] = useState<string>("");
+
+  // 4-5 Stars Pop-up Redirect Modal State
+  const [showRedirectModal, setShowRedirectModal] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 1-3 Stars Feedback Form State
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const activeRating = hoverRating || selectedRating || 0;
@@ -169,52 +184,141 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
     render();
   }, []);
 
+  // Countdown timer for 4-5 stars modal auto redirect
+  useEffect(() => {
+    if (!showRedirectModal) {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      return;
+    }
+
+    setCountdown(3);
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+          }
+          if (outlet.googleReviewUrl) {
+            window.location.href = outlet.googleReviewUrl;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [showRedirectModal, outlet.googleReviewUrl]);
+
   const handleSelectRating = (rating: number) => {
     setSelectedRating(rating);
-    setIsRedirecting(true);
 
     if (rating >= 4) {
-      // 4-5 Stars -> Selebrasi Confetti & Suara Chime -> Auto Redirect ke Google Review
+      // 4-5 Stars -> Rayakan dengan Confetti & Audio Chime, lalu Tampilkan Pop-Up Redirect
       playCelebrationChime();
       triggerConfetti();
-
-      const reviewUrl = outlet.googleReviewUrl || "#";
-      setTargetUrl(reviewUrl);
-      setTimeout(() => {
-        if (outlet.googleReviewUrl) {
-          window.location.href = outlet.googleReviewUrl;
-        }
-      }, 550);
+      setShowRedirectModal(true);
+      setSubmittedSuccess(false);
     } else {
-      // 1-3 Stars -> Langsung Auto Redirect ke WhatsApp Pengelola
+      // 1-3 Stars -> Buka Form Kritik & Saran (tidak auto-redirect langsung, agar pengunjung bisa isi form)
+      setShowRedirectModal(false);
+      setSubmittedSuccess(false);
+    }
+  };
+
+  const handleProceedGoogleReview = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    if (outlet.googleReviewUrl) {
+      window.location.href = outlet.googleReviewUrl;
+    }
+  };
+
+  const handleCancelRedirect = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setShowRedirectModal(false);
+    setSelectedRating(null);
+    setHoverRating(null);
+  };
+
+  const handleResetRating = () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setSelectedRating(null);
+    setHoverRating(null);
+    setShowRedirectModal(false);
+    setSubmittedSuccess(false);
+  };
+
+  // Submit Feedback 1-3 Stars -> Kirim ke WhatsApp Pengelola
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackMessage.trim() || !selectedRating) return;
+
+    setIsSubmitting(true);
+    try {
+      // 1. Simpan masukan ke database secara non-blocking
+      submitCustomerFeedbackAction({
+        outletId: outlet.id,
+        cardCode,
+        rating: selectedRating,
+        customerName: customerName.trim() || undefined,
+        phone: customerPhone.trim() || undefined,
+        message: feedbackMessage.trim(),
+      }).catch((err) => console.error("Error logging feedback:", err));
+
+      // 2. Format pesan WhatsApp dengan pesan yang diketik pengunjung
       let cleanTargetPhone = (outlet.whatsappNumber || "").replace(/[^0-9]/g, "");
       if (cleanTargetPhone.startsWith("0")) {
         cleanTargetPhone = "62" + cleanTargetPhone.slice(1);
       }
 
-      const starsText = "⭐".repeat(rating);
+      const starsText = "⭐".repeat(selectedRating);
+      const ratingLabel = RATING_INFO[selectedRating]?.label || "Kritik & Saran";
+
       const waText =
-        `Halo Pengelola *${outlet.name}*,\n\n` +
-        `Saya pengunjung outlet Anda (Kode Meja/Kartu: *${cardCode}*).\n` +
-        `Saya memberikan penilaian ${starsText} (${rating}/5) dan ingin menyampaikan masukan langsung terkait layanan:\n\n` +
-        `[Tulis keluhan / masukan Anda di sini...]`;
+`Halo Pengelola *${outlet.name}*, 👋
+
+Saya pelanggan/pengunjung outlet Anda (Kode Meja/Kartu: *${cardCode}*).
+Penilaian Layanan: ${starsText} (${selectedRating}/5 - ${ratingLabel})
+
+*Kritik / Kendala / Masukan Saya:*
+"${feedbackMessage.trim()}"
+
+- Pengirim: ${customerName.trim() || "Pelanggan"}
+${customerPhone.trim() ? `- No. Kontak: ${customerPhone.trim()}\n` : ""}
+Mohon ditindaklanjuti demi peningkatan kualitas layanan. Terima kasih!`;
 
       const waUrl = cleanTargetPhone
         ? `https://api.whatsapp.com/send?phone=${cleanTargetPhone}&text=${encodeURIComponent(waText)}`
         : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
 
-      setTargetUrl(waUrl);
+      setSubmittedSuccess(true);
+
+      // 3. Arahkan langsung ke WhatsApp dengan isi chat yang sudah terisi
       setTimeout(() => {
         window.location.href = waUrl;
-      }, 350);
+      }, 700);
+    } catch (err) {
+      console.error("Gagal mengirim masukan:", err);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleResetRating = () => {
-    setSelectedRating(null);
-    setHoverRating(null);
-    setIsRedirecting(false);
-    setTargetUrl("");
   };
 
   return (
@@ -228,6 +332,76 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
       {/* Dynamic Background Glow Orbs */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-b from-indigo-600/15 via-purple-600/10 to-transparent blur-3xl pointer-events-none rounded-full" />
       <div className="absolute bottom-0 right-0 w-80 h-80 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+
+      {/* POP-UP MODAL: PENGALIHAN KE GOOGLE REVIEW UNTUK BINTANG 4 & 5 */}
+      {showRedirectModal && selectedRating && selectedRating >= 4 && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm sm:max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-amber-500/20 text-center overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Background Ambient Glow */}
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Icon Header */}
+            <div className="relative z-10 mb-4">
+              <div className="inline-flex p-3.5 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-yellow-400/20 border border-amber-400/30 text-amber-400 shadow-lg shadow-amber-500/10 mb-3">
+                <PartyPopper className="w-10 h-10 animate-bounce" />
+              </div>
+              <div className="flex items-center justify-center gap-1 text-amber-400 text-lg mb-1">
+                {"⭐".repeat(selectedRating)}
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {selectedRating === 5 ? "Luar Biasa! Terima Kasih! 🤩" : "Terima Kasih Banyak! 😊"}
+              </h3>
+            </div>
+
+            {/* Reassuring Explanation - "biar pelanggan ga terkecoh" */}
+            <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-5 text-left">
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
+                Tunggu sebentar ya... Anda sedang dialihkan ke formulir ulasan resmi <strong className="text-amber-300">Google Review {outlet.name}</strong> untuk membagikan bintang 5 Anda kepada pelanggan lain.
+              </p>
+
+              {/* Countdown & Progress bar */}
+              <div className="mt-3.5 pt-3 border-t border-slate-800/80">
+                <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5 font-mono">
+                  <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                    Membuka otomatis...
+                  </span>
+                  <span className="font-bold text-white bg-slate-800 px-2 py-0.5 rounded">
+                    {countdown} detik
+                  </span>
+                </div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${Math.max(0, Math.min(100, ((4 - countdown) / 3) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="relative z-10 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleProceedGoogleReview}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <span>Buka Google Review Sekarang</span>
+                <ExternalLink className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCancelRedirect}
+                className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer py-1"
+              >
+                Ganti Penilaian Bintang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="w-full max-w-md relative z-10 my-auto">
         {/* OUTLET BRANDING */}
@@ -309,8 +483,8 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
             </div>
           </div>
 
-          {/* FLOW 1: 4 - 5 STARS (LANGSUNG REDIRECT KE GOOGLE REVIEW) */}
-          {selectedRating && selectedRating >= 4 && (
+          {/* FLOW 1: 4 - 5 STARS (TAMPILKAN TOMBOL MANUAL JIKA MODAL DITUTUP) */}
+          {selectedRating && selectedRating >= 4 && !showRedirectModal && (
             <div className="space-y-4 text-center animate-in fade-in slide-in-from-bottom-3 duration-300 pt-2 border-t border-slate-800/80">
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs sm:text-sm leading-relaxed">
                 <div className="flex items-center justify-center gap-1.5 font-bold text-amber-300 text-sm sm:text-base mb-1">
@@ -319,70 +493,140 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
                 {RATING_INFO[selectedRating].desc}
               </div>
 
-              {isRedirecting && (
-                <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-300 py-1">
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                  Membuka formulir ulasan Google Review resmi...
-                </div>
-              )}
-
-              <a
-                href={targetUrl || outlet.googleReviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              <button
+                type="button"
+                onClick={() => setShowRedirectModal(true)}
+                className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 <span>Buka Google Review Sekarang</span>
                 <ExternalLink className="w-4 h-4" />
-              </a>
+              </button>
 
               <button
                 type="button"
                 onClick={handleResetRating}
                 className="text-[11px] text-slate-500 hover:text-slate-300 underline font-medium cursor-pointer"
               >
-                Ganti Penilaian
+                Ganti Penilaian Bintang
               </button>
             </div>
           )}
 
-          {/* FLOW 2: 1 - 3 STARS (LANGSUNG REDIRECT KE WHATSAPP PENGELOLA) */}
+          {/* FLOW 2: 1 - 3 STARS -> FORM KRITIK & SARAN KE WHATSAPP PENGELOLA */}
           {selectedRating && selectedRating <= 3 && (
-            <div className="space-y-4 text-center animate-in fade-in slide-in-from-bottom-3 duration-300 pt-2 border-t border-slate-800/80">
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs sm:text-sm leading-relaxed">
-                <div className="flex items-center justify-center gap-1.5 font-bold text-emerald-300 text-sm sm:text-base mb-1">
-                  <MessageSquareHeart className="w-4 h-4 text-emerald-400" /> Kami Siap Mendengar
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300 pt-3 border-t border-slate-800/80 text-left">
+              {/* Apology Banner */}
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-200 text-xs leading-relaxed">
+                <div className="flex items-center gap-2 font-bold text-rose-300 text-sm mb-1">
+                  <span className="text-xl">{RATING_INFO[selectedRating].emoji}</span>
+                  <span>Kami Siap Mendengar Masukan Anda</span>
                 </div>
-                {RATING_INFO[selectedRating].desc}
+                <p className="text-slate-300 text-xs">
+                  Kepuasan Anda adalah prioritas kami. Sampaikan kritik, kendala, atau saran perbaikan di bawah ini agar langsung kami tindaklanjuti via WhatsApp Pengelola.
+                </p>
               </div>
 
-              {isRedirecting && (
-                <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-300 py-1">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                  Menghubungkan langsung ke WhatsApp Pengelola...
+              {submittedSuccess ? (
+                <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2.5 animate-in zoom-in-95">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto animate-bounce" />
+                  <h4 className="font-bold text-white text-base">Membuka Chat WhatsApp...</h4>
+                  <p className="text-xs text-slate-300">
+                    Pesan masukan Anda sedang diteruskan langsung ke WhatsApp Pengelola {outlet.name}.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={handleResetRating}
+                      className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                    >
+                      Beri Penilaian Lain
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <form onSubmit={handleSubmitFeedback} className="space-y-3.5">
+                  {/* Nama Pengunjung (Opsional) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nama Anda <span className="text-slate-500 font-normal">(Opsional)</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Contoh: Budi"
+                        maxLength={100}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nomor WhatsApp (Opsional) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nomor WhatsApp Anda <span className="text-slate-500 font-normal">(Opsional)</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="Contoh: 08123456789"
+                        maxLength={20}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Pesan Masukan / Keluhan (Wajib) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Kritik, Kendala, atau Masukan Perbaikan <span className="text-rose-400">*</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={feedbackMessage}
+                      onChange={(e) => setFeedbackMessage(e.target.value)}
+                      placeholder="Ceritakan kendala yang Anda alami secara langsung..."
+                      className="w-full p-3 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-amber-500 resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Submit Button to WA */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !feedbackMessage.trim()}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Menyiapkan Chat WhatsApp...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="w-4 h-4 fill-white/20" />
+                        <span>Kirim Masukan ke WhatsApp Pengelola 📲</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={handleResetRating}
+                      className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Ubah Penilaian Bintang</span>
+                    </button>
+                  </div>
+                </form>
               )}
-
-              <a
-                href={targetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <MessageSquareHeart className="w-5 h-5" />
-                <span>Buka Chat WhatsApp Pengelola Sekarang</span>
-              </a>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={handleResetRating}
-                  className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 font-medium cursor-pointer"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Ubah Penilaian Bintang</span>
-                </button>
-              </div>
             </div>
           )}
         </div>
