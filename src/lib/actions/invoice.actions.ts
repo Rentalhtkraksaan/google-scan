@@ -24,6 +24,11 @@ export interface SaveInvoiceInput {
   downPaymentAmount?: number;
   paymentMethod?: string;
   notes?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  accountNotes?: string;
+  customLogoUrl?: string;
 }
 
 // 1. Simpan / Update Invoice ke Database
@@ -46,6 +51,11 @@ export async function saveInvoiceAction(input: SaveInvoiceInput) {
       downPaymentAmount = 0,
       paymentMethod,
       notes,
+      bankName = "BCA",
+      accountNumber = "0885172288",
+      accountName = "Smart Review",
+      accountNotes = "Konfirmasi transfer via WhatsApp pengelola.",
+      customLogoUrl,
     } = input;
 
     if (!invoiceNumber || !customerName || !orderDate) {
@@ -82,6 +92,11 @@ export async function saveInvoiceAction(input: SaveInvoiceInput) {
           remainingAmount: remaining,
           paymentMethod: paymentMethod?.trim() || null,
           notes: notes?.trim() || null,
+          bankName: bankName.trim(),
+          accountNumber: accountNumber.trim(),
+          accountName: accountName.trim(),
+          accountNotes: accountNotes.trim(),
+          customLogoUrl: customLogoUrl || null,
         },
       });
     } else {
@@ -101,6 +116,11 @@ export async function saveInvoiceAction(input: SaveInvoiceInput) {
           remainingAmount: remaining,
           paymentMethod: paymentMethod?.trim() || null,
           notes: notes?.trim() || null,
+          bankName: bankName.trim(),
+          accountNumber: accountNumber.trim(),
+          accountName: accountName.trim(),
+          accountNotes: accountNotes.trim(),
+          customLogoUrl: customLogoUrl || null,
         },
         create: {
           invoiceNumber: invoiceNumber.trim(),
@@ -116,6 +136,11 @@ export async function saveInvoiceAction(input: SaveInvoiceInput) {
           remainingAmount: remaining,
           paymentMethod: paymentMethod?.trim() || null,
           notes: notes?.trim() || null,
+          bankName: bankName.trim(),
+          accountNumber: accountNumber.trim(),
+          accountName: accountName.trim(),
+          accountNotes: accountNotes.trim(),
+          customLogoUrl: customLogoUrl || null,
           createdById: session.user.id,
         },
       });

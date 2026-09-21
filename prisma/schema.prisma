@@ -233,6 +233,11 @@ model Invoice {
   remainingAmount   Int      @default(0)
   paymentMethod     String?
   notes             String?  @db.Text
+  bankName          String?  @default("BCA")
+  accountNumber     String?  @default("0885172288")
+  accountName       String?  @default("Smart Review")
+  accountNotes      String?  @default("Konfirmasi transfer via WhatsApp pengelola.")
+  customLogoUrl     String?  @db.LongText
 
   createdById       String?
   createdBy         User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)

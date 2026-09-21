@@ -24,6 +24,11 @@ import {
   ShieldCheck,
   Save,
   AlertTriangle,
+  CreditCard,
+  Building2,
+  Image as ImageIcon,
+  RotateCcw,
+  Upload,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 import {
@@ -108,6 +113,14 @@ export function InvoiceGeneratorModal({
     },
   ]);
 
+  // Bank & Logo State (Bisa diedit fleksibel sesuai kebutuhan)
+  const [bankName, setBankName] = useState("BCA");
+  const [accountNumber, setAccountNumber] = useState("0885172288");
+  const [accountName, setAccountName] = useState("Smart Review");
+  const [accountNotes, setAccountNotes] = useState("Konfirmasi transfer via WhatsApp pengelola.");
+  const [customLogoUrl, setCustomLogoUrl] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   // History State
   const [historyInvoices, setHistoryInvoices] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -130,6 +143,11 @@ export function InvoiceGeneratorModal({
     setPaymentStatus("LUNAS");
     setDownPaymentAmount(0);
     setDiscount(0);
+    setBankName("BCA");
+    setAccountNumber("0885172288");
+    setAccountName("Smart Review");
+    setAccountNotes("Konfirmasi transfer via WhatsApp pengelola.");
+    setCustomLogoUrl(null);
     setItems([
       {
         id: `item-${Date.now()}`,
@@ -138,6 +156,31 @@ export function InvoiceGeneratorModal({
         price: 75000,
       },
     ]);
+  };
+
+  // Upload Logo Kustom untuk Lembar Invoice
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showErrorAlert("File Terlalu Besar", "Ukuran file logo maksimal 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setCustomLogoUrl(result);
+      showSuccessAlert("Logo Kustom Diterapkan!", "Logo baru telah diterapkan khusus untuk invoice ini.");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetLogo = () => {
+    setCustomLogoUrl(null);
+    if (logoInputRef.current) {
+      logoInputRef.current.value = "";
+    }
+    showSuccessAlert("Logo Direset!", "Invoice kembali menggunakan logo resmi dari Landing Page.");
   };
 
   useEffect(() => {
@@ -264,6 +307,11 @@ export function InvoiceGeneratorModal({
       downPaymentAmount: number;
       paymentMethod: string;
       notes: string;
+      bankName?: string;
+      accountNumber?: string;
+      accountName?: string;
+      accountNotes?: string;
+      customLogoUrl?: string | null;
     }): Promise<string> => {
       return new Promise(async (resolve) => {
         const dItems = customData?.items || items;
@@ -276,6 +324,11 @@ export function InvoiceGeneratorModal({
         const dDP = customData?.downPaymentAmount ?? downPaymentAmount;
         const dMethod = customData?.paymentMethod || paymentMethod;
         const dNotes = customData?.notes || notes;
+        const dBankName = customData?.bankName || bankName;
+        const dAccountNumber = customData?.accountNumber || accountNumber;
+        const dAccountName = customData?.accountName || accountName;
+        const dAccountNotes = customData?.accountNotes !== undefined ? customData.accountNotes : accountNotes;
+        const dCustomLogo = customData?.customLogoUrl !== undefined ? customData.customLogoUrl : customLogoUrl;
 
         const dSubtotal = dItems.reduce((acc, item) => acc + item.qty * item.price, 0);
         const dGrand = Math.max(0, dSubtotal - dDiscount);
@@ -307,15 +360,15 @@ export function InvoiceGeneratorModal({
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, 18);
 
-        // 3. Logo & Brand Title (Top Left) - Menggunakan Logo Resmi Landing Page
+        // 3. Logo & Brand Title (Top Left) - Menggunakan Logo Resmi Landing Page atau Logo Kustom
         const padX = 70;
         let curY = 65;
 
-        const logoUrl = siteSetting?.landingPageLogoUrl || siteSetting?.dashboardLogoUrl;
+        const activeLogoUrl = dCustomLogo || siteSetting?.landingPageLogoUrl || siteSetting?.dashboardLogoUrl;
         let logoImg: HTMLImageElement | null = null;
-        if (logoUrl) {
+        if (activeLogoUrl) {
           try {
-            logoImg = await loadImage(logoUrl);
+            logoImg = await loadImage(activeLogoUrl);
           } catch {
             logoImg = null;
           }
@@ -685,11 +738,13 @@ export function InvoiceGeneratorModal({
 
         ctx.fillStyle = "#0369a1";
         ctx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
-        ctx.fillText("BCA : 0885172288 a/n Smart Review", notesX + 20, lineY + 22);
+        ctx.fillText(`${dBankName} : ${dAccountNumber} a/n ${dAccountName}`, notesX + 20, lineY + 22);
 
-        ctx.fillStyle = "#64748b";
-        ctx.font = "11.5px 'Segoe UI', Arial, sans-serif";
-        ctx.fillText("Konfirmasi transfer via WhatsApp pengelola.", notesX + 20, lineY + 42);
+        if (dAccountNotes) {
+          ctx.fillStyle = "#64748b";
+          ctx.font = "11.5px 'Segoe UI', Arial, sans-serif";
+          ctx.fillText(dAccountNotes, notesX + 20, lineY + 42);
+        }
 
         // 10. Tanda Tangan & Cap Resmi
         curY += 260;
@@ -772,6 +827,11 @@ export function InvoiceGeneratorModal({
       downPaymentAmount,
       paymentMethod,
       notes,
+      bankName,
+      accountNumber,
+      accountName,
+      accountNotes,
+      customLogoUrl,
       siteSetting,
     ]
   );
@@ -808,6 +868,11 @@ export function InvoiceGeneratorModal({
         downPaymentAmount,
         paymentMethod,
         notes,
+        bankName,
+        accountNumber,
+        accountName,
+        accountNotes,
+        customLogoUrl: customLogoUrl || undefined,
       });
 
       if (res.success && res.invoice) {
@@ -886,6 +951,10 @@ export function InvoiceGeneratorModal({
     const dStatus = customData?.paymentStatus || paymentStatus;
     const dDP = customData?.downPaymentAmount ?? downPaymentAmount;
     const dNotes = customData?.notes || notes;
+    const dBankName = customData?.bankName || bankName;
+    const dAccountNumber = customData?.accountNumber || accountNumber;
+    const dAccountName = customData?.accountName || accountName;
+    const dAccountNotes = customData?.accountNotes !== undefined ? customData.accountNotes : accountNotes;
 
     const dSubtotal = dItems.reduce((acc: number, item: any) => acc + item.qty * item.price, 0);
     const dGrand = Math.max(0, dSubtotal - dDiscount);
@@ -920,6 +989,10 @@ ${itemListText}
 *Total Tagihan*: ${formatRupiah(dGrand)}
 *Status Pembayaran*: ${statusText}
 
+*REKENING RESMI:*
+${dBankName} : ${dAccountNumber}
+a/n ${dAccountName}
+${dAccountNotes ? `_${dAccountNotes}_\n` : ""}
 *Alamat Workshop & Pengiriman:*
 ${PATENT_ADDRESS}
 
@@ -949,6 +1022,11 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
       setDownPaymentAmount(inv.downPaymentAmount || 0);
       setPaymentMethod(inv.paymentMethod || "Transfer Bank");
       setNotes(inv.notes || "");
+      setBankName(inv.bankName || "BCA");
+      setAccountNumber(inv.accountNumber || "0885172288");
+      setAccountName(inv.accountName || "Smart Review");
+      setAccountNotes(inv.accountNotes || "Konfirmasi transfer via WhatsApp pengelola.");
+      setCustomLogoUrl(inv.customLogoUrl || null);
 
       setActiveTab("FORM");
       showSuccessAlert(
@@ -1422,6 +1500,220 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
                   </div>
                 </div>
               </div>
+
+              {/* Row 6: Pengaturan Rekening Resmi & Atas Nama (Bisa Diedit Fleksibel) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Rekening Resmi & Atas Nama Pembayaran
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Dapat diedit bebas untuk setiap invoice atau sesuaikan nama rekening & bank tujuan.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Bank Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-slate-500 mr-1 hidden sm:inline">Pilih Bank:</span>
+                    {["BCA", "Mandiri", "BRI", "BNI", "BSI", "QRIS"].map((b) => (
+                      <button
+                        key={b}
+                        type="button"
+                        onClick={() => setBankName(b)}
+                        className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors cursor-pointer ${
+                          bankName === b
+                            ? "bg-sky-500/20 border-sky-500 text-sky-300"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nama Bank / Metode
+                    </label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="Contoh: BCA / Mandiri / QRIS"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-500 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nomor Rekening / No. Virtual
+                    </label>
+                    <input
+                      type="text"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      placeholder="Contoh: 0885172288"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Atas Nama (a/n) Rekening
+                    </label>
+                    <input
+                      type="text"
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      placeholder="Contoh: Smart Review / Nama Anda"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-500 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Catatan Konfirmasi Pembayaran (Tampil di Bawah Rekening)
+                  </label>
+                  <input
+                    type="text"
+                    value={accountNotes}
+                    onChange={(e) => setAccountNotes(e.target.value)}
+                    placeholder="Contoh: Konfirmasi transfer via WhatsApp pengelola."
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                {/* Preview Badge Info */}
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-sky-950/30 border border-sky-500/20 text-xs">
+                  <span className="text-slate-400">Tampilan di Invoice:</span>
+                  <span className="font-bold text-sky-300 font-mono">
+                    {bankName || "BANK"} : {accountNumber || "-"} a/n {accountName || "-"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 7: Pengaturan & Ketentuan Logo Lembar Invoice */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Pengaturan & Ketentuan Logo Invoice
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Pilih menggunakan logo resmi Landing Page atau upload logo khusus.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="flex items-center gap-3.5">
+                    {/* Logo Preview Box */}
+                    <div className="w-14 h-14 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                      {customLogoUrl ? (
+                        <img
+                          src={customLogoUrl}
+                          alt="Custom Invoice Logo"
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (siteSetting?.landingPageLogoUrl || siteSetting?.dashboardLogoUrl) ? (
+                        <img
+                          src={siteSetting.landingPageLogoUrl || siteSetting.dashboardLogoUrl || ""}
+                          alt="Landing Page Logo"
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <span className="font-black text-sm text-indigo-400">QR</span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white">
+                          {customLogoUrl ? "Menggunakan Logo Kustom Invoice" : "Menggunakan Logo Resmi Landing Page"}
+                        </span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            customLogoUrl
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          }`}
+                        >
+                          {customLogoUrl ? "Khusus" : "Default Otomatis"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {customLogoUrl
+                          ? "Logo khusus ini hanya diterapkan pada lembar invoice ini."
+                          : "Tersinkronisasi otomatis dengan logo di landing page website utama."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <input
+                      type="file"
+                      ref={logoInputRef}
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{customLogoUrl ? "Ganti Logo" : "Upload Logo Khusus"}</span>
+                    </button>
+
+                    {customLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={handleResetLogo}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Kembalikan ke Logo Landing Page"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Reset ke Landing Page</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Peraturan / Ketentuan Logo Info Box */}
+                <div className="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/20 text-[11.5px] text-slate-300 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-indigo-300">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Peraturan & Rekomendasi Format Logo:</span>
+                  </div>
+                  <ul className="list-disc list-inside text-slate-400 space-y-0.5 pl-1">
+                    <li>
+                      <strong className="text-slate-300">Rasio Persegi (1:1):</strong> Ideal ukuran minimal 200 x 200 pixel agar jernih dan proporsional di cetak.
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">Format Rekomendasi:</strong> PNG dengan latar belakang transparan atau JPG berkualitas tinggi (maks. 2MB).
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">Posisi:</strong> Dicetak rapi di sudut kiri atas berdampingan dengan alamat paten resmi Kraksaan Wetan.
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1634,6 +1926,11 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
                                 downPaymentAmount: inv.downPaymentAmount || 0,
                                 paymentMethod: inv.paymentMethod || "Transfer",
                                 notes: inv.notes || "",
+                                bankName: inv.bankName,
+                                accountNumber: inv.accountNumber,
+                                accountName: inv.accountName,
+                                accountNotes: inv.accountNotes,
+                                customLogoUrl: inv.customLogoUrl,
                               })
                             }
                             className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white border border-emerald-500/30 transition-all cursor-pointer"
@@ -1656,6 +1953,10 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
                                 paymentStatus: inv.paymentStatus,
                                 downPaymentAmount: inv.downPaymentAmount || 0,
                                 notes: inv.notes || "",
+                                bankName: inv.bankName,
+                                accountNumber: inv.accountNumber,
+                                accountName: inv.accountName,
+                                accountNotes: inv.accountNotes,
                               })
                             }
                             className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-teal-300 hover:text-white border border-teal-500/30 transition-all cursor-pointer"
