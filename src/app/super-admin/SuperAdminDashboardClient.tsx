@@ -41,6 +41,7 @@ import {
   Images,
   Send,
   Trophy,
+  Receipt,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
@@ -64,6 +65,7 @@ import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutl
 import { QrCameraScannerModal } from "@/components/dashboard/QrCameraScannerModal";
 import { PromoManagerModal } from "@/components/dashboard/PromoManagerModal";
 import { ProductPhotoManagerModal } from "@/components/dashboard/ProductPhotoManagerModal";
+import { InvoiceGeneratorModal } from "@/components/dashboard/InvoiceGeneratorModal";
 import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from "@/lib/actions/qr.actions";
 import {
   deleteAdminAction,
@@ -309,6 +311,7 @@ export function SuperAdminDashboardClient({
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   // Helper: Cek apakah suatu kartu/outlet adalah Kartu Demo Landing Page
   const isDemoCard = (cardCode: string) => {
@@ -1366,6 +1369,16 @@ Tim Layanan Smart QR`;
               </button>
             )}
 
+            {/* Cetak Invoice Penjualan (Khusus Super Admin 1 & 2) */}
+            <button
+              onClick={() => setIsInvoiceModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-emerald-500/10 hover:text-emerald-300 transition-all cursor-pointer text-left"
+              title="Buat, edit, dan cetak invoice JPG resolusi tinggi"
+            >
+              <Receipt className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span className="truncate">Cetak Invoice (JPG)</span>
+            </button>
+
             {/* Buka Landing Page Publik */}
             <a
               href="/"
@@ -1457,6 +1470,16 @@ Tim Layanan Smart QR`;
 
           {/* Top-Right Quick Action CTA Buttons (Identical to reference image) */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {/* Cetak Invoice (Khusus SA 1 & SA 2) */}
+            <button
+              onClick={() => setIsInvoiceModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-semibold text-xs border border-emerald-500/30 hover:border-emerald-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Cetak & Download Invoice Penjualan (JPG)"
+            >
+              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Cetak Invoice</span>
+            </button>
+
             <button
               onClick={() => setIsScannerModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
@@ -3634,6 +3657,14 @@ Tim Layanan Smart QR`;
       <ProductPhotoManagerModal
         isOpen={isPhotoModalOpen}
         onClose={() => setIsPhotoModalOpen(false)}
+      />
+
+      {/* Invoice Generator Modal (Khusus Super Admin 1 & 2) */}
+      <InvoiceGeneratorModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        siteSetting={localSiteSetting}
+        outlets={allOutlets.map((o) => ({ id: o.id, name: o.name }))}
       />
     </div>
   );
