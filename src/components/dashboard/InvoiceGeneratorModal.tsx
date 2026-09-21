@@ -46,6 +46,7 @@ interface InvoiceGeneratorModalProps {
   siteSetting?: {
     whatsappNumber?: string;
     dashboardLogoUrl?: string | null;
+    landingPageLogoUrl?: string | null;
   };
   outlets?: { id: string; name: string }[];
   isMaster?: boolean; // Khusus Super Admin 1 (Master) yang punya izin hapus
@@ -61,6 +62,17 @@ const PRESET_PRODUCTS = [
 ];
 
 const PATENT_ADDRESS = "Jl. Kampung Madura RT 02 RW 03, Kraksaan Wetan, Probolinggo";
+
+const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+  return new Promise((resolve) => {
+    if (!src) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+};
 
 export function InvoiceGeneratorModal({
   isOpen,
@@ -253,7 +265,7 @@ export function InvoiceGeneratorModal({
       paymentMethod: string;
       notes: string;
     }): Promise<string> => {
-      return new Promise((resolve) => {
+      return new Promise(async (resolve) => {
         const dItems = customData?.items || items;
         const dInvNum = customData?.invoiceNumber || invoiceNumber;
         const dOrderDate = customData?.orderDate || orderDate;
@@ -295,41 +307,86 @@ export function InvoiceGeneratorModal({
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, 18);
 
-        // 3. Logo & Brand Title (Top Left)
+        // 3. Logo & Brand Title (Top Left) - Menggunakan Logo Resmi Landing Page
         const padX = 70;
-        let curY = 70;
+        let curY = 65;
 
-        // Logo Icon Box
-        ctx.fillStyle = "#0f172a";
-        ctx.beginPath();
-        ctx.roundRect(padX, curY, 68, 68, 16);
-        ctx.fill();
+        const logoUrl = siteSetting?.landingPageLogoUrl || siteSetting?.dashboardLogoUrl;
+        let logoImg: HTMLImageElement | null = null;
+        if (logoUrl) {
+          try {
+            logoImg = await loadImage(logoUrl);
+          } catch {
+            logoImg = null;
+          }
+        }
 
-        // Golden Star icon on logo
-        ctx.fillStyle = "#f59e0b";
-        ctx.font = "bold 34px 'Segoe UI', Arial, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("⭐", padX + 34, curY + 46);
+        const logoBoxSize = 76;
+        if (logoImg && logoImg.width > 0 && logoImg.height > 0) {
+          // Render logo asli landing page
+          const scale = Math.min(logoBoxSize / logoImg.width, logoBoxSize / logoImg.height);
+          const w = logoImg.width * scale;
+          const h = logoImg.height * scale;
+          const offX = padX + (logoBoxSize - w) / 2;
+          const offY = curY + (logoBoxSize - h) / 2;
 
-        // Brand Title & Tagline
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(padX, curY, logoBoxSize, logoBoxSize, 14);
+          ctx.clip();
+          ctx.drawImage(logoImg, offX, offY, w, h);
+          ctx.restore();
+        } else {
+          // Fallback ke badge icon modern gradient seperti di landing page
+          const gradIcon = ctx.createLinearGradient(padX, curY, padX + logoBoxSize, curY + logoBoxSize);
+          gradIcon.addColorStop(0, "#4f46e5");
+          gradIcon.addColorStop(1, "#0ea5e9");
+          ctx.fillStyle = gradIcon;
+          ctx.beginPath();
+          ctx.roundRect(padX, curY, logoBoxSize, logoBoxSize, 16);
+          ctx.fill();
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "900 32px 'Segoe UI', Arial, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("QR", padX + logoBoxSize / 2, curY + 50);
+        }
+
+        // Brand Title & "Review" Pill Badge persis seperti Landing Page
         ctx.textAlign = "left";
         ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 26px 'Segoe UI', Arial, sans-serif";
-        ctx.fillText("SMART QR REVIEW", padX + 86, curY + 30);
+        ctx.font = "900 28px 'Segoe UI', Arial, sans-serif";
+        ctx.fillText("Smart QR", padX + logoBoxSize + 16, curY + 30);
 
+        const brandTextW = ctx.measureText("Smart QR").width;
+        const badgeX = padX + logoBoxSize + 16 + brandTextW + 8;
+        const badgeY = curY + 9;
+        ctx.fillStyle = "#e0f2fe"; // sky-100
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, 68, 25, 6);
+        ctx.fill();
+        ctx.strokeStyle = "#7dd3fc"; // sky-300
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = "#0284c7"; // sky-600
+        ctx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
+        ctx.fillText("Review", badgeX + 11, badgeY + 17);
+
+        // Subtitle / Tagline Landing Page
         ctx.fillStyle = "#059669";
         ctx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
-        ctx.fillText("OFFICIAL BUSINESS SOLUTION", padX + 86, curY + 48);
+        ctx.fillText("Google Review Accelerator • Official Solution", padX + logoBoxSize + 16, curY + 52);
 
         // Alamat Paten (Wajib Sesuai Permintaan)
         ctx.fillStyle = "#334155";
         ctx.font = "bold 13.5px 'Segoe UI', Arial, sans-serif";
-        ctx.fillText(PATENT_ADDRESS, padX, curY + 102);
+        ctx.fillText(PATENT_ADDRESS, padX, curY + 104);
 
         const contactWa = siteSetting?.whatsappNumber || "0812-3456-7890";
         ctx.fillStyle = "#64748b";
         ctx.font = "13px 'Segoe UI', Arial, sans-serif";
-        ctx.fillText(`WhatsApp Admin: +${contactWa.replace(/[^0-9]/g, "")}`, padX, curY + 124);
+        ctx.fillText(`WhatsApp Admin: +${contactWa.replace(/[^0-9]/g, "")}`, padX, curY + 126);
 
         // 4. INVOICE Title & Meta (Top Right)
         ctx.textAlign = "right";
