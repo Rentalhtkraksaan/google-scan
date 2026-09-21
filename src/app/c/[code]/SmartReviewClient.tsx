@@ -289,7 +289,7 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
       const waText =
 `${ownerSalutation}
 saya ${visitorName} pengunjung outlet anda dari meja ${cardCode}
-saya memberikan bintang ${selectedRating} ⭐
+saya memberikan bintang ${selectedRating} ${"⭐".repeat(selectedRating)}
 dan ingin menyampaikan masukan langsung terkait:
 ${feedbackMessage.trim()}`;
 
