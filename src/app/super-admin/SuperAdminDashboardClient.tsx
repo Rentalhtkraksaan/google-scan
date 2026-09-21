@@ -1296,6 +1296,21 @@ Tim Layanan Smart QR`;
               Alat & Manajemen
             </div>
 
+            {/* Cetak Invoice Penjualan (Khusus Super Admin 1 & 2) - POSISI UTAMA */}
+            <button
+              onClick={() => setIsInvoiceModalOpen(true)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              title="Buat, edit, dan cetak invoice JPG resolusi tinggi"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Receipt className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Cetak Invoice (JPG)</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                BARU
+              </span>
+            </button>
+
             {/* Template Cetak - hanya tampil jika memiliki izin */}
             {canManageTemplates && (
               <button
@@ -1368,16 +1383,6 @@ Tim Layanan Smart QR`;
                 <span className="truncate">Foto Produk</span>
               </button>
             )}
-
-            {/* Cetak Invoice Penjualan (Khusus Super Admin 1 & 2) */}
-            <button
-              onClick={() => setIsInvoiceModalOpen(true)}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-emerald-500/10 hover:text-emerald-300 transition-all cursor-pointer text-left"
-              title="Buat, edit, dan cetak invoice JPG resolusi tinggi"
-            >
-              <Receipt className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span className="truncate">Cetak Invoice (JPG)</span>
-            </button>
 
             {/* Buka Landing Page Publik */}
             <a
@@ -1473,11 +1478,11 @@ Tim Layanan Smart QR`;
             {/* Cetak Invoice (Khusus SA 1 & SA 2) */}
             <button
               onClick={() => setIsInvoiceModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-semibold text-xs border border-emerald-500/30 hover:border-emerald-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer shrink-0 border border-emerald-400/40"
               title="Cetak & Download Invoice Penjualan (JPG)"
             >
-              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Cetak Invoice</span>
+              <Receipt className="w-3.5 h-3.5 text-white" />
+              <span>Cetak Invoice</span>
             </button>
 
             <button
