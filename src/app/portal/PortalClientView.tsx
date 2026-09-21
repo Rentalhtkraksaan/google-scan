@@ -123,14 +123,14 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/60 via-slate-900/80 to-sky-950/60 border border-indigo-500/20 rounded-3xl p-6 sm:p-8 card-glow">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/60 via-slate-900/80 to-sky-950/60 border border-indigo-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 card-glow">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-[11px] sm:text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               Smart Google Review Card
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
               {outlet.name}
             </h1>
             <div className="flex items-center gap-2 text-xs text-slate-300 mt-1 flex-wrap">
@@ -138,33 +138,33 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               <span>•</span>
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 font-semibold">
                 <CreditCard className="w-3 h-3" />
-                {cards.length} Kartu Fisik Terpasang
+                {cards.length} Kartu Fisik
               </span>
             </div>
           </div>
 
           {/* Action & Live Scan Metric */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => setIsGuideModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 rounded-2xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 rounded-xl sm:rounded-2xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               title="Buka Buku Modul & Panduan Toko"
             >
-              <BookOpen className="w-4 h-4 text-indigo-300" />
+              <BookOpen className="w-4 h-4 text-indigo-300 shrink-0" />
               <span>Buku Modul</span>
             </button>
 
             {/* Big Live Scan Metric */}
-            <div className="flex items-center gap-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <TrendingUp className="w-6 h-6" />
+            <div className="flex items-center gap-3 sm:gap-4 bg-slate-950/70 border border-slate-800/80 rounded-xl sm:rounded-2xl p-3.5 sm:p-5">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">
+                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-slate-400 block">
                   Total Scan Seluruh Kartu
                 </span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl sm:text-4xl font-black text-white">
+                  <span className="text-2xl sm:text-4xl font-black text-white">
                     {totalScans}
                   </span>
                   <span className="text-xs font-medium text-emerald-400">kali scan</span>
@@ -176,9 +176,9 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
         {/* Left: Digital Smart QR Card Status & Action buttons (5 Cols) */}
-        <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 flex flex-col items-center justify-between text-center">
+        <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-between text-center">
           <div className="w-full flex flex-col items-center">
             <div className="w-full flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
@@ -197,19 +197,19 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
                   <span>Pilih Kartu Fisik:</span>
                   <span className="text-sky-400 font-bold">{cards.length} Unit Kartu</span>
                 </div>
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {cards.map((c, idx) => (
                     <button
                       key={c.code}
                       type="button"
                       onClick={() => setSelectedCardIndex(idx)}
-                      className={`flex-1 min-w-[110px] py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center cursor-pointer ${
+                      className={`flex-1 min-w-[105px] sm:min-w-[110px] py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center cursor-pointer shrink-0 ${
                         selectedCardIndex === idx
                           ? "bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/30"
                           : "bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
                       }`}
                     >
-                      <span className="truncate max-w-[100px]">Kartu {idx + 1} ({c.code})</span>
+                      <span className="truncate max-w-[95px] sm:max-w-[100px]">Kartu {idx + 1} ({c.code})</span>
                       <span className={`text-[10px] font-medium ${selectedCardIndex === idx ? "text-sky-200" : "text-emerald-400"}`}>
                         {c.scanCount} scan
                       </span>
@@ -230,56 +230,56 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
             </div>
           </div>
 
-          <div className="w-full mt-5 space-y-2.5">
+          <div className="w-full mt-4 sm:mt-5 space-y-2">
             {/* Primary Action: Minta Tambah Kartu ke Mitra Lapangan */}
             <button
               onClick={() => setIsRequestCardModalOpen(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-600/25 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 hover:from-emerald-500 hover:to-sky-500 text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-emerald-600/25 cursor-pointer"
             >
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4 shrink-0" />
               <span>Minta Tambah Kartu QR</span>
             </button>
 
             {/* Secondary Actions: Tes Link Scan, Salin Link, & Widget Website */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               <a
                 href={scanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-2 px-1 sm:px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-[11px] sm:text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer truncate"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                <span>Tes Scan</span>
+                <span className="truncate">Tes Scan</span>
               </a>
 
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center gap-1 py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-2 px-1 sm:px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-[11px] sm:text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer truncate"
               >
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
                   <Copy className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                 )}
-                <span>{copied ? "Tersalin" : "Salin Link"}</span>
+                <span className="truncate">{copied ? "Tersalin" : "Salin Link"}</span>
               </button>
 
               <button
                 onClick={() => setIsWidgetModalOpen(true)}
-                className="flex items-center justify-center gap-1 py-2 px-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 py-2 px-1 sm:px-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 font-semibold text-[11px] sm:text-xs rounded-xl border border-indigo-500/30 transition-colors cursor-pointer truncate"
                 title="Pasang badge ulasan melayang di website toko Anda"
               >
                 <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                <span>Widget Web</span>
+                <span className="truncate">Widget Web</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Right: Info & Google Review Link Destination (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-4 sm:space-y-6">
           {/* Target URL Card */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <h3 className="text-base font-bold text-white mb-1 flex items-center gap-2">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
               Tujuan Ulasan Google Review
@@ -288,8 +288,8 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               Setiap kali pelanggan melakukan tap/scan kartu QR di meja kasir/meja makan, mereka akan langsung dialihkan ke URL ini.
             </p>
 
-            <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="truncate text-xs font-mono text-slate-300">
+            <div className="p-3 sm:p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 mb-4">
+              <div className="break-all sm:truncate text-xs font-mono text-slate-300">
                 {outlet.googleReviewUrl}
               </div>
               <a
@@ -303,7 +303,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               </a>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs mb-4">
               <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-800/80">
                 <span className="text-slate-400 block mb-1">Nama Pemilik Akun:</span>
                 <strong className="text-white font-semibold">{user.fullName}</strong>
@@ -324,7 +324,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           </div>
 
           {/* Tips for Getting More 5-Star Reviews */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <h3 className="text-base font-bold text-white mb-3 flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-emerald-400" />
               Tips Mengumpulkan 100+ Ulasan Bintang 5
@@ -366,7 +366,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
 
             {/* Admin Lapangan Support */}
             {adminContact && (
-              <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-[11px] text-slate-400 block">Mitra Lapangan Anda:</span>
                   <span className="text-xs font-semibold text-slate-200">{adminContact.fullName}</span>
@@ -376,7 +376,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
                     href={adminWaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors shadow-sm"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-colors shadow-sm"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     <span>Hubungi Mitra Lapangan</span>

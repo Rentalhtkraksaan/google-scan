@@ -1073,36 +1073,46 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
+      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[92vh]">
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                  Cetak & Riwayat Invoice Penjualan
-                </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  {isMaster ? "Super Admin 1 (Master)" : "Super Admin 2"}
-                </span>
+        <div className="p-3.5 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60 shrink-0">
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
+                <Receipt className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <p className="text-xs text-slate-400">
-                Alamat Paten: <strong className="text-slate-200">{PATENT_ADDRESS}</strong>
-              </p>
+              <div>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <h2 className="text-sm sm:text-lg font-bold text-white tracking-tight">
+                    Cetak Invoice
+                  </h2>
+                  <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    {isMaster ? "SA 1 (Master)" : "SA 2"}
+                  </span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-none">
+                  Alamat: <strong className="text-slate-200">{PATENT_ADDRESS}</strong>
+                </p>
+              </div>
             </div>
+
+            {/* Mobile Close Button */}
+            <button
+              onClick={onClose}
+              className="sm:hidden p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             {/* 3 Tab Switcher */}
-            <div className="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+            <div className="grid grid-cols-3 w-full sm:w-auto sm:flex bg-slate-800/80 p-1 rounded-xl border border-slate-700">
               <button
                 type="button"
                 onClick={() => setActiveTab("FORM")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center ${
                   activeTab === "FORM"
                     ? "bg-indigo-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
@@ -1113,31 +1123,32 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
               <button
                 type="button"
                 onClick={() => setActiveTab("PREVIEW")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center ${
                   activeTab === "PREVIEW"
                     ? "bg-teal-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Preview JPG
+                Preview
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("HISTORY")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   activeTab === "HISTORY"
                     ? "bg-emerald-600 text-white shadow-sm"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
                 <History className="w-3.5 h-3.5" />
-                <span>Riwayat DB</span>
+                <span>Riwayat</span>
               </button>
             </div>
 
+            {/* Desktop Close Button */}
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              className="hidden sm:block p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2010,17 +2021,17 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
             {activeTab !== "HISTORY" && (
               <>
                 {/* Tombol Kirim Rincian ke WhatsApp */}
                 <button
                   type="button"
                   onClick={() => handleShareToWhatsApp()}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all cursor-pointer"
                   title="Kirim rincian invoice ke WhatsApp pemesan"
                 >
-                  <Share2 className="w-4 h-4 text-emerald-400" />
+                  <Share2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>Kirim ke WA</span>
                 </button>
 
@@ -2029,10 +2040,10 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
                   type="button"
                   onClick={() => handleSaveToDatabase(false)}
                   disabled={isSavingDb}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 font-bold text-xs border border-indigo-500/40 transition-all cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 font-bold text-xs border border-indigo-500/40 transition-all cursor-pointer disabled:opacity-50"
                   title="Simpan invoice ke database"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-4 h-4 shrink-0" />
                   <span>{isSavingDb ? "Menyimpan..." : "Simpan DB"}</span>
                 </button>
 
@@ -2041,9 +2052,9 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
                   type="button"
                   onClick={() => handleDownloadJpg()}
                   disabled={isGenerating || !customerName.trim()}
-                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                  className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 shrink-0" />
                   <span>{isGenerating ? "Memproses JPG..." : "Download Invoice (JPG) 📥"}</span>
                 </button>
               </>
@@ -2056,9 +2067,9 @@ _Invoice resmi format JPG resolusi tinggi telah kami simpan. Terima kasih atas p
                   generateNewInvoiceDefaults();
                   setActiveTab("FORM");
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                className="col-span-2 sm:col-span-1 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 shrink-0" />
                 <span>+ Buat Invoice Baru</span>
               </button>
             )}

@@ -250,7 +250,7 @@ Tim Layanan Smart QR`;
   return (
     <div className="space-y-6">
       {/* Top Banner with Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-semibold text-emerald-400 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -258,7 +258,7 @@ Tim Layanan Smart QR`;
             </span>
             <span className="text-xs text-slate-400">{currentAdmin.email}</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Selamat Datang, {currentAdmin.fullName}
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -266,32 +266,33 @@ Tim Layanan Smart QR`;
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => setIsGuideModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
             title="Buka Buku Modul & Panduan Sistem Lengkap"
           >
-            <BookOpen className="w-4 h-4 text-indigo-400" />
+            <BookOpen className="w-4 h-4 text-indigo-400 shrink-0" />
             <span>Buku Modul</span>
           </button>
 
           <button
-            onClick={() => setIsRequestCardModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm"
-            title="Minta Tambahan Jatah Kuota Kartu ke Super Admin via WhatsApp"
+            onClick={() => setIsProfileModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
+            title="Edit Profil & Password Saya"
           >
-            <Layers className="w-4 h-4 text-amber-400" />
-            <span>Minta Tambah Jatah Kartu</span>
+            <UserCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Profil Saya</span>
           </button>
 
           <button
-            onClick={() => setIsProfileModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
-            title="Edit Profil & Password Saya"
+            onClick={() => setIsRequestCardModalOpen(true)}
+            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm"
+            title="Minta Tambahan Jatah Kuota Kartu ke Super Admin via WhatsApp"
           >
-            <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span>Profil Saya</span>
+            <Layers className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="sm:hidden">Minta Kuota Kartu</span>
+            <span className="hidden sm:inline">Minta Tambah Jatah Kartu</span>
           </button>
 
           <button
@@ -300,9 +301,9 @@ Tim Layanan Smart QR`;
               setIsRegisterModalOpen(true);
             }}
             disabled={blankCards.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>+ Daftarkan Outlet Baru</span>
           </button>
         </div>
@@ -312,75 +313,75 @@ Tim Layanan Smart QR`;
       <LiveActivityTicker />
 
       {/* 4 Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Kartu */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-indigo">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-indigo">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400">Total Jatah Kartu</span>
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Layers className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-white">{totalAssignedCards}</span>
+          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-bold text-white">{totalAssignedCards}</span>
             <span className="text-xs text-slate-400 font-medium">kartu</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Dialokasikan oleh Super Admin</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Dialokasikan oleh Super Admin</span>
         </div>
 
         {/* Outlet Terdaftar */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-emerald">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-emerald">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400">Outlet Binaan Aktif</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Store className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-emerald-400">{claimedCards.length}</span>
+          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-bold text-emerald-400">{claimedCards.length}</span>
             <span className="text-xs text-slate-400 font-medium">outlet</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Toko aktif mengumpulkan review</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Toko aktif ulasan</span>
         </div>
 
         {/* Sisa Kartu Kosong */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-amber">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-amber">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400">Sisa Kartu Kosong</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <QrCode className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-amber-400">{blankCards.length}</span>
+          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-bold text-amber-400">{blankCards.length}</span>
             <span className="text-xs text-slate-400 font-medium">siap aktivasi</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Siap didaftarkan ke toko baru</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Siap didaftarkan ke toko baru</span>
         </div>
 
         {/* Total Scan */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 stats-card stats-card-cyan">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-cyan">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-400">Total Scan Pelanggan</span>
-            <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              <TrendingUp className="w-4 h-4" />
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-2xl sm:text-3xl font-bold text-sky-400">{totalScans}</span>
+          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-bold text-sky-400">{totalScans}</span>
             <span className="text-xs text-slate-400 font-medium">scan</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Akumulasi scan seluruh outlet</span>
+          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Akumulasi scan outlet</span>
         </div>
       </div>
 
       {/* Main Section: Tabs & Search */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none flex-nowrap w-full sm:w-auto">
             <button
               onClick={() => setActiveTab("OUTLETS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "OUTLETS"
                   ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
                   : "bg-slate-800/80 text-slate-400 hover:text-white"
@@ -390,17 +391,17 @@ Tim Layanan Smart QR`;
             </button>
             <button
               onClick={() => setActiveTab("BLANK_CARDS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "BLANK_CARDS"
                   ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25"
                   : "bg-slate-800/80 text-slate-400 hover:text-white"
               }`}
             >
-              Kartu Kosong Siap Pakai ({searchQuery.trim() ? filteredBlankCards.length : blankCards.length})
+              Kartu Kosong ({searchQuery.trim() ? filteredBlankCards.length : blankCards.length})
             </button>
             <button
               onClick={() => setActiveTab("ACTIVITY_LOGS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeTab === "ACTIVITY_LOGS"
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
                   : "bg-slate-800/80 text-blue-300 hover:text-white"
@@ -487,7 +488,7 @@ Tim Layanan Smart QR`;
           </div>
         )}
 
-        {/* TAB 1: OUTLETS TABLE */}
+        {/* TAB 1: OUTLETS TABLE & MOBILE CARDS */}
         {activeTab === "OUTLETS" && (
           <div className="mt-5">
             {filteredUsers.length === 0 ? (
@@ -501,279 +502,538 @@ Tim Layanan Smart QR`;
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="bg-slate-950/60 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-                    <tr>
-                      <th className="py-3 px-4">Nama Outlet</th>
-                      <th className="py-3 px-4">Pemilik & WhatsApp</th>
-                      <th className="py-3 px-4">Kartu Terhubung (Induk & Anakan)</th>
-                      <th className="py-3 px-4 text-center">Total Scan</th>
-                      <th className="py-3 px-4 text-right">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {filteredUsers.map((user) => {
-                      const isOwnerActive = user.isActive !== false;
-                      const cards = user.outlet?.qrCards && user.outlet.qrCards.length > 0
-                        ? user.outlet.qrCards
-                        : user.outlet?.qrCard
-                        ? [user.outlet.qrCard]
-                        : [];
-                      const isOverOneCard = cards.length > 1;
+              <>
+                {/* Mobile Cards View (< md) */}
+                <div className="block md:hidden space-y-3">
+                  {filteredUsers.map((user) => {
+                    const isOwnerActive = user.isActive !== false;
+                    const cards = user.outlet?.qrCards && user.outlet.qrCards.length > 0
+                      ? user.outlet.qrCards
+                      : user.outlet?.qrCard
+                      ? [user.outlet.qrCard]
+                      : [];
+                    const isOverOneCard = cards.length > 1;
+                    const totalScans = cards.reduce((s, c) => s + (c.scanCount || 0), 0);
+                    const primaryCard = cards[0];
+                    const targetUrl = primaryCard ? `/c/${primaryCard.code}` : user.outlet?.googleReviewUrl;
 
-                      return (
-                        <tr key={user.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3.5 px-4 font-semibold text-white align-top">
-                            <div className="flex items-start gap-2.5">
-                              <div
-                                className={`p-2 rounded-xl border shrink-0 mt-0.5 ${
-                                  isOwnerActive
-                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                    : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                                }`}
-                              >
-                                <Store className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <div className={`text-sm font-bold leading-snug ${!isOwnerActive ? "text-slate-400 line-through" : "text-white"}`}>
-                                    {user.outlet?.name || "-"}
-                                  </div>
-                                  {!isOwnerActive && (
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
-                                      Nonaktif
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[11px] font-mono text-slate-400 truncate max-w-[200px] mt-0.5">
-                                  {user.email}
-                                </div>
-                              </div>
+                    return (
+                      <div
+                        key={user.id}
+                        className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md hover:border-slate-700 transition-all"
+                      >
+                        {/* Card Top: Store Header & Scan Badge */}
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div
+                              className={`p-2 rounded-xl border shrink-0 mt-0.5 ${
+                                isOwnerActive
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              }`}
+                            >
+                              <Store className="w-4 h-4" />
                             </div>
-                          </td>
-
-                          <td className="py-3.5 px-4 align-top">
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <div className="font-semibold text-slate-200">{user.fullName}</div>
-                                <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                                  {user.whatsappNumber || "-"}
-                                </div>
-                              </div>
-                              {user.whatsappNumber && (
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <a
-                                    href={getWaLink(user.whatsappNumber, user.outlet?.name)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
-                                    title="Chat WhatsApp Pemilik Toko"
-                                  >
-                                    <MessageCircle className="w-3.5 h-3.5" />
-                                  </a>
-                                  <a
-                                    href={getWaOnboardingLink(
-                                      user.whatsappNumber,
-                                      user.outlet?.name,
-                                      user.email,
-                                      user.fullName,
-                                      cards[0]?.code
-                                    )}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors inline-flex items-center gap-1 text-[10px] font-semibold"
-                                    title="Kirim / Forward Detail Akses Portal ke WhatsApp Klien"
-                                  >
-                                    <Send className="w-3 h-3" />
-                                    <span className="hidden xl:inline">Kirim Akses</span>
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-3.5 px-4 align-top">
-                            {(() => {
-                              if (cards.length === 0) {
-                                return <span className="text-slate-500 italic text-xs">Belum terhubung</span>;
-                              }
-
-                              return (
-                                <div className="space-y-1.5 min-w-[230px]">
-                                  {cards.map((c, idx) => {
-                                    const isInduk = idx === 0;
-                                    return (
-                                      <div
-                                        key={c.code}
-                                        className="flex items-center justify-between gap-2 p-1.5 px-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs hover:border-slate-700 transition-colors"
-                                      >
-                                        <div className="flex items-center gap-1.5">
-                                          <span
-                                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                                              isInduk
-                                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                                                : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-                                            }`}
-                                            title={isInduk ? "Kartu Utama / Induk Outlet" : "Kartu Tambahan / Anakan"}
-                                          >
-                                            {isInduk ? "👑 Induk" : "🔗 Anakan"}
-                                          </span>
-                                          <a
-                                            href={`/c/${c.code}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="font-mono font-bold text-slate-200 hover:text-sky-400 hover:underline transition-colors inline-flex items-center gap-1"
-                                            title={`Uji Coba Scan QR ${c.code} (Buka & tambah scan +1)`}
-                                          >
-                                            {c.code}
-                                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                                          </a>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                          <span
-                                            className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20"
-                                            title={`${c.scanCount || 0} scan`}
-                                          >
-                                            {c.scanCount || 0} scan
-                                          </span>
-
-                                          <button
-                                            onClick={() => handleToggleStatus(c.code, user.outlet?.name, c.status)}
-                                            className="focus:outline-none group cursor-pointer"
-                                            title={`Klik untuk aktifkan / nonaktifkan kartu ${c.code}`}
-                                          >
-                                            {c.status === "ACTIVE" ? (
-                                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 group-hover:bg-emerald-500/25 transition-all">
-                                                <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
-                                              </span>
-                                            ) : (
-                                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 group-hover:bg-rose-500/25 transition-all">
-                                                <XCircle className="w-2.5 h-2.5" /> Nonaktif
-                                              </span>
-                                            )}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })()}
-                          </td>
-
-                          <td className="py-3.5 px-4 text-center align-top">
-                            {(() => {
-                              const totalScans = cards.reduce((s, c) => s + (c.scanCount || 0), 0);
-                              return (
-                                <span
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-0.5"
-                                  title={cards.length > 1 ? cards.map((c) => `${c.code}: ${c.scanCount} scan`).join(", ") : undefined}
-                                >
-                                  <TrendingUp className="w-3 h-3" />
-                                  {totalScans}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`text-sm font-bold truncate ${!isOwnerActive ? "text-slate-400 line-through" : "text-white"}`}>
+                                  {user.outlet?.name || "-"}
                                 </span>
-                              );
-                            })()}
-                          </td>
-
-                          <td className="py-3.5 px-4 text-right align-top">
-                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                              {user.outlet && (() => {
-                                const primaryCard = cards[0];
-                                const targetUrl = primaryCard ? `/c/${primaryCard.code}` : user.outlet.googleReviewUrl;
-
-                                return targetUrl ? (
-                                  <a
-                                    href={targetUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 transition-colors"
-                                    title={primaryCard ? `Uji Coba Scan QR (${primaryCard.code}) & Buka Review (Tambah Scan +1)` : "Buka URL Google Review"}
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
-                                ) : null;
-                              })()}
-
-                              {user.outlet && (
-                                <button
-                                  onClick={() => {
-                                    setAssigningOutlet({
-                                      id: user.outlet!.id,
-                                      name: user.outlet!.name,
-                                      currentCards: cards.map((c) => ({ code: c.code })),
-                                    });
-                                  }}
-                                  className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
-                                  title="Tambah Kartu Fisik Kosong ke Outlet Ini"
-                                >
-                                  <Plus className="w-3 h-3 text-indigo-400" />
-                                  <span>+ Kartu</span>
-                                </button>
-                              )}
-
-                              {user.outlet && (
-                                <button
-                                  onClick={() =>
-                                    setEditingOutlet({
-                                      id: user.outlet!.id,
-                                      name: user.outlet!.name,
-                                      googleReviewUrl: user.outlet!.googleReviewUrl,
-                                      owner: {
-                                        fullName: user.fullName,
-                                        whatsappNumber: user.whatsappNumber,
-                                        email: user.email,
-                                      },
-                                    })
-                                  }
-                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-                                  title="Edit Data Toko"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
-                              {/* Tombol Power: Nonaktifkan / Aktifkan Outlet & Kartu Terhubung */}
-                              <button
-                                onClick={() => handleToggleUserActive(user.id, user.outlet?.name || user.fullName, isOwnerActive)}
-                                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                                  isOwnerActive
-                                    ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30"
-                                    : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                                }`}
-                                title={isOwnerActive ? "Nonaktifkan Toko (Semua kartu otomatis mati)" : "Aktifkan Toko & Kartu Kembali"}
-                              >
-                                <Power className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Tombol Hapus: Jika outlet memegang > 1 kartu, tombol disabled / terkunci */}
-                              {isOverOneCard ? (
-                                <button
-                                  disabled
-                                  className="p-1.5 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60"
-                                  title={`Outlet ini memegang ${cards.length} kartu (> 1 kartu). Tidak dapat dihapus, hanya dapat dinonaktifkan.`}
-                                >
-                                  <Lock className="w-3.5 h-3.5" />
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleDeleteUser(user.id, user.outlet?.name || user.fullName)}
-                                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
-                                  title="Hapus Outlet"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                                {!isOwnerActive && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                                    Nonaktif
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">
+                                {user.email}
+                              </p>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              title="Total scan seluruh kartu outlet"
+                            >
+                              <TrendingUp className="w-3 h-3" />
+                              {totalScans}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Owner Info & WhatsApp Contacts */}
+                        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="text-[11px] text-slate-400 block truncate">
+                              Pemilik: <strong className="text-slate-200">{user.fullName}</strong>
+                            </span>
+                            <span className="text-[11px] font-mono text-slate-400 block truncate">
+                              {user.whatsappNumber || "-"}
+                            </span>
+                          </div>
+
+                          {user.whatsappNumber && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <a
+                                href={getWaLink(user.whatsappNumber, user.outlet?.name)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
+                                title="Chat WhatsApp Pemilik Toko"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </a>
+                              <a
+                                href={getWaOnboardingLink(
+                                  user.whatsappNumber,
+                                  user.outlet?.name,
+                                  user.email,
+                                  user.fullName,
+                                  cards[0]?.code
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors inline-flex items-center gap-1 text-[10px] font-semibold"
+                                title="Kirim Detail Akses Portal ke WhatsApp Klien"
+                              >
+                                <Send className="w-3 h-3" />
+                                <span>Kirim Akses</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Linked QR Cards */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 px-0.5">
+                            <span className="font-semibold">Kartu Terhubung ({cards.length}):</span>
+                            {user.outlet && (
+                              <button
+                                onClick={() => {
+                                  setAssigningOutlet({
+                                    id: user.outlet!.id,
+                                    name: user.outlet!.name,
+                                    currentCards: cards.map((c) => ({ code: c.code })),
+                                  });
+                                }}
+                                className="text-indigo-400 hover:text-indigo-300 font-semibold inline-flex items-center gap-1 text-[11px] cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>Tambah Kartu</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {cards.length === 0 ? (
+                            <span className="text-slate-500 italic text-xs block px-1">Belum terhubung kartu</span>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {cards.map((c, idx) => {
+                                const isInduk = idx === 0;
+                                return (
+                                  <div
+                                    key={c.code}
+                                    className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+                                  >
+                                    <div className="flex items-center gap-1.5">
+                                      <span
+                                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                          isInduk
+                                            ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                            : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                        }`}
+                                      >
+                                        {isInduk ? "👑 Induk" : "🔗 Anakan"}
+                                      </span>
+                                      <a
+                                        href={`/c/${c.code}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-mono font-bold text-slate-200 hover:text-sky-400 hover:underline transition-colors inline-flex items-center gap-1"
+                                        title="Tes Scan QR"
+                                      >
+                                        {c.code}
+                                        <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                      </a>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                        {c.scanCount || 0} scan
+                                      </span>
+
+                                      <button
+                                        onClick={() => handleToggleStatus(c.code, user.outlet?.name, c.status)}
+                                        className="focus:outline-none cursor-pointer"
+                                        title="Klik untuk aktifkan / nonaktifkan kartu"
+                                      >
+                                        {c.status === "ACTIVE" ? (
+                                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                            <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                            <XCircle className="w-2.5 h-2.5" /> Mati
+                                          </span>
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons Toolbar on Mobile */}
+                        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                          {targetUrl ? (
+                            <a
+                              href={targetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 text-[11px] font-medium transition-colors"
+                              title="Buka URL Google Review Toko"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Buka Review</span>
+                            </a>
+                          ) : <div />}
+
+                          <div className="flex items-center gap-1.5">
+                            {user.outlet && (
+                              <button
+                                onClick={() =>
+                                  setEditingOutlet({
+                                    id: user.outlet!.id,
+                                    name: user.outlet!.name,
+                                    googleReviewUrl: user.outlet!.googleReviewUrl,
+                                    owner: {
+                                      fullName: user.fullName,
+                                      whatsappNumber: user.whatsappNumber,
+                                      email: user.email,
+                                    },
+                                  })
+                                }
+                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+                                title="Edit Data Toko"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleToggleUserActive(user.id, user.outlet?.name || user.fullName, isOwnerActive)}
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                isOwnerActive
+                                  ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                  : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              }`}
+                              title={isOwnerActive ? "Nonaktifkan Toko (Semua kartu otomatis mati)" : "Aktifkan Toko & Kartu Kembali"}
+                            >
+                              <Power className="w-3.5 h-3.5" />
+                            </button>
+
+                            {isOverOneCard ? (
+                              <button
+                                disabled
+                                className="p-1.5 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60"
+                                title="Outlet ini memegang > 1 kartu. Tidak dapat dihapus, hanya dapat dinonaktifkan."
+                              >
+                                <Lock className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.outlet?.name || user.fullName)}
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
+                                title="Hapus Outlet"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-slate-950/60 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                      <tr>
+                        <th className="py-3 px-4">Nama Outlet</th>
+                        <th className="py-3 px-4">Pemilik & WhatsApp</th>
+                        <th className="py-3 px-4">Kartu Terhubung (Induk & Anakan)</th>
+                        <th className="py-3 px-4 text-center">Total Scan</th>
+                        <th className="py-3 px-4 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {filteredUsers.map((user) => {
+                        const isOwnerActive = user.isActive !== false;
+                        const cards = user.outlet?.qrCards && user.outlet.qrCards.length > 0
+                          ? user.outlet.qrCards
+                          : user.outlet?.qrCard
+                          ? [user.outlet.qrCard]
+                          : [];
+                        const isOverOneCard = cards.length > 1;
+
+                        return (
+                          <tr key={user.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3.5 px-4 font-semibold text-white align-top">
+                              <div className="flex items-start gap-2.5">
+                                <div
+                                  className={`p-2 rounded-xl border shrink-0 mt-0.5 ${
+                                    isOwnerActive
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                      : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                  }`}
+                                >
+                                  <Store className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <div className={`text-sm font-bold leading-snug ${!isOwnerActive ? "text-slate-400 line-through" : "text-white"}`}>
+                                      {user.outlet?.name || "-"}
+                                    </div>
+                                    {!isOwnerActive && (
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                                        Nonaktif
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] font-mono text-slate-400 truncate max-w-[200px] mt-0.5">
+                                    {user.email}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 align-top">
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <div className="font-semibold text-slate-200">{user.fullName}</div>
+                                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                                    {user.whatsappNumber || "-"}
+                                  </div>
+                                </div>
+                                {user.whatsappNumber && (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <a
+                                      href={getWaLink(user.whatsappNumber, user.outlet?.name)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
+                                      title="Chat WhatsApp Pemilik Toko"
+                                    >
+                                      <MessageCircle className="w-3.5 h-3.5" />
+                                    </a>
+                                    <a
+                                      href={getWaOnboardingLink(
+                                        user.whatsappNumber,
+                                        user.outlet?.name,
+                                        user.email,
+                                        user.fullName,
+                                        cards[0]?.code
+                                      )}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 transition-colors inline-flex items-center gap-1 text-[10px] font-semibold"
+                                      title="Kirim / Forward Detail Akses Portal ke WhatsApp Klien"
+                                    >
+                                      <Send className="w-3 h-3" />
+                                      <span className="hidden xl:inline">Kirim Akses</span>
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 align-top">
+                              {(() => {
+                                if (cards.length === 0) {
+                                  return <span className="text-slate-500 italic text-xs">Belum terhubung</span>;
+                                }
+
+                                return (
+                                  <div className="space-y-1.5 min-w-[230px]">
+                                    {cards.map((c, idx) => {
+                                      const isInduk = idx === 0;
+                                      return (
+                                        <div
+                                          key={c.code}
+                                          className="flex items-center justify-between gap-2 p-1.5 px-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs hover:border-slate-700 transition-colors"
+                                        >
+                                          <div className="flex items-center gap-1.5">
+                                            <span
+                                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                                                isInduk
+                                                  ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                                  : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                              }`}
+                                              title={isInduk ? "Kartu Utama / Induk Outlet" : "Kartu Tambahan / Anakan"}
+                                            >
+                                              {isInduk ? "👑 Induk" : "🔗 Anakan"}
+                                            </span>
+                                            <a
+                                              href={`/c/${c.code}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="font-mono font-bold text-slate-200 hover:text-sky-400 hover:underline transition-colors inline-flex items-center gap-1"
+                                              title={`Uji Coba Scan QR ${c.code} (Buka & tambah scan +1)`}
+                                            >
+                                              {c.code}
+                                              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                            </a>
+                                          </div>
+
+                                          <div className="flex items-center gap-2">
+                                            <span
+                                              className="text-[10px] font-mono text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20"
+                                              title={`${c.scanCount || 0} scan`}
+                                            >
+                                              {c.scanCount || 0} scan
+                                            </span>
+
+                                            <button
+                                              onClick={() => handleToggleStatus(c.code, user.outlet?.name, c.status)}
+                                              className="focus:outline-none group cursor-pointer"
+                                              title={`Klik untuk aktifkan / nonaktifkan kartu ${c.code}`}
+                                            >
+                                              {c.status === "ACTIVE" ? (
+                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 group-hover:bg-emerald-500/25 transition-all">
+                                                  <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
+                                                </span>
+                                              ) : (
+                                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 group-hover:bg-rose-500/25 transition-all">
+                                                  <XCircle className="w-2.5 h-2.5" /> Nonaktif
+                                                </span>
+                                              )}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-center align-top">
+                              {(() => {
+                                const totalScans = cards.reduce((s, c) => s + (c.scanCount || 0), 0);
+                                return (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-sky-500/10 text-sky-400 border border-sky-500/20 mt-0.5"
+                                    title={cards.length > 1 ? cards.map((c) => `${c.code}: ${c.scanCount} scan`).join(", ") : undefined}
+                                  >
+                                    <TrendingUp className="w-3 h-3" />
+                                    {totalScans}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right align-top">
+                              <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                {user.outlet && (() => {
+                                  const primaryCard = cards[0];
+                                  const targetUrl = primaryCard ? `/c/${primaryCard.code}` : user.outlet.googleReviewUrl;
+
+                                  return targetUrl ? (
+                                    <a
+                                      href={targetUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 transition-colors"
+                                      title={primaryCard ? `Uji Coba Scan QR (${primaryCard.code}) & Buka Review (Tambah Scan +1)` : "Buka URL Google Review"}
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  ) : null;
+                                })()}
+
+                                {user.outlet && (
+                                  <button
+                                    onClick={() => {
+                                      setAssigningOutlet({
+                                        id: user.outlet!.id,
+                                        name: user.outlet!.name,
+                                        currentCards: cards.map((c) => ({ code: c.code })),
+                                      });
+                                    }}
+                                    className="px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
+                                    title="Tambah Kartu Fisik Kosong ke Outlet Ini"
+                                  >
+                                    <Plus className="w-3 h-3 text-indigo-400" />
+                                    <span>+ Kartu</span>
+                                  </button>
+                                )}
+
+                                {user.outlet && (
+                                  <button
+                                    onClick={() =>
+                                      setEditingOutlet({
+                                        id: user.outlet!.id,
+                                        name: user.outlet!.name,
+                                        googleReviewUrl: user.outlet!.googleReviewUrl,
+                                        owner: {
+                                          fullName: user.fullName,
+                                          whatsappNumber: user.whatsappNumber,
+                                          email: user.email,
+                                        },
+                                      })
+                                    }
+                                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                                    title="Edit Data Toko"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+
+                                {/* Tombol Power: Nonaktifkan / Aktifkan Outlet & Kartu Terhubung */}
+                                <button
+                                  onClick={() => handleToggleUserActive(user.id, user.outlet?.name || user.fullName, isOwnerActive)}
+                                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                    isOwnerActive
+                                      ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                      : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                  }`}
+                                  title={isOwnerActive ? "Nonaktifkan Toko (Semua kartu otomatis mati)" : "Aktifkan Toko & Kartu Kembali"}
+                                >
+                                  <Power className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Tombol Hapus: Jika outlet memegang > 1 kartu, tombol disabled / terkunci */}
+                                {isOverOneCard ? (
+                                  <button
+                                    disabled
+                                    className="p-1.5 rounded-lg bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60"
+                                    title={`Outlet ini memegang ${cards.length} kartu (> 1 kartu). Tidak dapat dihapus, hanya dapat dinonaktifkan.`}
+                                  >
+                                    <Lock className="w-3.5 h-3.5" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleDeleteUser(user.id, user.outlet?.name || user.fullName)}
+                                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
+                                    title="Hapus Outlet"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}

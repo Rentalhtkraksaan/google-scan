@@ -113,12 +113,12 @@ export function LiveActivityTicker({
     >
       <div className="flex items-center justify-between gap-3 text-xs">
         {/* Left: Live indicator badge */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <div className="relative flex items-center justify-center">
             <span className="absolute inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 opacity-75 animate-ping" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm shadow-emerald-500/50" />
           </div>
-          <span className="font-extrabold tracking-wider uppercase text-[10px] text-emerald-400 font-mono hidden xs:inline">
+          <span className="font-extrabold tracking-wider uppercase text-[10px] text-emerald-400 font-mono hidden sm:inline">
             LIVE REALTIME
           </span>
           <span className="text-slate-600 hidden sm:inline">&bull;</span>
@@ -145,7 +145,7 @@ export function LiveActivityTicker({
         </div>
 
         {/* Right: Controls & counter */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
           <span className="text-[10px] font-mono text-slate-500 hidden lg:inline">
             {currentIndex + 1}/{items.length}
           </span>

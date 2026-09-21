@@ -603,21 +603,21 @@ export function UserGuideModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
         {/* Header Bar */}
-        <div className="p-5 sm:p-6 border-b border-slate-800/80 bg-slate-950/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
-              <BookOpen className="w-6 h-6" />
+        <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                  Buku Modul & Panduan Sistem
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h2 className="text-sm sm:text-xl font-black text-white tracking-tight truncate">
+                  Buku Modul & Panduan
                 </h2>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono">
+                <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono shrink-0">
                   RESMI
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate hidden sm:block">
                 Panduan interaktif & alur kerja lengkap untuk Super Admin, Admin Lapangan, dan Outlet Mitra.
               </p>
             </div>
@@ -627,7 +627,7 @@ export function UserGuideModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-pointer"
               title="Tutup Panduan"
             >
               <X className="w-5 h-5" />
@@ -636,22 +636,22 @@ export function UserGuideModal({
         </div>
 
         {/* Role Tab Navigation Bar */}
-        <div className="px-5 sm:px-6 pt-4 pb-3 border-b border-slate-800 bg-slate-900 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="px-3.5 sm:px-6 pt-3 sm:pt-4 pb-2.5 sm:pb-3 border-b border-slate-800 bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none flex-nowrap w-full sm:w-auto">
             <button
               type="button"
               onClick={() => {
                 setActiveTab("SUPER_ADMIN");
                 setSearchQuery("");
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "SUPER_ADMIN"
                   ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40"
                   : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-amber-400" />
-              <span>Modul Super Admin</span>
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+              <span>Super Admin</span>
             </button>
 
             <button
@@ -660,14 +660,14 @@ export function UserGuideModal({
                 setActiveTab("ADMIN");
                 setSearchQuery("");
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "ADMIN"
                   ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40"
                   : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
               }`}
             >
-              <Briefcase className="w-4 h-4 text-emerald-400" />
-              <span>Modul Admin Lapangan</span>
+              <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+              <span>Admin Lapangan</span>
             </button>
 
             <button
@@ -676,14 +676,14 @@ export function UserGuideModal({
                 setActiveTab("OUTLET");
                 setSearchQuery("");
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "OUTLET"
                   ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
                   : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
               }`}
             >
-              <Store className="w-4 h-4 text-sky-400" />
-              <span>Modul Outlet Mitra</span>
+              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400 shrink-0" />
+              <span>Outlet Mitra</span>
             </button>
 
             <button
@@ -692,29 +692,29 @@ export function UserGuideModal({
                 setActiveTab("FAQ");
                 setSearchQuery("");
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === "FAQ"
                   ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/25 border border-amber-400/40"
                   : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
               }`}
             >
-              <HelpCircle className="w-4 h-4 text-amber-400" />
+              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
               <span>FAQ & Solusi</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end shrink-0">
             <button
               type="button"
               onClick={expandAll}
-              className="text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-950 border border-slate-800 cursor-pointer"
+              className="text-[10px] sm:text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-950 border border-slate-800 cursor-pointer"
             >
               Buka Semua
             </button>
             <button
               type="button"
               onClick={collapseAll}
-              className="text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-950 border border-slate-800 cursor-pointer"
+              className="text-[10px] sm:text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-950 border border-slate-800 cursor-pointer"
             >
               Tutup Semua
             </button>
