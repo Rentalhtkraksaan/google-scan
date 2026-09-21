@@ -52,6 +52,7 @@ model User {
   assignedCards QrCard[] @relation("AssignedCards")
 
   activityLogs  ActivityLog[]
+  invoices      Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -215,5 +216,35 @@ model ProductPhoto {
   createdAt DateTime @default(now())
 
   @@map("product_photos")
+}
+
+model Invoice {
+  id                String   @id @default(cuid())
+  invoiceNumber     String   @unique
+  orderDate         String   // Format: YYYY-MM-DD
+  customerName      String
+  customerPhone     String?
+  itemsJson         String   @db.LongText // JSON: [{ id, name, qty, price }]
+  subtotal          Int      @default(0)
+  discount          Int      @default(0)
+  grandTotal        Int      @default(0)
+  paymentStatus     String   @default("LUNAS") // "LUNAS" | "DP"
+  downPaymentAmount Int      @default(0)
+  remainingAmount   Int      @default(0)
+  paymentMethod     String?
+  notes             String?  @db.Text
+
+  createdById       String?
+  createdBy         User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([createdById])
+  @@index([invoiceNumber])
+  @@index([customerName])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@map("invoices")
 }
 

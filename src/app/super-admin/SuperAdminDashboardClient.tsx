@@ -3665,6 +3665,7 @@ Tim Layanan Smart QR`;
         onClose={() => setIsInvoiceModalOpen(false)}
         siteSetting={localSiteSetting}
         outlets={allOutlets.map((o) => ({ id: o.id, name: o.name }))}
+        isMaster={isMaster}
       />
     </div>
   );
