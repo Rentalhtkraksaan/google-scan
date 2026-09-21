@@ -42,6 +42,7 @@ import {
   Send,
   Trophy,
   Receipt,
+  BookOpen,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
@@ -66,6 +67,7 @@ import { QrCameraScannerModal } from "@/components/dashboard/QrCameraScannerModa
 import { PromoManagerModal } from "@/components/dashboard/PromoManagerModal";
 import { ProductPhotoManagerModal } from "@/components/dashboard/ProductPhotoManagerModal";
 import { InvoiceGeneratorModal } from "@/components/dashboard/InvoiceGeneratorModal";
+import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from "@/lib/actions/qr.actions";
 import {
   deleteAdminAction,
@@ -312,6 +314,7 @@ export function SuperAdminDashboardClient({
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
   // Helper: Cek apakah suatu kartu/outlet adalah Kartu Demo Landing Page
   const isDemoCard = (cardCode: string) => {
@@ -1311,6 +1314,24 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Buku Modul & Panduan Sistem (Semua Role) */}
+            <button
+              onClick={() => {
+                setIsGuideModalOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              title="Buka buku modul & panduan lengkap seluruh fitur sistem"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <BookOpen className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Buku Modul Sistem</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                PANDUAN
+              </span>
+            </button>
+
             {/* Template Cetak - hanya tampil jika memiliki izin */}
             {canManageTemplates && (
               <button
@@ -1483,6 +1504,16 @@ Tim Layanan Smart QR`;
             >
               <Receipt className="w-3.5 h-3.5 text-white" />
               <span>Cetak Invoice</span>
+            </button>
+
+            {/* Buku Modul Panduan Sistem */}
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Buka Buku Modul & Panduan Sistem Lengkap"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden md:inline">Buku Modul</span>
             </button>
 
             <button
@@ -3671,6 +3702,13 @@ Tim Layanan Smart QR`;
         siteSetting={localSiteSetting}
         outlets={allOutlets.map((o) => ({ id: o.id, name: o.name }))}
         isMaster={isMaster}
+      />
+
+      {/* User Guide / Buku Modul Panduan Sistem */}
+      <UserGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        initialRole="SUPER_ADMIN"
       />
     </div>
   );

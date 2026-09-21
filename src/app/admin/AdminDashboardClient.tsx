@@ -21,6 +21,7 @@ import {
   Lock,
   UserCheck,
   Send,
+  BookOpen,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
@@ -29,6 +30,7 @@ import { EditOutletModal } from "@/components/forms/EditOutletModal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
+import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { useRouter } from "next/navigation";
 import { deleteOutletUserAction, toggleUserActiveStatusAction } from "@/lib/actions/auth.actions";
 import { toggleCardStatusAction } from "@/lib/actions/qr.actions";
@@ -95,6 +97,7 @@ export function AdminDashboardClient({
   const [editingOutlet, setEditingOutlet] = useState<EditingOutletType | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [assigningOutlet, setAssigningOutlet] = useState<{
     id: string;
     name: string;
@@ -264,6 +267,15 @@ Tim Layanan Smart QR`;
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setIsGuideModalOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
+            title="Buka Buku Modul & Panduan Sistem Lengkap"
+          >
+            <BookOpen className="w-4 h-4 text-indigo-400" />
+            <span>Buku Modul</span>
+          </button>
+
           <button
             onClick={() => setIsRequestCardModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3.5 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm"
@@ -900,6 +912,13 @@ Tim Layanan Smart QR`;
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* User Guide / Buku Modul Panduan Sistem */}
+      <UserGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        initialRole="ADMIN"
+      />
     </div>
   );
 }

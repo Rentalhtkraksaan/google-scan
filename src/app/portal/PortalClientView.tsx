@@ -18,6 +18,7 @@ import {
   PlusCircle,
   ShieldCheck,
   Globe,
+  BookOpen,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
@@ -26,6 +27,7 @@ import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
 import { WebsiteReviewWidgetModal } from "@/components/dashboard/WebsiteReviewWidgetModal";
+import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 
 interface PortalClientViewProps {
   user: {
@@ -63,6 +65,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
   const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
   useEffect(() => {
@@ -140,20 +143,32 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
             </div>
           </div>
 
-          {/* Big Live Scan Metric */}
-          <div className="flex items-center gap-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">
-                Total Scan Seluruh Kartu
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl sm:text-4xl font-black text-white">
-                  {totalScans}
+          {/* Action & Live Scan Metric */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 rounded-2xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              title="Buka Buku Modul & Panduan Toko"
+            >
+              <BookOpen className="w-4 h-4 text-indigo-300" />
+              <span>Buku Modul</span>
+            </button>
+
+            {/* Big Live Scan Metric */}
+            <div className="flex items-center gap-4 bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 sm:p-5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">
+                  Total Scan Seluruh Kartu
                 </span>
-                <span className="text-xs font-medium text-emerald-400">kali scan</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl sm:text-4xl font-black text-white">
+                    {totalScans}
+                  </span>
+                  <span className="text-xs font-medium text-emerald-400">kali scan</span>
+                </div>
               </div>
             </div>
           </div>
@@ -341,6 +356,14 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               </li>
             </ul>
 
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4 text-indigo-400" />
+              <span>Buka Buku Modul & Panduan Lengkap</span>
+            </button>
+
             {/* Admin Lapangan Support */}
             {adminContact && (
               <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
@@ -412,6 +435,13 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           reviewUrl={scanUrl}
         />
       )}
+
+      {/* User Guide / Buku Modul Panduan Toko */}
+      <UserGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        initialRole="OUTLET"
+      />
     </div>
   );
 }
