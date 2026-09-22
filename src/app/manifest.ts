@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Smart QR Review",
     short_name: "Smart QR",
     description: "Platform Akselerasi Ulasan Bintang 5 Google Bisnis",
-    start_url: "/",
+    start_url: "/portal",
     display: "standalone",
     background_color: "#070b14",
     theme_color: "#070b14",

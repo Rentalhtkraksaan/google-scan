@@ -1411,7 +1411,7 @@ Tim Layanan Smart QR`;
 
             {/* Buka Landing Page Publik */}
             <a
-              href="/"
+              href="/?view=landing"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer"

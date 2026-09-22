@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -74,10 +75,24 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function LandingPage() {
-  // Parallelkan auth check + fetch siteSetting + promo + foto dari cache/DB
-  const [session, siteSetting, activePromos, productPhotos] = await Promise.all([
-    auth(),
+export default async function LandingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
+  const params = searchParams ? await searchParams : undefined;
+  const session = await auth();
+
+  // Jika pengguna sudah login, langsung alihkan ke dashboard masing-masing seketika (0 lag, 100% instan!)
+  // Kecuali jika sengaja membuka landing page dengan parameter ?view=landing
+  if (session?.user && params?.view !== "landing") {
+    if (session.user.role === "SUPER_ADMIN") redirect("/super-admin");
+    if (session.user.role === "ADMIN") redirect("/admin");
+    redirect("/portal");
+  }
+
+  // Jika belum login atau melihat preview, baru fetch data landing page
+  const [siteSetting, activePromos, productPhotos] = await Promise.all([
     getCachedSiteSetting(),
     getActivePromosAction(),
     getProductPhotosAction(),

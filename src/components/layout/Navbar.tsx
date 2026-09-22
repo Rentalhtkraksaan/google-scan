@@ -69,7 +69,7 @@ export function Navbar({ user, siteSetting }: NavbarProps) {
     <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href={getDashboardLink(user.role)} className="flex items-center gap-2.5 group">
             {siteSetting?.dashboardLogoUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
@@ -109,7 +109,7 @@ export function Navbar({ user, siteSetting }: NavbarProps) {
               </Link>
             )}
             <Link
-              href="/"
+              href="/?view=landing"
               target="_blank"
               className="px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition-colors flex items-center gap-1 text-xs"
             >
