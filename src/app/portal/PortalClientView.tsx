@@ -27,6 +27,7 @@ import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
+import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 
 interface PortalClientViewProps {
   user: {
@@ -143,6 +144,8 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
 
           {/* Action & Live Scan Metric */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+            <InstallPwaButton variant="compact" label="Pasang Aplikasi di HP" />
+
             <button
               onClick={() => setIsGuideModalOpen(true)}
               className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 rounded-xl sm:rounded-2xl text-xs font-bold transition-all shadow-md shadow-sky-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"

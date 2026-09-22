@@ -31,6 +31,7 @@ import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
+import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 import { useRouter } from "next/navigation";
 import { deleteOutletUserAction, toggleUserActiveStatusAction } from "@/lib/actions/auth.actions";
 import { toggleCardStatusAction } from "@/lib/actions/qr.actions";
@@ -267,6 +268,8 @@ Tim Layanan Smart QR`;
         </div>
 
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+          <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
+
           <button
             onClick={() => setIsGuideModalOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs rounded-xl border border-emerald-500/30 transition-all cursor-pointer shadow-sm"

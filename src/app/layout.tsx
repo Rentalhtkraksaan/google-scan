@@ -34,6 +34,12 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: faviconUrl,
     },
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "Smart QR",
+    },
     openGraph: {
       title: title,
       description: description,

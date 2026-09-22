@@ -68,6 +68,7 @@ import { PromoManagerModal } from "@/components/dashboard/PromoManagerModal";
 import { ProductPhotoManagerModal } from "@/components/dashboard/ProductPhotoManagerModal";
 import { InvoiceGeneratorModal } from "@/components/dashboard/InvoiceGeneratorModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
+import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from "@/lib/actions/qr.actions";
 import {
   deleteAdminAction,
@@ -1332,6 +1333,9 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Pasang Aplikasi PWA */}
+            <InstallPwaButton variant="drawer" label="Pasang Aplikasi di HP" />
+
             {/* Template Cetak - hanya tampil jika memiliki izin */}
             {canManageTemplates && (
               <button
@@ -1497,6 +1501,11 @@ Tim Layanan Smart QR`;
           {/* Top-Right Quick Action CTA Buttons (Identical to reference image) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Cetak Invoice (Khusus SA 1 & SA 2) */}
+            {/* Tombol Pasang Aplikasi PWA */}
+            <div className="hidden lg:block">
+              <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
+            </div>
+
             <button
               onClick={() => setIsInvoiceModalOpen(true)}
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer shrink-0 border border-emerald-400/40"

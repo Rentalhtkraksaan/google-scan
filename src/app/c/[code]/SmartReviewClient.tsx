@@ -13,6 +13,7 @@ import {
   MessageCircle,
   CheckCircle2,
   User,
+  Volume2,
 } from "lucide-react";
 
 interface SmartReviewClientProps {
@@ -62,7 +63,7 @@ const RATING_INFO: Record<
   },
 };
 
-// Web Audio API Synthesizer Chime
+// Web Audio API Synthesizer Cash Register Bell Chime (0 KB file download, 100% realtime & ringan)
 function playCelebrationChime() {
   try {
     const AudioContextClass =
@@ -70,21 +71,64 @@ function playCelebrationChime() {
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
-    const chord = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 arpeggio
+
+    // 1. Melodic arpeggio chord (C5, E5, G5, C6)
+    const chord = [523.25, 659.25, 783.99, 1046.5];
     chord.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
       osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.07);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime + idx * 0.07);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.07 + 0.4);
+      gain.gain.setValueAtTime(0.16, ctx.currentTime + idx * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.07 + 0.45);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(ctx.currentTime + idx * 0.07);
-      osc.stop(ctx.currentTime + idx * 0.07 + 0.45);
+      osc.stop(ctx.currentTime + idx * 0.07 + 0.5);
     });
+
+    // 2. High metallic register bell ring ("Ting!")
+    const bellOsc = ctx.createOscillator();
+    const bellGain = ctx.createGain();
+    bellOsc.type = "triangle";
+    bellOsc.frequency.setValueAtTime(1567.98, ctx.currentTime + 0.12);
+    bellGain.gain.setValueAtTime(0.12, ctx.currentTime + 0.12);
+    bellGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.75);
+    bellOsc.connect(bellGain);
+    bellGain.connect(ctx.destination);
+    bellOsc.start(ctx.currentTime + 0.12);
+    bellOsc.stop(ctx.currentTime + 0.8);
   } catch {
     // Ignore audio context limitations
+  }
+}
+
+// Web Speech API Voice (0 KB audio file download, realtime Bahasa Indonesia)
+function speakThankYouVoice() {
+  try {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const text = "Terima kasih banyak atas bintang 5-nya, tunggu sebentar sistem sedang dialihkan.";
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "id-ID";
+      utterance.rate = 0.98;
+      utterance.pitch = 1.05;
+
+      const voices = window.speechSynthesis.getVoices();
+      const idVoice = voices.find(
+        (v) =>
+          v.lang === "id-ID" ||
+          v.lang.toLowerCase().startsWith("id") ||
+          v.name.toLowerCase().includes("indonesia")
+      );
+      if (idVoice) {
+        utterance.voice = idVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (err) {
+    console.warn("Speech synthesis unavailable:", err);
   }
 }
 
@@ -200,9 +244,12 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
             clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
           }
-          if (outlet.googleReviewUrl) {
-            window.location.href = outlet.googleReviewUrl;
-          }
+          // Jeda sedetik setelah suara selesai baru buka Google Review yang asli
+          setTimeout(() => {
+            if (outlet.googleReviewUrl) {
+              window.location.href = outlet.googleReviewUrl;
+            }
+          }, 1000);
           return 0;
         }
         return prev - 1;
@@ -220,13 +267,17 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
     setSelectedRating(rating);
 
     if (rating >= 4) {
-      // 4-5 Stars -> Rayakan dengan Confetti & Audio Chime, lalu Tampilkan Pop-Up Redirect
+      // 4-5 Stars -> Rayakan dengan Confetti, Efek Lonceng Kasir & Suara Ucapan Ramah
       playCelebrationChime();
+      speakThankYouVoice();
       triggerConfetti();
       setShowRedirectModal(true);
       setSubmittedSuccess(false);
     } else {
-      // 1-3 Stars -> Buka Form Kritik & Saran (tidak auto-redirect langsung, agar pengunjung bisa isi form)
+      // 1-3 Stars -> Buka Form Kritik & Saran
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
       setShowRedirectModal(false);
       setSubmittedSuccess(false);
     }
@@ -247,6 +298,9 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     setShowRedirectModal(false);
     setSelectedRating(null);
     setHoverRating(null);
@@ -256,6 +310,9 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
     }
     setSelectedRating(null);
     setHoverRating(null);
@@ -343,8 +400,12 @@ ${feedbackMessage.trim()}`;
               </h3>
             </div>
 
-            {/* Reassuring Explanation - "biar pelanggan ga terkecoh" */}
+            {/* Reassuring Explanation with Animated Voice Badge */}
             <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-5 text-left">
+              <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] font-semibold">
+                <Volume2 className="w-4 h-4 animate-pulse text-amber-400 shrink-0" />
+                <span className="truncate">&ldquo;Terima kasih banyak atas bintang 5-nya...&rdquo;</span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
                 Tunggu sebentar ya... Anda sedang dialihkan ke formulir ulasan resmi <strong className="text-amber-300">Google Review {outlet.name}</strong> untuk membagikan bintang 5 Anda kepada pelanggan lain.
               </p>
