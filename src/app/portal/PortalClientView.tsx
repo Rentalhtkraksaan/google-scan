@@ -17,7 +17,6 @@ import {
   CreditCard,
   PlusCircle,
   ShieldCheck,
-  Globe,
   BookOpen,
   ShieldAlert,
 } from "lucide-react";
@@ -27,7 +26,6 @@ import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
-import { WebsiteReviewWidgetModal } from "@/components/dashboard/WebsiteReviewWidgetModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 
 interface PortalClientViewProps {
@@ -65,7 +63,6 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   const [copied, setCopied] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
-  const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
@@ -241,37 +238,29 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               <span>Minta Tambah Kartu QR</span>
             </button>
 
-            {/* Secondary Actions: Tes Link Scan, Salin Link, & Widget Website */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            {/* Secondary Actions: Tes Link Scan & Salin Link */}
+            <div className="grid grid-cols-2 gap-2">
               <a
                 href={scanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1 py-2 px-1 sm:px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-[11px] sm:text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer truncate"
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                <span className="truncate">Tes Scan</span>
+                <span>Tes Scan</span>
               </a>
 
               <button
+                type="button"
                 onClick={handleCopy}
-                className="flex items-center justify-center gap-1 py-2 px-1 sm:px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-[11px] sm:text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer truncate"
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
                   <Copy className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                 )}
-                <span className="truncate">{copied ? "Tersalin" : "Salin Link"}</span>
-              </button>
-
-              <button
-                onClick={() => setIsWidgetModalOpen(true)}
-                className="flex items-center justify-center gap-1 py-2 px-1 sm:px-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 font-semibold text-[11px] sm:text-xs rounded-xl border border-indigo-500/30 transition-colors cursor-pointer truncate"
-                title="Pasang badge ulasan melayang di website toko Anda"
-              >
-                <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                <span className="truncate">Widget Web</span>
+                <span>{copied ? "Tersalin" : "Salin Link"}</span>
               </button>
             </div>
 
@@ -454,17 +443,6 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           currentCardCount={cards.length}
           targetContact={adminContact}
           onClose={() => setIsRequestCardModalOpen(false)}
-        />
-      )}
-
-      {/* Website Floating Review Widget Modal */}
-      {isWidgetModalOpen && (
-        <WebsiteReviewWidgetModal
-          isOpen={isWidgetModalOpen}
-          onClose={() => setIsWidgetModalOpen(false)}
-          outletName={outlet.name}
-          cardCode={activeCard?.code || "c-001"}
-          reviewUrl={scanUrl}
         />
       )}
 

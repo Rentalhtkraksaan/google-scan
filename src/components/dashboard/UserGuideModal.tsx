@@ -461,27 +461,7 @@ export function UserGuideModal({
     },
     {
       id: "outlet-3",
-      title: "3. Widget Ulasan Melayang untuk Website Toko",
-      icon: Globe,
-      tag: "Pemasaran Online",
-      tagColor: "teal",
-      summary: "Cara menyematkan badge rating Google 5.0 di website toko Anda sendiri.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Jika outlet Anda memiliki website toko, brosur online, atau landing page, Anda dapat memasang badge ulasan melayang:
-          </p>
-          <ol className="list-decimal list-inside space-y-1 text-[11.5px] text-slate-300 pl-1">
-            <li>Di portal ini, klik tombol <strong>"Widget Web"</strong> di bawah kartu 3D.</li>
-            <li>Pilih desain favorit Anda: <em>Floating Pill</em>, <em>Luxury Glass Card</em>, atau <em>Gold Ribbon Banner</em>.</li>
-            <li>Salin kode HTML yang disediakan lalu tempelkan ke website Anda (WordPress, Blog, HTML, dll).</li>
-          </ol>
-        </div>
-      ),
-    },
-    {
-      id: "outlet-4",
-      title: "4. Menambah Kartu Fisik untuk Meja Baru",
+      title: "3. Menambah Kartu Fisik untuk Meja Baru",
       icon: CreditCard,
       tag: "Pengembangan Usaha",
       tagColor: "sky",
@@ -493,15 +473,15 @@ export function UserGuideModal({
           </p>
           <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 text-[11.5px] space-y-2">
             <p>
-              Cukup klik tombol <strong>"Minta Tambah Kartu"</strong> di portal ini. WhatsApp otomatis terbuka menghubungi Admin Pendamping resmi Anda untuk pengiriman standee tambahan yang langsung siap pakai tanpa setting ulang.
+              Cukup klik tombol <strong>"Minta Tambah Kartu QR"</strong> di portal ini. WhatsApp otomatis terbuka menghubungi Admin Pendamping resmi Anda untuk pengiriman standee tambahan yang langsung siap pakai tanpa setting ulang.
             </p>
           </div>
         </div>
       ),
     },
     {
-      id: "outlet-5",
-      title: "5. Peringatan Hak Cipta & Larangan Menggandakan Desain Fisik",
+      id: "outlet-4",
+      title: "4. Peringatan Hak Cipta & Larangan Menggandakan Desain Fisik",
       icon: ShieldAlert,
       tag: "Hak Cipta (HAKI)",
       tagColor: "rose",
@@ -653,7 +633,9 @@ export function UserGuideModal({
       case "OUTLET":
         return outletSections;
       case "FAQ":
-        return faqSections;
+        return initialRole === "SUPER_ADMIN"
+          ? faqSections
+          : faqSections.filter((f) => f.id !== "faq-4");
       default:
         return initialRole === "OUTLET"
           ? outletSections
