@@ -8,7 +8,8 @@ import { LoginForm } from "@/components/auth/LoginForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Login Portal",
+  title: "Login Portal Mitra — Smart QR Platform",
+  description: "Halaman resmi masuk portal manajemen kartu Smart QR Review untuk pengelola outlet dan administrator.",
 };
 
 export default async function LoginPage() {

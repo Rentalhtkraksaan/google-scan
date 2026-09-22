@@ -149,15 +149,18 @@ export function LoginForm() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" suppressHydrationWarning>
+        <form onSubmit={handleSubmit} className="space-y-4" name="smartqr_management_login" id="smartqr_management_login" suppressHydrationWarning>
           {/* Alamat Email */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="portal_user_email" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Alamat Email
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                id="portal_user_email"
+                name="portal_user_email"
+                autoComplete="username"
                 type="email"
                 required
                 maxLength={30}
@@ -173,7 +176,7 @@ export function LoginForm() {
           {/* Password & Link Lupa Password */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
+              <label htmlFor="portal_user_password" className="block text-xs font-semibold text-slate-300">
                 Password
               </label>
               <button
@@ -190,6 +193,9 @@ export function LoginForm() {
             <div className="relative">
               <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
+                id="portal_user_password"
+                name="portal_user_password"
+                autoComplete="current-password"
                 type={showPassword ? "text" : "password"}
                 required
                 maxLength={50}
@@ -288,6 +294,13 @@ export function LoginForm() {
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Kembali ke Beranda Utama</span>
             </Link>
+          </div>
+
+          {/* Disclaimer Keamanan Independen (Mencegah Google False Positive) */}
+          <div className="pt-3 border-t border-slate-800/80 text-center">
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              🛡️ <strong>Portal Resmi Smart QR Review</strong>. Harap gunakan password akun internal portal Anda (bukan sandi akun Google/Gmail pribadi Anda).
+            </p>
           </div>
         </form>
       </div>
