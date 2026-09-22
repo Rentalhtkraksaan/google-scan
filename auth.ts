@@ -93,7 +93,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             canManagePrintTemplates: user.canManagePrintTemplates,
             canDeleteCards: user.canDeleteCards,
             canViewAnalytics: user.canViewAnalytics,
-            avatarUrl: user.avatarUrl,
+            hasAvatar: !!user.avatarUrl,
           } as any;
         } else {
           const { email, password } = data;
@@ -150,7 +150,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             canManagePrintTemplates: user.canManagePrintTemplates,
             canDeleteCards: user.canDeleteCards,
             canViewAnalytics: user.canViewAnalytics,
-            avatarUrl: user.avatarUrl,
+            hasAvatar: !!user.avatarUrl,
           } as any;
         }
       },

@@ -216,7 +216,7 @@ export default async function SuperAdminPage() {
     fullName: freshCurrentUser?.fullName || session.user.fullName || "Super Admin",
     email: freshCurrentUser?.email || session.user.email || "",
     role: freshCurrentUser?.role || session.user.role || "SUPER_ADMIN",
-    avatarUrl: freshCurrentUser?.avatarUrl || session.user.avatarUrl || null,
+    avatarUrl: freshCurrentUser?.avatarUrl ? `/api/user/${freshCurrentUser.id}/avatar` : (session.user.avatarUrl || null),
     isSuperAdminMaster: !!freshCurrentUser?.isSuperAdminMaster,
     canEditLandingPage: !!freshCurrentUser?.canEditLandingPage,
     canManagePrintTemplates: !!freshCurrentUser?.canManagePrintTemplates,
@@ -224,10 +224,15 @@ export default async function SuperAdminPage() {
     canViewAnalytics: !!freshCurrentUser?.canViewAnalytics,
   };
 
+  const formattedSuperAdmins = superAdmins.map((sa) => ({
+    ...sa,
+    avatarUrl: sa.avatarUrl ? `/api/user/${sa.id}/avatar` : null,
+  }));
+
   return (
     <SuperAdminDashboardClient
       currentUser={authUser}
-      superAdmins={superAdmins}
+      superAdmins={formattedSuperAdmins}
       admins={admins as unknown as AdminWithRelations[]}
       allCards={allCards as unknown as QrCardModel[]}
       allOutlets={allOutlets as unknown as OutletModel[]}

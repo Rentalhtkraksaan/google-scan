@@ -48,7 +48,12 @@ export const authConfig: NextAuthConfig = {
         token.canManagePrintTemplates = user.canManagePrintTemplates;
         token.canDeleteCards = user.canDeleteCards;
         token.canViewAnalytics = user.canViewAnalytics;
-        token.avatarUrl = user.avatarUrl;
+        token.hasAvatar = !!(user as any).hasAvatar || !!(user as any).avatarUrl;
+      }
+      // PENTING: Hapus string Base64 avatar dari token JWT agar ukuran cookie < 1KB
+      // dan tidak pernah memicu error HTTP 494 REQUEST_HEADER_TOO_LARGE di Vercel/Cloudflare
+      if ("avatarUrl" in token) {
+        delete (token as any).avatarUrl;
       }
       return token;
     },
@@ -62,7 +67,8 @@ export const authConfig: NextAuthConfig = {
         session.user.canManagePrintTemplates = !!token.canManagePrintTemplates;
         session.user.canDeleteCards = !!token.canDeleteCards;
         session.user.canViewAnalytics = !!token.canViewAnalytics;
-        session.user.avatarUrl = (token.avatarUrl as string) || null;
+        // URL endpoint gambar ringan (0 KB di cookie)
+        session.user.avatarUrl = token.hasAvatar ? `/api/user/${token.id}/avatar` : null;
       }
       return session;
     },
