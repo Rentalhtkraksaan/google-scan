@@ -57,3 +57,21 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+// Client PostMessage Handler -> Show Native Notification
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SHOW_NOTIFICATION") {
+    const title = event.data.title || "Smart QR Review";
+    const options = {
+      body: event.data.body || "Aktivitas ulasan baru terdeteksi.",
+      icon: event.data.icon || "/icon-192.png",
+      badge: event.data.badge || "/icon-192.png",
+      vibrate: [250, 100, 250, 100, 450],
+      tag: `review-alert-${Date.now()}`,
+      data: {
+        url: event.data.url || "/portal",
+      },
+    };
+    self.registration.showNotification(title, options);
+  }
+});

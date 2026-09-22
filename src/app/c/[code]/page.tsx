@@ -136,6 +136,21 @@ export default async function SmartReviewPage({
         where: { code: cleanCode },
         data: { scanCount: { increment: 1 } },
       });
+
+      if (card.outletId) {
+        await prisma.activityLog.create({
+          data: {
+            outletId: card.outletId,
+            userName: "Pengunjung Toko",
+            userRole: "USER",
+            action: "SCAN_CARD",
+            title: "Pengunjung Scan Kartu Meja 🛎️",
+            description: `Pengunjung baru saja scan kartu ulasan "${card.code}".`,
+            targetId: card.code,
+            targetName: `Kartu ${card.code}`,
+          },
+        });
+      }
     } catch (e) {
       console.error("Gagal update scanCount:", e);
     }

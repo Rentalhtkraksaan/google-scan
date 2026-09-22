@@ -273,6 +273,22 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
       triggerConfetti();
       setShowRedirectModal(true);
       setSubmittedSuccess(false);
+
+      // Kirim event realtime ke outlet agar HP pemilik outlet langsung berdering
+      try {
+        fetch("/api/review/event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardCode,
+            outletId: outlet.id,
+            eventType: "FIVE_STAR",
+            rating,
+          }),
+        }).catch((err) => console.warn("Failed to notify outlet of 5-star rating:", err));
+      } catch {
+        // Non-blocking
+      }
     } else {
       // 1-3 Stars -> Buka Form Kritik & Saran
       if (typeof window !== "undefined" && "speechSynthesis" in window) {

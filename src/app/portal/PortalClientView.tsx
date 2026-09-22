@@ -19,6 +19,8 @@ import {
   ShieldCheck,
   BookOpen,
   ShieldAlert,
+  Volume2,
+  X,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
@@ -30,6 +32,13 @@ import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 import { PwaWelcomeModal } from "@/components/pwa/PwaWelcomeModal";
 import { NotificationPrompt } from "@/components/pwa/NotificationPrompt";
+import {
+  playCashierDing,
+  speakVoiceAnnouncement,
+  triggerSmartphoneVibration,
+  sendSmartphoneNotification,
+  unlockAudioContext,
+} from "@/lib/notification-sound";
 
 interface PortalClientViewProps {
   user: {
@@ -85,21 +94,108 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
     : [];
 
   const activeCard = cards[selectedCardIndex] || cards[0] || null;
-  const totalScans = cards.reduce((sum, c) => sum + (c.scanCount || 0), 0);
+  const initialTotalScans = cards.reduce((sum, c) => sum + (c.scanCount || 0), 0);
+  const [liveTotalScans, setLiveTotalScans] = useState(initialTotalScans);
+  const [realtimeAlert, setRealtimeAlert] = useState<{
+    id: string;
+    title: string;
+    desc: string;
+    type: "FIVE_STAR" | "SCAN";
+  } | null>(null);
   const scanUrl = activeCard ? getCardScanUrl(activeCard.code) : "";
 
-  // Deringkan notifikasi HP saat terdeteksi scan baru di toko
+  // Auto-sync live total scans if initial props change
   useEffect(() => {
-    if (prevScansRef.current !== null && totalScans > prevScansRef.current) {
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        new Notification("🎉 Ulasan Baru Masuk!", {
-          body: `Pelanggan baru saja melakukan tap ulasan pada ${outlet?.name || "toko Anda"}!`,
-          icon: "/api/og",
-        });
+    setLiveTotalScans(initialTotalScans);
+  }, [initialTotalScans]);
+
+  // Auto dismiss in-app realtime toast after 7 seconds
+  useEffect(() => {
+    if (!realtimeAlert) return;
+    const timer = setTimeout(() => setRealtimeAlert(null), 7000);
+    return () => clearTimeout(timer);
+  }, [realtimeAlert]);
+
+  // Realtime Poller (Checks every 2.5s for live scans & 5-star review events)
+  const lastPolledRef = useRef<number>(Date.now());
+  const processedEventIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!outlet?.id) return;
+
+    let isSubscribed = true;
+
+    const pollRealtime = async () => {
+      try {
+        const res = await fetch(`/api/portal/realtime?outletId=${outlet.id}&since=${lastPolledRef.current}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isSubscribed || !data.success) return;
+
+        lastPolledRef.current = data.serverTime || Date.now();
+
+        // Update live total scan counter dynamically
+        if (typeof data.totalScans === "number" && data.totalScans !== liveTotalScans) {
+          setLiveTotalScans(data.totalScans);
+        }
+
+        // Process new events (5-star ratings or customer scans)
+        if (Array.isArray(data.events) && data.events.length > 0) {
+          for (const ev of data.events) {
+            if (processedEventIdsRef.current.has(ev.id)) continue;
+            processedEventIdsRef.current.add(ev.id);
+
+            if (ev.action === "FIVE_STAR_REVIEW") {
+              // 1. Double Cashier Bell Ring
+              playCashierDing();
+              // 2. Physical Smartphone Vibration
+              triggerSmartphoneVibration([300, 150, 300, 150, 500]);
+              // 3. Indonesian Voice Speech
+              speakVoiceAnnouncement(`Selamat! Ada ulasan bintang 5 baru masuk di ${outlet.name}!`);
+              // 4. Mobile System Notification
+              sendSmartphoneNotification(
+                "⭐⭐⭐⭐⭐ Ulasan Bintang 5 Baru!",
+                `Pelanggan di meja baru saja memberikan rating bintang 5 untuk ${outlet.name}!`
+              );
+              // 5. In-App Golden Glowing Banner
+              setRealtimeAlert({
+                id: ev.id,
+                title: "Ulasan Bintang 5 Baru! ⭐⭐⭐⭐⭐",
+                desc: ev.description || "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
+                type: "FIVE_STAR",
+              });
+            } else if (ev.action === "SCAN_CARD") {
+              // Bell ding
+              playCashierDing();
+              // Vibration
+              triggerSmartphoneVibration([200, 100, 200]);
+              // Notification
+              sendSmartphoneNotification(
+                "🛎️ Ada Pengunjung Scan Kartu!",
+                `Pengunjung baru saja scan kartu ulasan meja di ${outlet.name}.`
+              );
+              // In-App Toast
+              setRealtimeAlert({
+                id: ev.id,
+                title: "Pengunjung Scan Kartu Meja 🛎️",
+                desc: ev.description || "Ada pengunjung sedang membuka ulasan di meja Anda.",
+                type: "SCAN",
+              });
+            }
+          }
+        }
+      } catch {
+        // Retry next interval
       }
-    }
-    prevScansRef.current = totalScans;
-  }, [totalScans, outlet?.name]);
+    };
+
+    const interval = setInterval(pollRealtime, 2500);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [outlet?.id, outlet?.name, liveTotalScans]);
 
   const handleCopy = async () => {
     if (!scanUrl) return;
@@ -136,7 +232,33 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in">
+    <div className="space-y-6 animate-in fade-in relative">
+      {/* Realtime In-App Floating Notification Banner */}
+      {realtimeAlert && (
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 z-50 sm:max-w-md animate-in slide-in-from-top-4 duration-300">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-slate-900 to-indigo-950/80 border-2 border-amber-400 shadow-2xl shadow-amber-500/30 flex items-start gap-3 backdrop-blur-xl">
+            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 shrink-0 font-extrabold shadow-lg animate-bounce">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                <span>{realtimeAlert.title}</span>
+              </h4>
+              <p className="text-xs text-amber-200/90 mt-0.5 leading-relaxed">
+                {realtimeAlert.desc}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRealtimeAlert(null)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/60 via-slate-900/80 to-sky-950/60 border border-indigo-500/20 rounded-2xl sm:rounded-3xl p-4 sm:p-8 card-glow">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
@@ -184,7 +306,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
                 </span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-2xl sm:text-4xl font-black text-white">
-                    {totalScans}
+                    {liveTotalScans}
                   </span>
                   <span className="text-xs font-medium text-emerald-400">kali scan</span>
                 </div>
