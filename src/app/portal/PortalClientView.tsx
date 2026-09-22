@@ -276,22 +276,32 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
             </div>
 
             {/* Peringatan Hak Cipta & Larangan Penggandaan Desain Fisik */}
-            <div className="w-full mt-3 p-3 sm:p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-left text-[11px] space-y-1.5 shadow-sm">
-              <div className="flex items-center gap-1.5 font-bold text-amber-300">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Peringatan Hak Cipta (HAKI)</span>
+            <div className="w-full mt-3.5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-b from-amber-500/15 via-amber-950/25 to-slate-950/80 border border-amber-500/30 text-left space-y-3 shadow-lg shadow-amber-500/5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-bold text-amber-300 text-xs">
+                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Peringatan Hak Cipta (HAKI)</span>
+                </div>
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 tracking-wider">
+                  RESMI
+                </span>
               </div>
-              <p className="text-slate-300 leading-relaxed text-[10.5px] sm:text-[11px]">
+
+              <p className="text-slate-300 leading-relaxed text-[11px]">
                 Desain fisik standee akrilik, kartu NFC, dan tata letak Smart QR dilindungi oleh <strong>Undang-Undang Hak Cipta</strong>. Pengguna/mitra toko <strong>dilarang keras menggandakan</strong>, meniru, atau mencetak ulang secara mandiri tanpa izin resmi.
               </p>
-              <div className="text-[10px] sm:text-[10.5px] text-amber-300/90 font-medium flex items-center gap-1 pt-0.5">
-                <span>⚠️ Tambah unit kartu baru wajib melalui</span>
+
+              <div className="pt-2 border-t border-amber-500/20 space-y-2">
+                <span className="text-[10.5px] text-amber-200/90 font-medium block">
+                  ⚠️ Tambah unit kartu baru untuk meja Anda:
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsRequestCardModalOpen(true)}
-                  className="font-bold underline cursor-pointer hover:text-white transition-colors inline"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
                 >
-                  Minta Tambah Kartu QR
+                  <PlusCircle className="w-4 h-4 text-slate-950 shrink-0 stroke-[2.5]" />
+                  <span>Minta Tambah Kartu QR</span>
                 </button>
               </div>
             </div>
