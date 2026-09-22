@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Store,
@@ -28,6 +28,8 @@ import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
+import { PwaWelcomeModal } from "@/components/pwa/PwaWelcomeModal";
+import { NotificationPrompt } from "@/components/pwa/NotificationPrompt";
 
 interface PortalClientViewProps {
   user: {
@@ -66,6 +68,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
+  const prevScansRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -84,6 +87,19 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   const activeCard = cards[selectedCardIndex] || cards[0] || null;
   const totalScans = cards.reduce((sum, c) => sum + (c.scanCount || 0), 0);
   const scanUrl = activeCard ? getCardScanUrl(activeCard.code) : "";
+
+  // Deringkan notifikasi HP saat terdeteksi scan baru di toko
+  useEffect(() => {
+    if (prevScansRef.current !== null && totalScans > prevScansRef.current) {
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification("🎉 Ulasan Baru Masuk!", {
+          body: `Pelanggan baru saja melakukan tap ulasan pada ${outlet?.name || "toko Anda"}!`,
+          icon: "/api/og",
+        });
+      }
+    }
+    prevScansRef.current = totalScans;
+  }, [totalScans, outlet?.name]);
 
   const handleCopy = async () => {
     if (!scanUrl) return;
@@ -144,6 +160,8 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
 
           {/* Action & Live Scan Metric */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
+            <NotificationPrompt outletName={outlet.name} />
+
             <InstallPwaButton variant="compact" label="Pasang Aplikasi di HP" />
 
             <button
@@ -454,6 +472,12 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="OUTLET"
+      />
+
+      {/* Pop-Up Sambutan Tawarkan Pasang Aplikasi di HP Saat Login */}
+      <PwaWelcomeModal
+        ownerName={user.fullName || "Pemilik Toko"}
+        outletName={outlet.name}
       />
     </div>
   );

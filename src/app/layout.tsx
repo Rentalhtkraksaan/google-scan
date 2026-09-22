@@ -56,6 +56,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+
 export default function RootLayout({
   children,
 }: {
@@ -67,6 +69,7 @@ export default function RootLayout({
         <ToastProvider>
           {children}
         </ToastProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
