@@ -445,6 +445,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
             fullName: user.fullName,
             email: user.email,
             whatsappNumber: user.whatsappNumber,
+            role: "USER",
           }}
           onClose={() => setIsEditModalOpen(false)}
           onSuccess={() => router.refresh()}

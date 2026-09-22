@@ -48,6 +48,7 @@ export const authConfig: NextAuthConfig = {
         token.canManagePrintTemplates = user.canManagePrintTemplates;
         token.canDeleteCards = user.canDeleteCards;
         token.canViewAnalytics = user.canViewAnalytics;
+        token.avatarUrl = user.avatarUrl;
       }
       return token;
     },
@@ -61,6 +62,7 @@ export const authConfig: NextAuthConfig = {
         session.user.canManagePrintTemplates = !!token.canManagePrintTemplates;
         session.user.canDeleteCards = !!token.canDeleteCards;
         session.user.canViewAnalytics = !!token.canViewAnalytics;
+        session.user.avatarUrl = (token.avatarUrl as string) || null;
       }
       return session;
     },

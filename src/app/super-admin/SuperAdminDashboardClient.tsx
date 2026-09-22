@@ -1433,9 +1433,18 @@ Tim Layanan Smart QR`;
               className="flex items-center gap-2.5 min-w-0 cursor-pointer group flex-1"
               title="Klik untuk Edit Profil"
             >
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
-                {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "A"}
-              </div>
+              {currentUser.avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.fullName || "Super Admin"}
+                  className="w-9 h-9 rounded-full object-cover shrink-0 shadow-md ring-2 ring-indigo-500/50 group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                  {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "A"}
+                </div>
+              )}
               <div className="flex flex-col min-w-0">
                 <span className="font-bold text-xs text-white truncate group-hover:text-indigo-300 transition-colors">
                   {currentUser.fullName || "Super Admin"}
@@ -3272,11 +3281,18 @@ Tim Layanan Smart QR`;
                           </td>
                         )}
                         <td className="py-3.5 px-4 font-semibold text-white">
-                          <div className="flex items-center gap-2">
-                            {isSaMaster ? (
-                              <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div className="flex items-center gap-2.5">
+                            {sa.avatarUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={sa.avatarUrl}
+                                alt={sa.fullName}
+                                className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-purple-500/40 shadow-sm"
+                              />
                             ) : (
-                              <ShieldCheck className="w-4 h-4 text-purple-400 shrink-0" />
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                                {sa.fullName ? sa.fullName.charAt(0).toUpperCase() : "A"}
+                              </div>
                             )}
                             <div>
                               <div className="flex items-center gap-2">
@@ -3596,6 +3612,8 @@ Tim Layanan Smart QR`;
             fullName: currentUser.fullName || "Super Admin",
             email: currentUser.email || "",
             whatsappNumber: (currentUser as unknown as { whatsappNumber?: string }).whatsappNumber || "",
+            role: currentUser.role || "SUPER_ADMIN",
+            avatarUrl: currentUser.avatarUrl || null,
           }}
           onClose={() => setIsProfileModalOpen(false)}
           onSuccess={() => router.refresh()}

@@ -4,6 +4,7 @@ export interface AuthenticatedUser {
   email: string;
   role: string;
   whatsappNumber?: string | null;
+  avatarUrl?: string | null;
   isSuperAdminMaster?: boolean;
   canEditLandingPage?: boolean;
   canManagePrintTemplates?: boolean;
@@ -44,6 +45,7 @@ export interface SuperAdminItem {
   fullName: string;
   email: string;
   whatsappNumber: string | null;
+  avatarUrl?: string | null;
   isActive: boolean;
   isSuperAdminMaster: boolean;
   canEditLandingPage: boolean;

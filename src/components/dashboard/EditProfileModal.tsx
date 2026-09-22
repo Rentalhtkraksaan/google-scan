@@ -1,7 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, UserCheck, KeyRound, User, Mail, Phone, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  X,
+  UserCheck,
+  KeyRound,
+  User,
+  Mail,
+  Phone,
+  Eye,
+  EyeOff,
+  Loader2,
+  Camera,
+  Upload,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 import { updateSelfProfileAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 
@@ -10,6 +24,8 @@ interface EditProfileModalProps {
     fullName: string;
     email: string;
     whatsappNumber?: string | null;
+    role?: string;
+    avatarUrl?: string | null;
   };
   onClose: () => void;
   onSuccess?: () => void;
@@ -25,12 +41,46 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
 
+  // Foto profil khusus Super Admin
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl || null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "unset";
     };
   }, []);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type)) {
+      setPhotoError("Format foto harus PNG, JPG, atau WEBP.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Ukuran file foto maksimal 5MB.");
+      return;
+    }
+
+    setPhotoError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatarUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setAvatarUrl(null);
+    setPhotoError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,6 +91,12 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
       formData.set("fullName", fullName);
       formData.set("email", email);
       formData.set("whatsappNumber", whatsappNumber);
+
+      // Foto profil hanya dikirim jika pengguna adalah SUPER_ADMIN
+      if (isSuperAdmin && avatarUrl !== user.avatarUrl) {
+        formData.set("avatarUrl", avatarUrl || "DELETE");
+      }
+
       if (password) {
         formData.set("currentPassword", currentPassword);
         formData.set("password", password);
@@ -86,6 +142,89 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 my-5">
+          {/* FOTO PROFIL: KHUSUS SUPER ADMIN */}
+          {isSuperAdmin && (
+            <div className="p-4 bg-gradient-to-b from-indigo-950/40 via-purple-950/20 to-slate-950/60 rounded-2xl border border-indigo-500/30">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-bold text-white tracking-wide">Foto Profil Super Admin</span>
+                </div>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+                  Khusus Super Admin
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="relative group shrink-0">
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-tr from-indigo-600 via-purple-600 to-sky-500 p-0.5 shadow-xl shadow-indigo-600/20 ring-2 ring-indigo-500/40">
+                    <div className="w-full h-full rounded-full bg-slate-900 overflow-hidden flex items-center justify-center relative">
+                      {avatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={avatarUrl}
+                          alt="Foto Profil"
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-indigo-300 font-extrabold text-2xl">
+                          {fullName ? fullName.charAt(0).toUpperCase() : "A"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/50 border-2 border-slate-900 transition-transform active:scale-90 cursor-pointer"
+                    title="Upload / Ganti Foto Profil"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-sm cursor-pointer hover:scale-105 active:scale-95"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>{avatarUrl ? "Ganti Foto" : "Upload Foto"}</span>
+                    </button>
+
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 font-medium text-xs transition-all border border-slate-700 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    PNG, JPG, atau WEBP (Maks 5MB). Foto tampil di sidebar, header, dan tabel Super Admin.
+                  </p>
+                  {photoError && (
+                    <p className="text-[11px] text-rose-400 font-medium">{photoError}</p>
+                  )}
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  onChange={handlePhotoSelect}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Nama Lengkap */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">

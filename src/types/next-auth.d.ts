@@ -10,6 +10,7 @@ declare module "@auth/core/types" {
     canManagePrintTemplates?: boolean;
     canDeleteCards?: boolean;
     canViewAnalytics?: boolean;
+    avatarUrl?: string | null;
   }
 }
 
@@ -23,6 +24,7 @@ declare module "@auth/core" {
     canManagePrintTemplates?: boolean;
     canDeleteCards?: boolean;
     canViewAnalytics?: boolean;
+    avatarUrl?: string | null;
   }
 }
 
@@ -37,6 +39,7 @@ declare module "next-auth" {
       canManagePrintTemplates?: boolean;
       canDeleteCards?: boolean;
       canViewAnalytics?: boolean;
+      avatarUrl?: string | null;
     } & DefaultSession["user"];
   }
 
@@ -49,6 +52,7 @@ declare module "next-auth" {
     canManagePrintTemplates?: boolean;
     canDeleteCards?: boolean;
     canViewAnalytics?: boolean;
+    avatarUrl?: string | null;
   }
 }
 
@@ -62,5 +66,6 @@ declare module "next-auth/jwt" {
     canManagePrintTemplates?: boolean;
     canDeleteCards?: boolean;
     canViewAnalytics?: boolean;
+    avatarUrl?: string | null;
   }
 }

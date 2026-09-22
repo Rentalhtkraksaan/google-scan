@@ -1655,6 +1655,7 @@ export async function updateSelfProfileAction(formData: FormData): Promise<Actio
       email?: string;
       whatsappNumber: string | null;
       password?: string;
+      avatarUrl?: string | null;
     } = {
       fullName,
       whatsappNumber: cleanWa,
@@ -1666,6 +1667,32 @@ export async function updateSelfProfileAction(formData: FormData): Promise<Actio
 
     if (email && email.length > 30) {
       return { success: false, message: "Email maksimal 30 karakter." };
+    }
+
+    // Foto Profil: Khusus Super Admin
+    const avatarUrlRaw = formData.get("avatarUrl");
+    if (avatarUrlRaw !== null && avatarUrlRaw !== undefined) {
+      // Enforce: Hanya Super Admin yang diizinkan mengunggah foto profil
+      if (user.role !== Role.SUPER_ADMIN) {
+        return {
+          success: false,
+          message: "Akses ditolak: Fitur unggah foto profil khusus untuk Super Admin.",
+        };
+      }
+
+      const avatarVal = String(avatarUrlRaw).trim();
+      if (avatarVal === "" || avatarVal === "DELETE" || avatarVal === "null") {
+        updateData.avatarUrl = null;
+      } else {
+        if (avatarVal.startsWith("data:image/") || avatarVal.startsWith("http://") || avatarVal.startsWith("https://")) {
+          if (avatarVal.length > 10 * 1024 * 1024) {
+            return { success: false, message: "Ukuran gambar terlalu besar. Maksimal 5MB." };
+          }
+          updateData.avatarUrl = avatarVal;
+        } else {
+          return { success: false, message: "Format gambar tidak didukung." };
+        }
+      }
     }
 
     if (newPassword) {

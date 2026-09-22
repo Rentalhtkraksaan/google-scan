@@ -1149,6 +1149,8 @@ Tim Layanan Smart QR`;
           user={{
             fullName: currentAdmin.fullName,
             email: currentAdmin.email,
+            whatsappNumber: currentAdmin.whatsappNumber,
+            role: "ADMIN",
           }}
           onClose={() => setIsProfileModalOpen(false)}
           onSuccess={() => router.refresh()}
