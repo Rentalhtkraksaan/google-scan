@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   X,
   BookOpen,
@@ -62,6 +62,14 @@ export function UserGuideModal({
     "outlet-1": true,
     "faq-1": true,
   });
+
+  // Pastikan saat modal dibuka selalu reset tab ke role pengguna yang bersangkutan
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialRole);
+      setSearchQuery("");
+    }
+  }, [isOpen, initialRole]);
 
   const toggleSection = (id: string) => {
     setExpandedSections((prev) => ({
@@ -569,21 +577,29 @@ export function UserGuideModal({
     },
   ];
 
-  // Current active list based on tab
+  // Current active list based on tab (guarded by role)
   const activeSections = useMemo(() => {
     switch (activeTab) {
       case "SUPER_ADMIN":
-        return superAdminSections;
+        return initialRole === "SUPER_ADMIN"
+          ? superAdminSections
+          : initialRole === "ADMIN"
+          ? adminSections
+          : outletSections;
       case "ADMIN":
-        return adminSections;
+        return initialRole === "OUTLET" ? outletSections : adminSections;
       case "OUTLET":
         return outletSections;
       case "FAQ":
         return faqSections;
       default:
-        return superAdminSections;
+        return initialRole === "OUTLET"
+          ? outletSections
+          : initialRole === "ADMIN"
+          ? adminSections
+          : superAdminSections;
     }
-  }, [activeTab]);
+  }, [activeTab, initialRole]);
 
   // Filtered by Search Query
   const filteredSections = useMemo(() => {
@@ -597,7 +613,130 @@ export function UserGuideModal({
     );
   }, [activeSections, searchQuery]);
 
+  // Dynamic header information based on initialRole
+  const headerInfo = useMemo(() => {
+    if (initialRole === "OUTLET") {
+      return {
+        title: "Buku Panduan Outlet Mitra",
+        badge: "PANDUAN OUTLET",
+        badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+        gradient: "from-sky-500 to-blue-600",
+        icon: Store,
+        description: "Panduan lengkap penggunaan standee / kartu Smart QR ulasan Google Maps, tips bintang 5, dan pengelolaan ulasan toko Anda.",
+      };
+    }
+    if (initialRole === "ADMIN") {
+      return {
+        title: "Buku Panduan Admin Lapangan",
+        badge: "PANDUAN MITRA",
+        badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+        gradient: "from-emerald-500 to-teal-600",
+        icon: Briefcase,
+        description: "Panduan operasional lapangan, registrasi outlet binaan, aktivasi kartu, kirim akses WhatsApp 1-klik, dan SOP mitra.",
+      };
+    }
+    return {
+      title: "Buku Modul & Panduan Sistem",
+      badge: "SUPER ADMIN",
+      badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+      gradient: "from-indigo-500 to-purple-600",
+      icon: ShieldCheck,
+      description: "Panduan alur kerja dan wewenang operasional lengkap seluruh ekosistem Smart QR Review.",
+    };
+  }, [initialRole]);
+
+  // Tab filter strictly based on role
+  const availableTabs = useMemo(() => {
+    if (initialRole === "OUTLET") {
+      return [
+        {
+          key: "OUTLET" as GuideRole,
+          label: "Panduan Outlet Mitra",
+          shortLabel: "Panduan Outlet",
+          icon: Store,
+          colorClass: "text-sky-400",
+          activeClass: "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 border border-sky-400/40",
+        },
+        {
+          key: "FAQ" as GuideRole,
+          label: "FAQ & Bantuan Toko",
+          shortLabel: "FAQ Toko",
+          icon: HelpCircle,
+          colorClass: "text-amber-400",
+          activeClass: "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/25 border border-amber-400/40",
+        },
+      ];
+    }
+
+    if (initialRole === "ADMIN") {
+      return [
+        {
+          key: "ADMIN" as GuideRole,
+          label: "Panduan Admin Lapangan",
+          shortLabel: "Admin Lapangan",
+          icon: Briefcase,
+          colorClass: "text-emerald-400",
+          activeClass: "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40",
+        },
+        {
+          key: "OUTLET" as GuideRole,
+          label: "Panduan Outlet (Edukasi Mitra)",
+          shortLabel: "Edukasi Mitra",
+          icon: Store,
+          colorClass: "text-sky-400",
+          activeClass: "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 border border-sky-400/40",
+        },
+        {
+          key: "FAQ" as GuideRole,
+          label: "FAQ & Solusi Lapangan",
+          shortLabel: "FAQ Lapangan",
+          icon: HelpCircle,
+          colorClass: "text-amber-400",
+          activeClass: "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/25 border border-amber-400/40",
+        },
+      ];
+    }
+
+    // SUPER_ADMIN has access to all roles
+    return [
+      {
+        key: "SUPER_ADMIN" as GuideRole,
+        label: "Modul Super Admin",
+        shortLabel: "Super Admin",
+        icon: ShieldCheck,
+        colorClass: "text-amber-400",
+        activeClass: "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40",
+      },
+      {
+        key: "ADMIN" as GuideRole,
+        label: "Modul Admin Lapangan",
+        shortLabel: "Admin Lapangan",
+        icon: Briefcase,
+        colorClass: "text-emerald-400",
+        activeClass: "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40",
+      },
+      {
+        key: "OUTLET" as GuideRole,
+        label: "Modul Outlet Mitra",
+        shortLabel: "Outlet Mitra",
+        icon: Store,
+        colorClass: "text-sky-400",
+        activeClass: "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 border border-sky-400/40",
+      },
+      {
+        key: "FAQ" as GuideRole,
+        label: "FAQ & Solusi Sistem",
+        shortLabel: "FAQ Sistem",
+        icon: HelpCircle,
+        colorClass: "text-amber-400",
+        activeClass: "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/25 border border-amber-400/40",
+      },
+    ];
+  }, [initialRole]);
+
   if (!isOpen) return null;
+
+  const HeaderIcon = headerInfo.icon;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -605,20 +744,20 @@ export function UserGuideModal({
         {/* Header Bar */}
         <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-slate-950/60 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
-              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br ${headerInfo.gradient} flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0`}>
+              <HeaderIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <h2 className="text-sm sm:text-xl font-black text-white tracking-tight truncate">
-                  Buku Modul & Panduan
+                  {headerInfo.title}
                 </h2>
-                <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono shrink-0">
-                  RESMI
+                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full border font-mono shrink-0 ${headerInfo.badgeColor}`}>
+                  {headerInfo.badge}
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate hidden sm:block">
-                Panduan interaktif & alur kerja lengkap untuk Super Admin, Admin Lapangan, dan Outlet Mitra.
+                {headerInfo.description}
               </p>
             </div>
           </div>
@@ -638,69 +777,29 @@ export function UserGuideModal({
         {/* Role Tab Navigation Bar */}
         <div className="px-3.5 sm:px-6 pt-3 sm:pt-4 pb-2.5 sm:pb-3 border-b border-slate-800 bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none flex-nowrap w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("SUPER_ADMIN");
-                setSearchQuery("");
-              }}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === "SUPER_ADMIN"
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40"
-                  : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-              <span>Super Admin</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("ADMIN");
-                setSearchQuery("");
-              }}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === "ADMIN"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40"
-                  : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
-              <span>Admin Lapangan</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("OUTLET");
-                setSearchQuery("");
-              }}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === "OUTLET"
-                  ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
-                  : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
-              }`}
-            >
-              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400 shrink-0" />
-              <span>Outlet Mitra</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("FAQ");
-                setSearchQuery("");
-              }}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeTab === "FAQ"
-                  ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/25 border border-amber-400/40"
-                  : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
-              }`}
-            >
-              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-              <span>FAQ & Solusi</span>
-            </button>
+            {availableTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.key);
+                    setSearchQuery("");
+                  }}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? tab.activeClass
+                      : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isActive ? "text-white" : tab.colorClass} shrink-0`} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.shortLabel}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-2 justify-end shrink-0">

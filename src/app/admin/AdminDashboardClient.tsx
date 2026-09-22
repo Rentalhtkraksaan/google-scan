@@ -269,11 +269,11 @@ Tim Layanan Smart QR`;
         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => setIsGuideModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
-            title="Buka Buku Modul & Panduan Sistem Lengkap"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs rounded-xl border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+            title="Buka Buku Panduan Admin Lapangan"
           >
-            <BookOpen className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span>Buku Modul</span>
+            <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Panduan Admin</span>
           </button>
 
           <button

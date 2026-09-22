@@ -147,11 +147,11 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => setIsGuideModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 rounded-xl sm:rounded-2xl text-xs font-bold transition-all shadow-md shadow-indigo-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-              title="Buka Buku Modul & Panduan Toko"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 rounded-xl sm:rounded-2xl text-xs font-bold transition-all shadow-md shadow-sky-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              title="Buka Buku Panduan Outlet Mitra"
             >
-              <BookOpen className="w-4 h-4 text-indigo-300 shrink-0" />
-              <span>Buku Modul</span>
+              <BookOpen className="w-4 h-4 text-sky-300 shrink-0" />
+              <span>Panduan Outlet</span>
             </button>
 
             {/* Big Live Scan Metric */}
@@ -358,10 +358,10 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
 
             <button
               onClick={() => setIsGuideModalOpen(true)}
-              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-xl text-xs font-semibold transition-all cursor-pointer"
             >
-              <BookOpen className="w-4 h-4 text-indigo-400" />
-              <span>Buka Buku Modul & Panduan Lengkap</span>
+              <BookOpen className="w-4 h-4 text-sky-400" />
+              <span>Buka Panduan Outlet & Tips Bintang 5</span>
             </button>
 
             {/* Admin Lapangan Support */}
