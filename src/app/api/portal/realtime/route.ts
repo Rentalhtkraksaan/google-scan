@@ -13,33 +13,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: "outletId diperlukan." }, { status: 400 });
     }
 
-    // 1. Fetch live total scans across all cards for this outlet
-    const cards = await prisma.qrCard.findMany({
-      where: { outletId },
-      select: { scanCount: true },
-    });
-    const totalScans = cards.reduce((sum, c) => sum + (c.scanCount || 0), 0);
-
-    // 2. Fetch new events since timestamp (or last 10 seconds if since not passed)
+    // 1 & 2. Fetch live total scans and new events concurrently (Promise.all)
     const sinceDate = since ? new Date(parseInt(since, 10)) : new Date(Date.now() - 10000);
 
-    const recentEvents = await prisma.activityLog.findMany({
-      where: {
-        outletId,
-        action: { in: ["FIVE_STAR_REVIEW", "SCAN_CARD"] },
-        createdAt: { gt: sinceDate },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        action: true,
-        title: true,
-        description: true,
-        targetId: true,
-        createdAt: true,
-      },
-    });
+    const [cards, recentEvents] = await Promise.all([
+      prisma.qrCard.findMany({
+        where: { outletId },
+        select: { scanCount: true },
+      }),
+      prisma.activityLog.findMany({
+        where: {
+          outletId,
+          action: { in: ["FIVE_STAR_REVIEW", "SCAN_CARD"] },
+          createdAt: { gt: sinceDate },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          action: true,
+          title: true,
+          description: true,
+          targetId: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const totalScans = cards.reduce((sum, c) => sum + (c.scanCount || 0), 0);
 
     return NextResponse.json({
       success: true,

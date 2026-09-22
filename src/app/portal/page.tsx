@@ -20,19 +20,26 @@ export default async function PortalPage() {
   }
 
   // Parallel fetch: ambil data user outlet dan site setting serentak (Promise.all)
+  // Optimal: Hanya select kolom yang benar-benar dipakai untuk render portal (0ms lag, tanpa load riwayat feedback berlebih)
   const [user, siteSetting] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        whatsappNumber: true,
         outlet: {
-          include: {
-            feedbacks: {
-              orderBy: {
-                createdAt: "desc",
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            googleReviewUrl: true,
             qrCards: {
-              include: {
+              select: {
+                code: true,
+                status: true,
+                scanCount: true,
                 assignedAdmin: {
                   select: {
                     fullName: true,
@@ -87,7 +94,7 @@ export default async function PortalPage() {
         googleReviewUrl: user.outlet.googleReviewUrl,
         qrCards: user.outlet.qrCards,
         qrCard: user.outlet.qrCards[0] || null,
-        feedbacks: user.outlet.feedbacks || [],
+        feedbacks: [],
       }
     : null;
 

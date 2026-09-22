@@ -126,6 +126,11 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
     let isSubscribed = true;
 
     const pollRealtime = async () => {
+      // Hemat kuota & baterai: jangan poll jika layar HP mati / tab diminimize
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+
       try {
         const res = await fetch(`/api/portal/realtime?outletId=${outlet.id}&since=${lastPolledRef.current}`);
         if (!res.ok) return;
@@ -135,8 +140,8 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
         lastPolledRef.current = data.serverTime || Date.now();
 
         // Update live total scan counter dynamically
-        if (typeof data.totalScans === "number" && data.totalScans !== liveTotalScans) {
-          setLiveTotalScans(data.totalScans);
+        if (typeof data.totalScans === "number") {
+          setLiveTotalScans((prev) => (prev !== data.totalScans ? data.totalScans : prev));
         }
 
         // Process new events (5-star ratings or customer scans)
@@ -195,7 +200,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
       isSubscribed = false;
       clearInterval(interval);
     };
-  }, [outlet?.id, outlet?.name, liveTotalScans]);
+  }, [outlet?.id, outlet?.name]);
 
   const handleCopy = async () => {
     if (!scanUrl) return;

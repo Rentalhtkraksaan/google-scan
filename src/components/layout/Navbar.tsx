@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { QrCode, LogOut, ShieldCheck, UserCheck, Store, ExternalLink, Loader2 } from "lucide-react";
@@ -21,9 +21,21 @@ interface NavbarProps {
 export function Navbar({ user, siteSetting }: NavbarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Sync login status to localStorage for instant PWA redirection
+  useEffect(() => {
+    if (typeof window !== "undefined" && user?.role) {
+      localStorage.setItem("smartqr_logged_in", "true");
+      localStorage.setItem("smartqr_user_role", user.role);
+    }
+  }, [user?.role]);
+
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("smartqr_logged_in");
+      localStorage.removeItem("smartqr_user_role");
+    }
     try {
       await logLogoutAction();
     } catch (e) {

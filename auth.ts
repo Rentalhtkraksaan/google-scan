@@ -62,8 +62,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const roleLabel = "Pemilik Outlet";
 
-          try {
-            await prisma.activityLog.create({
+          // Non-blocking background log
+          prisma.activityLog
+            .create({
               data: {
                 userId: user.id,
                 userName: user.fullName,
@@ -76,10 +77,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 adminId: user.createdById || null,
                 superAdminId: null,
               },
+            })
+            .catch((e) => {
+              console.error("Gagal mencatat log login:", e);
             });
-          } catch (e) {
-            console.error("Gagal mencatat log login:", e);
-          }
 
           return {
             id: user.id,
@@ -118,8 +119,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               ? "Admin Lapangan"
               : "Pemilik Outlet";
 
-          try {
-            await prisma.activityLog.create({
+          // Non-blocking background log - do not block auth response
+          prisma.activityLog
+            .create({
               data: {
                 userId: user.id,
                 userName: user.fullName,
@@ -132,10 +134,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 adminId: user.role === "ADMIN" ? user.id : (user.createdById || null),
                 superAdminId: user.role === "SUPER_ADMIN" ? user.id : null,
               },
+            })
+            .catch((e) => {
+              console.error("Gagal mencatat log login:", e);
             });
-          } catch (e) {
-            console.error("Gagal mencatat log login:", e);
-          }
 
           return {
             id: user.id,

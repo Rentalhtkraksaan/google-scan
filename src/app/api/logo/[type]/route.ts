@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ type: string }> }
+) {
+  try {
+    const { type } = await params;
+
+    let selectField: "dashboardLogoUrl" | "landingPageLogoUrl" | "faviconUrl" = "dashboardLogoUrl";
+    if (type === "landing") selectField = "landingPageLogoUrl";
+    else if (type === "favicon") selectField = "faviconUrl";
+
+    const setting = await prisma.siteSetting.findUnique({
+      where: { id: "default" },
+      select: { [selectField]: true },
+    });
+
+    const dataUrl = (setting as any)?.[selectField] as string | null;
+
+    if (!dataUrl) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    // If it's a standard URL (http/https), redirect directly
+    if (dataUrl.startsWith("http://") || dataUrl.startsWith("https://") || dataUrl.startsWith("/")) {
+      return NextResponse.redirect(new URL(dataUrl, req.url));
+    }
+
+    // If it's a base64 Data URL (data:image/png;base64,...)
+    const matches = dataUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], "base64");
+
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "Content-Length": buffer.length.toString(),
+        },
+      });
+    }
+
+    return new NextResponse(null, { status: 404 });
+  } catch (error) {
+    console.error("Error serving site logo:", error);
+    return new NextResponse(null, { status: 500 });
+  }
+}

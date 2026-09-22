@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 
 import type { Metadata } from "next";
+import { PwaInstantRedirect } from "@/components/pwa/PwaInstantRedirect";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   let title = "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis";
@@ -176,6 +179,9 @@ export default async function LandingPage({
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+      {/* Instant PWA & Stored Session Auto-Redirect (0ms latency) */}
+      <PwaInstantRedirect />
+
       {/* Dynamic Background Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-indigo-600/20 via-sky-600/10 to-transparent blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-[600px] -right-40 w-96 h-96 bg-purple-600/10 blur-3xl pointer-events-none -z-10" />
@@ -208,6 +214,7 @@ export default async function LandingPage({
           <div className="flex items-center gap-3">
             <Link
               href={getPortalHref()}
+              prefetch={true}
               className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
             >
               {session?.user ? (

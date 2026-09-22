@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Mail,
@@ -22,6 +22,7 @@ import { getLoginRedirectPath } from "@/lib/actions/auth.actions";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
 export function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
 
@@ -32,6 +33,13 @@ export function LoginForm() {
   const [captchaCode, setCaptchaCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
+  // Prefetch dashboard routes on load for 0-lag instant transition
+  useEffect(() => {
+    router.prefetch("/portal");
+    router.prefetch("/admin");
+    router.prefetch("/super-admin");
+  }, [router]);
 
   // Generate dynamic 5-character captcha code
   const generateCaptcha = useCallback(() => {
@@ -69,11 +77,13 @@ export function LoginForm() {
     // Validasi panjang karakter sesuai ketentuan keamanan
     if (cleanEmail.length > 30) {
       showErrorAlert("Email Terlalu Panjang", "Alamat email maksimal 30 karakter.");
+      setLoading(false);
       return;
     }
 
     if (password.length > 50) {
       showErrorAlert("Password Terlalu Panjang", "Password maksimal 50 karakter.");
+      setLoading(false);
       return;
     }
 
@@ -92,9 +102,10 @@ export function LoginForm() {
         return;
       }
 
-      // Mark login for welcome greeting
+      // Mark login for welcome greeting & PWA instant redirect
       if (typeof window !== "undefined") {
         sessionStorage.setItem("just_logged_in", "true");
+        localStorage.setItem("smartqr_logged_in", "true");
       }
 
       // Fast determination of redirect target
@@ -103,13 +114,16 @@ export function LoginForm() {
         targetUrl = await getLoginRedirectPath(cleanEmail);
       }
 
-      // Show sleek centered SweetAlert
-      showSuccessAlert("Login Berhasil!", "Mengalihkan ke dashboard...", 600);
+      // Instant seamless transition without cold reload lag
+      router.refresh();
+      router.replace(targetUrl || "/portal");
 
-      // Instant fast navigation
+      // Backup navigation trigger to guarantee redirect in all browser engines
       setTimeout(() => {
-        window.location.replace(targetUrl!);
-      }, 100);
+        if (window.location.pathname === "/login") {
+          window.location.href = targetUrl || "/portal";
+        }
+      }, 300);
     } catch (err) {
       console.error("Login error:", err);
       setLoading(false);
