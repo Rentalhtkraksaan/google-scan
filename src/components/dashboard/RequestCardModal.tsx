@@ -221,14 +221,19 @@ export function RequestCardModal({
 
           {/* Info Banner */}
           <div
-            className={`p-3 rounded-xl border text-[11px] leading-relaxed ${
+            className={`p-3 rounded-xl border text-[11px] leading-relaxed space-y-1 ${
               isAdminMode
                 ? "bg-amber-500/5 border-amber-500/15 text-amber-300/90"
                 : "bg-emerald-500/5 border-emerald-500/15 text-emerald-300/90"
             }`}
           >
-            Pesan permohonan alokasi kartu akan otomatis disiapkan dan dibuka langsung di WhatsApp ke{" "}
-            {isAdminMode ? "Super Admin" : "Mitra Lapangan"}.
+            <p>
+              Pesan permohonan alokasi kartu akan otomatis disiapkan dan dibuka langsung di WhatsApp ke{" "}
+              {isAdminMode ? "Super Admin" : "Mitra Lapangan"}.
+            </p>
+            <p className="text-[10px] text-slate-400 font-medium">
+              🔒 <strong>Jaminan Keaslian:</strong> Seluruh kartu resmi diproduksi dengan chip NFC terenkripsi dan standee berhak cipta (HAKI). Dilarang keras menggandakan desain secara mandiri.
+            </p>
           </div>
 
           {/* Submit Action */}

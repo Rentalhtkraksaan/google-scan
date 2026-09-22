@@ -604,9 +604,12 @@ ${feedbackMessage.trim()}`;
         </div>
 
         {/* FOOTER */}
-        <div className="text-center mt-6">
-          <p className="text-[10px] text-slate-600 font-medium tracking-wide">
-            Powered by <span className="text-slate-400 font-semibold">Smart QR Review Experience</span>
+        <div className="text-center mt-6 space-y-1">
+          <p className="text-[10px] text-slate-500 font-medium tracking-wide">
+            Powered by <span className="text-slate-300 font-semibold">Smart QR Review Experience</span>
+          </p>
+          <p className="text-[9.5px] text-slate-600">
+            © Smart QR Review • Hak Cipta Dilindungi (HAKI). Dilarang menggandakan atau meniru desain ini.
           </p>
         </div>
       </main>

@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Globe,
   BookOpen,
+  ShieldAlert,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
@@ -272,6 +273,27 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
                 <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                 <span className="truncate">Widget Web</span>
               </button>
+            </div>
+
+            {/* Peringatan Hak Cipta & Larangan Penggandaan Desain Fisik */}
+            <div className="w-full mt-3 p-3 sm:p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-left text-[11px] space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Peringatan Hak Cipta (HAKI)</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed text-[10.5px] sm:text-[11px]">
+                Desain fisik standee akrilik, kartu NFC, dan tata letak Smart QR dilindungi oleh <strong>Undang-Undang Hak Cipta</strong>. Pengguna/mitra toko <strong>dilarang keras menggandakan</strong>, meniru, atau mencetak ulang secara mandiri tanpa izin resmi.
+              </p>
+              <div className="text-[10px] sm:text-[10.5px] text-amber-300/90 font-medium flex items-center gap-1 pt-0.5">
+                <span>⚠️ Tambah unit kartu baru wajib melalui</span>
+                <button
+                  type="button"
+                  onClick={() => setIsRequestCardModalOpen(true)}
+                  className="font-bold underline cursor-pointer hover:text-white transition-colors inline"
+                >
+                  Minta Tambah Kartu QR
+                </button>
+              </div>
             </div>
           </div>
         </div>

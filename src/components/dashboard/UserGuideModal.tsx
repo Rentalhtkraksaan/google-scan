@@ -29,6 +29,7 @@ import {
   Clock,
   Printer,
   Globe,
+  ShieldAlert,
 } from "lucide-react";
 
 export type GuideRole = "SUPER_ADMIN" | "ADMIN" | "OUTLET" | "FAQ";
@@ -374,6 +375,7 @@ export function UserGuideModal({
             <li><strong>Meja Kasir:</strong> Tempatkan standee akrilik A5 tepat di depan kasir saat pelanggan menunggu struk atau kembalian.</li>
             <li><strong>Tengah Meja Makan:</strong> Untuk restoran/cafe, pasang standee mini di tengah meja bersama nomor meja. Pelanggan yang menunggu makanan sangat suka mencoba tap NFC.</li>
             <li><strong>Instruksi Singkat Staf Kasir:</strong> Edukasi kasir agar berkata: <em>"Kak, boleh minta tolong tap kartu di sini sebentar ya untuk bintang ulasannya, terima kasih banyak!"</em>.</li>
+            <li><strong>Edukasi Hak Cipta Desain:</strong> Berikan pemahaman kepada pemilik outlet bahwa seluruh desain fisik standee akrilik dan kartu Smart QR dilindungi oleh <strong>Hak Cipta (HAKI)</strong>. Outlet dilarang keras mencetak sendiri atau menggandakan desain secara mandiri. Penambahan kartu wajib dipesan resmi melalui Anda/sistem.</li>
           </ul>
         </div>
       ),
@@ -497,6 +499,45 @@ export function UserGuideModal({
         </div>
       ),
     },
+    {
+      id: "outlet-5",
+      title: "5. Peringatan Hak Cipta & Larangan Menggandakan Desain Fisik",
+      icon: ShieldAlert,
+      tag: "Hak Cipta (HAKI)",
+      tagColor: "rose",
+      summary: "Ketentuan hukum perlindungan Hak Kekayaan Intelektual dan larangan keras menduplikasi desain.",
+      content: (
+        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
+            <div className="flex items-center gap-2 text-rose-300 font-bold text-xs sm:text-sm">
+              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Dilarang Keras Menggandakan / Meniru Desain Fisik</span>
+            </div>
+            <p className="text-[11.5px] text-slate-300">
+              Seluruh bentuk desain fisik standee akrilik, tata letak visual kartu NFC, tipografi, logo, kombinasi warna, dan elemen visual <strong>Smart QR Review</strong> merupakan karya cipta yang <strong>dilindungi oleh Undang-Undang Hak Cipta & Hak Kekayaan Intelektual (HAKI)</strong>.
+            </p>
+          </div>
+
+          <div className="space-y-2 text-[11.5px] text-slate-300">
+            <strong className="text-white block font-bold">Ketentuan & Larangan Bagi Pengguna / Pemilik Outlet:</strong>
+            <ul className="list-disc list-inside space-y-2 pl-1 text-slate-300">
+              <li>
+                <strong>Dilarang Cetak Mandiri / Duplikasi:</strong> Pemilik outlet dilarang keras memfoto, memindai (scan), merekayasa ulang, mencetak ulang secara mandiri, atau memperbanyak desain fisik standee akrilik & kartu melalui vendor percetakan mana pun tanpa izin lisensi tertulis dari manajemen pusat.
+              </li>
+              <li>
+                <strong>Dilarang Meniru Elemen Visual:</strong> Dilarang membuat tiruan desain atau memanfaatkan aset visual sistem untuk produk/layanan serupa di luar ekosistem resmi Smart QR Review.
+              </li>
+              <li>
+                <strong>Wajib Menggunakan Jalur Pemesanan Resmi:</strong> Setiap penambahan unit kartu meja baru atau penggantian unit yang rusak <strong>wajib dipesan secara resmi</strong> melalui tombol <em>"Minta Tambah Kartu QR"</em> di portal atau melalui Admin Lapangan pendamping Anda agar mendapatkan chip NFC asli terenkripsi.
+              </li>
+              <li>
+                <strong>Sanksi Hukum & Penonaktifan:</strong> Pelanggaran terhadap hak cipta ini dapat mengakibatkan penonaktifan/pemblokiran akun outlet secara permanen dan pemutusan layanan sistem, serta dapat diproses sesuai regulasi hukum perlindungan hak cipta yang berlaku di Republik Indonesia.
+              </li>
+            </ul>
+          </div>
+        </div>
+      ),
+    },
   ];
 
   // 4. DATA FAQ & TROUBLESHOOTING
@@ -571,6 +612,27 @@ export function UserGuideModal({
         <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
           <p>
             Saat tombol <strong>"Unduh JPG"</strong> diklik, sistem menggunakan teknologi render Canvas beresolusi tinggi (Retina 2x). Browser HP Anda akan otomatis mengunduh file gambar tersebut dan menyimpannya di folder <em>Downloads</em> atau aplikasi <em>Galeri Foto</em> Anda.
+          </p>
+        </div>
+      ),
+    },
+    {
+      id: "faq-5",
+      title: "Apakah outlet boleh mencetak sendiri standee akrilik atau menduplikasi desain kartu?",
+      icon: ShieldAlert,
+      tag: "Hak Cipta (HAKI)",
+      tagColor: "rose",
+      summary: "Ketentuan resmi mengenai larangan keras mencetak mandiri atau meniru desain produk.",
+      content: (
+        <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
+          <p className="text-rose-400 font-bold">
+            🚫 DILARANG KERAS (TIDAK DIPERBOLEHKAN).
+          </p>
+          <p>
+            Seluruh bentuk desain fisik kartu Smart QR Review, tata letak standee akrilik meja, dan visual sistem merupakan <strong>Kekayaan Intelektual resmi yang dilindungi oleh Undang-Undang Hak Cipta</strong>. Penggandaan, pencetakan ulang secara mandiri, atau peniruan desain tanpa izin tertulis merupakan pelanggaran hukum hak cipta.
+          </p>
+          <p>
+            Jika outlet Anda membutuhkan tambahan standee atau kartu untuk meja baru, silakan ajukan secara resmi melalui tombol <strong>&ldquo;Minta Tambah Kartu QR&rdquo;</strong> di portal toko Anda atau hubungi Admin Lapangan Anda.
           </p>
         </div>
       ),
