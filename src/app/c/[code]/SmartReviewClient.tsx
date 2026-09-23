@@ -105,11 +105,14 @@ function playCelebrationChime() {
 }
 
 // Web Speech API Voice (0 KB audio file download, realtime Bahasa Indonesia)
-function speakThankYouVoice() {
+function speakThankYouVoice(rating: number = 5) {
   try {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      const text = "Terima kasih banyak atas bintang 5-nya, tunggu sebentar sistem sedang dialihkan.";
+      const text =
+        rating === 4
+          ? "Terima kasih banyak atas bintang empatnya, tunggu sebentar sistem sedang dialihkan."
+          : "Terima kasih banyak atas bintang limanya, tunggu sebentar sistem sedang dialihkan.";
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "id-ID";
       utterance.rate = 0.98;
@@ -281,7 +284,7 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
       // 4-5 Stars -> Rayakan dengan Confetti, Efek Lonceng Kasir & Suara Ucapan Ramah (Khusus Member Premium)
       if (outlet.isMember) {
         playCelebrationChime();
-        speakThankYouVoice();
+        speakThankYouVoice(rating);
       }
       triggerConfetti();
       setShowRedirectModal(true);
@@ -295,10 +298,10 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
           body: JSON.stringify({
             cardCode,
             outletId: outlet.id,
-            eventType: "FIVE_STAR",
+            eventType: rating === 5 ? "FIVE_STAR" : "FOUR_STAR",
             rating,
           }),
-        }).catch((err) => console.warn("Failed to notify outlet of 5-star rating:", err));
+        }).catch((err) => console.warn(`Failed to notify outlet of ${rating}-star rating:`, err));
       } catch {
         // Non-blocking
       }
@@ -433,10 +436,10 @@ ${feedbackMessage.trim()}`;
             <div className="relative z-10 bg-slate-950/70 border border-slate-800 rounded-2xl p-4 mb-5 text-left">
               <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] font-semibold">
                 <Volume2 className="w-4 h-4 animate-pulse text-amber-400 shrink-0" />
-                <span className="truncate">&ldquo;Terima kasih banyak atas bintang 5-nya...&rdquo;</span>
+                <span className="truncate">&ldquo;Terima kasih banyak atas bintang {selectedRating}-nya...&rdquo;</span>
               </div>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
-                Tunggu sebentar ya... Anda sedang dialihkan ke formulir ulasan resmi <strong className="text-amber-300">Google Review {outlet.name}</strong> untuk membagikan bintang 5 Anda kepada pelanggan lain.
+                Tunggu sebentar ya... Anda sedang dialihkan ke formulir ulasan resmi <strong className="text-amber-300">Google Review {outlet.name}</strong> untuk membagikan bintang {selectedRating} Anda kepada pelanggan lain.
               </p>
 
               {/* Countdown & Progress bar */}

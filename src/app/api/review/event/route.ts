@@ -36,8 +36,17 @@ export async function POST(req: NextRequest) {
 
     const isMember = targetOutlet?.isMember ?? false;
 
-    // 1. If 5-Star Rating Event
-    if (eventType === "FIVE_STAR") {
+    // 1. If 4-Star or 5-Star Rating Event
+    if (eventType === "FIVE_STAR" || eventType === "FOUR_STAR" || (typeof rating === "number" && rating >= 4)) {
+      const isFourStar = eventType === "FOUR_STAR" || rating === 4;
+      const starCount = isFourStar ? 4 : 5;
+      const starIcons = isFourStar ? "⭐⭐⭐⭐" : "⭐⭐⭐⭐⭐";
+      const actionType = isFourStar ? "FOUR_STAR_REVIEW" : "FIVE_STAR_REVIEW";
+      const titleText = `Ulasan Bintang ${starCount} Baru! ${starIcons}`;
+      const descText = targetCardCode
+        ? `Pelanggan baru saja memberikan ulasan bintang ${starCount} pada kartu "${targetCardCode}".`
+        : `Pelanggan baru saja memberikan ulasan bintang ${starCount} di Google Review.`;
+
       // Fitur Member Premium: Simpan ke database & kirim dering realtime
       if (isMember && targetOutletId) {
         // Record Activity Log specifically for outlet realtime notification
@@ -46,24 +55,22 @@ export async function POST(req: NextRequest) {
             outletId: targetOutletId,
             userName: "Pengunjung Toko",
             userRole: "USER",
-            action: "FIVE_STAR_REVIEW",
-            title: "Ulasan Bintang 5 Baru! ⭐⭐⭐⭐⭐",
-            description: targetCardCode
-              ? `Pelanggan baru saja memberikan ulasan bintang 5 pada kartu "${targetCardCode}".`
-              : "Pelanggan baru saja memberikan ulasan bintang 5 di Google Review.",
+            action: actionType,
+            title: titleText,
+            description: descText,
             targetId: targetCardCode || null,
             targetName: targetCardCode ? `Kartu ${targetCardCode}` : "Google Review",
           },
         });
 
-        // Record in CustomerFeedback with rating 5
+        // Record in CustomerFeedback with rating
         await prisma.customerFeedback.create({
           data: {
             outletId: targetOutletId,
             cardCode: targetCardCode || null,
-            rating: 5,
+            rating: starCount,
             customerName: "Pengunjung Toko",
-            message: "Pelanggan memberikan rating bintang 5 via kartu ulasan.",
+            message: `Pelanggan memberikan rating bintang ${starCount} via kartu ulasan.`,
             isResolved: true,
           },
         });
@@ -71,17 +78,17 @@ export async function POST(req: NextRequest) {
         // 📲 WEB PUSH: Kirim sinyal push ke HP outlet (berbunyi & bergetar meskipun HP mati / aplikasi ditutup)
         try {
           await sendWebPushToOutlet(targetOutletId, {
-            title: "⭐⭐⭐⭐⭐ Ulasan Bintang 5 Masuk!",
+            title: `${starIcons} Ulasan Bintang ${starCount} Masuk!`,
             body: targetCardCode
-              ? `Pelanggan di meja "${targetCardCode}" baru saja memberi bintang 5!`
-              : "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
+              ? `Pelanggan di meja "${targetCardCode}" baru saja memberi bintang ${starCount}!`
+              : `Pelanggan baru saja memberikan rating bintang ${starCount} di Google Review!`,
             icon: "/api/logo/landing",
             badge: "/api/logo/landing",
             url: "/portal",
-            action: "FIVE_STAR_REVIEW",
+            action: actionType as "FIVE_STAR_REVIEW",
           });
         } catch (err) {
-          console.error("WebPush 5-star error:", err);
+          console.error(`WebPush ${starCount}-star error:`, err);
         }
       }
 
@@ -89,8 +96,8 @@ export async function POST(req: NextRequest) {
         success: true,
         isMember,
         message: isMember
-          ? "Event ulasan bintang 5 berhasil dicatat & notifikasi dikirim."
-          : "Event ulasan bintang 5 berhasil (Non-member: tanpa dering & storage).",
+          ? `Event ulasan bintang ${starCount} berhasil dicatat & notifikasi dikirim.`
+          : `Event ulasan bintang ${starCount} berhasil (Non-member: tanpa dering & storage).`,
       });
     }
 

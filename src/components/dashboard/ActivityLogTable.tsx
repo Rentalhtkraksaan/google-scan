@@ -239,11 +239,19 @@ export default function ActivityLogTable({
         </span>
       );
     }
-    if (action.startsWith("FIVE_STAR_REVIEW") || action.startsWith("REVIEW")) {
+    if (action.startsWith("FIVE_STAR_REVIEW")) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
           Bintang 5
+        </span>
+      );
+    }
+    if (action.startsWith("FOUR_STAR_REVIEW")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          <Star className="w-3 h-3 fill-emerald-400 text-emerald-400" />
+          Bintang 4
         </span>
       );
     }
@@ -361,6 +369,7 @@ export default function ActivityLogTable({
                 <option value="ALL">Semua Riwayat (Scan, Ulasan & Akses)</option>
                 <option value="SCAN">🛎️ Scan Kartu Meja</option>
                 <option value="FIVE_STAR">⭐⭐⭐⭐⭐ Ulasan Bintang 5</option>
+                <option value="FOUR_STAR">⭐⭐⭐⭐ Ulasan Bintang 4</option>
                 <option value="AUTH">🔐 Akses Login & Logout</option>
               </select>
             </div>

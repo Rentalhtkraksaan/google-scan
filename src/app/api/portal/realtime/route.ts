@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       prisma.activityLog.findMany({
         where: {
           outletId,
-          action: { in: ["FIVE_STAR_REVIEW", "SCAN_CARD"] },
+          action: { in: ["FIVE_STAR_REVIEW", "FOUR_STAR_REVIEW", "SCAN_CARD"] },
           createdAt: { gt: sinceDate },
         },
         orderBy: { createdAt: "desc" },

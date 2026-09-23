@@ -110,7 +110,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     id: string;
     title: string;
     desc: string;
-    type: "FIVE_STAR" | "SCAN";
+    type: "FIVE_STAR" | "FOUR_STAR" | "SCAN";
   } | null>(null);
   const scanUrl = activeCard ? getCardScanUrl(activeCard.code) : "";
 
@@ -177,30 +177,36 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
 
           // HANYA JIKA MEMBER PREMIUM & BUKAN FIRST POLL (agar tidak spam bunyi saat baru buka aplikasi):
           if (outlet.isMember && !isInitial && newEvents.length > 0) {
-            const fiveStarEvent = newEvents.find((ev: { action: string }) => ev.action === "FIVE_STAR_REVIEW");
+            const reviewEvent = newEvents.find((ev: { action: string }) =>
+              ev.action === "FIVE_STAR_REVIEW" || ev.action === "FOUR_STAR_REVIEW"
+            );
 
-            if (fiveStarEvent) {
+            if (reviewEvent) {
+              const isFour = reviewEvent.action === "FOUR_STAR_REVIEW";
+              const starCount = isFour ? 4 : 5;
+              const starIcons = isFour ? "⭐⭐⭐⭐" : "⭐⭐⭐⭐⭐";
+
               // 1. Double Cashier Bell Ring
               playCashierDing();
               // 2. Physical Smartphone Vibration
               triggerSmartphoneVibration([300, 150, 300, 150, 500]);
               // 3. Indonesian Voice Speech
-              speakVoiceAnnouncement(`Selamat! Ada ulasan bintang 5 baru masuk di ${outlet.name}!`);
+              speakVoiceAnnouncement(`Selamat! Ada ulasan bintang ${starCount} baru masuk di ${outlet.name}!`);
               // 4. Mobile System Notification
               sendSmartphoneNotification(
-                "⭐⭐⭐⭐⭐ Ulasan Bintang 5 Baru!",
+                `${starIcons} Ulasan Bintang ${starCount} Baru!`,
                 newEvents.length > 1
-                  ? `Ada ulasan bintang 5 dan ${newEvents.length - 1} aktivitas lain di ${outlet.name}!`
-                  : `Pelanggan di meja baru saja memberikan rating bintang 5 untuk ${outlet.name}!`
+                  ? `Ada ulasan bintang ${starCount} dan ${newEvents.length - 1} aktivitas lain di ${outlet.name}!`
+                  : `Pelanggan di meja baru saja memberikan rating bintang ${starCount} untuk ${outlet.name}!`
               );
               // 5. In-App Golden Glowing Banner
               setRealtimeAlert({
-                id: fiveStarEvent.id,
+                id: reviewEvent.id,
                 title: newEvents.length > 1
-                  ? `Ulasan Bintang 5 & ${newEvents.length - 1} Aktivitas Baru!`
-                  : "Ulasan Bintang 5 Baru! ⭐⭐⭐⭐⭐",
-                desc: fiveStarEvent.description || "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
-                type: "FIVE_STAR",
+                  ? `Ulasan Bintang ${starCount} & ${newEvents.length - 1} Aktivitas Baru!`
+                  : `Ulasan Bintang ${starCount} Baru! ${starIcons}`,
+                desc: reviewEvent.description || `Pelanggan baru saja memberikan rating bintang ${starCount} di Google Review!`,
+                type: isFour ? "FOUR_STAR" : "FIVE_STAR",
               });
             } else {
               // Scan Event

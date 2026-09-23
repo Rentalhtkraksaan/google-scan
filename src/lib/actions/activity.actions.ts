@@ -287,6 +287,7 @@ export async function getActivityLogsAction(
                   "LOGOUT",
                   "SCAN_CARD",
                   "FIVE_STAR_REVIEW",
+                  "FOUR_STAR_REVIEW",
                 ],
               },
             },
