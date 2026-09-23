@@ -16,10 +16,14 @@ export async function GET(
 
     const setting = await prisma.siteSetting.findUnique({
       where: { id: "default" },
-      select: { [selectField]: true },
+      select: {
+        dashboardLogoUrl: true,
+        landingPageLogoUrl: true,
+        faviconUrl: true,
+      },
     });
 
-    const dataUrl = (setting as any)?.[selectField] as string | null;
+    const dataUrl = setting ? setting[selectField] : null;
 
     if (!dataUrl) {
       return new NextResponse(null, { status: 404 });
