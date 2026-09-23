@@ -48,13 +48,31 @@ export function NotificationPrompt({
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
 
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!subscription && vapidPublicKey) {
+      const vapidPublicKey =
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+        "BB_lciCSON3uC9OmSIiGaIVzWFOOWVxbMarjd2u6EPYFlXBQdXuIza5h1BujaKOawe10bu9vabyeN--drSgPiOU";
+
+      if (vapidPublicKey) {
         const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedKey as unknown as BufferSource,
-        });
+
+        if (!subscription) {
+          try {
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedKey as unknown as BufferSource,
+            });
+          } catch (subErr) {
+            console.warn("Subscribing with key failed, attempting fresh subscribe:", subErr);
+            const existing = await registration.pushManager.getSubscription();
+            if (existing) {
+              await existing.unsubscribe().catch(() => {});
+            }
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedKey as unknown as BufferSource,
+            });
+          }
+        }
       }
 
       if (subscription) {
@@ -138,16 +156,20 @@ export function NotificationPrompt({
     // 1. Play Local Audio Chime & Vibration
     playCashierDing();
     triggerSmartphoneVibration();
-    speakVoiceAnnouncement("Tes notifikasi dan dering ulasan bekerja sempurna!");
+    speakVoiceAnnouncement("Tes notifikasi dan dering ulasan bekerja!");
 
     // 2. Kirim Server-side Web Push (uji kemampuan notifikasi saat background)
     try {
+      const registration = await navigator.serviceWorker?.ready;
+      const currentSub = await registration?.pushManager?.getSubscription();
+
       await fetch("/api/push/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           outletId,
           outletName,
+          subscription: currentSub,
         }),
       });
     } catch {

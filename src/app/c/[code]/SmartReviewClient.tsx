@@ -24,6 +24,7 @@ interface SmartReviewClientProps {
     googleReviewUrl: string;
     whatsappNumber?: string | null;
     ownerName?: string | null;
+    isMember?: boolean;
   };
 }
 
@@ -151,6 +152,16 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
 
   const activeRating = hoverRating || selectedRating || 0;
 
+  // Blokir total penawaran pasang APK di halaman ulasan pengunjung
+  useEffect(() => {
+    const blockInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+    window.addEventListener("beforeinstallprompt", blockInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", blockInstallPrompt);
+  }, []);
+
   // Particle Confetti Burst
   const triggerConfetti = useCallback(() => {
     const canvas = canvasRef.current;
@@ -267,9 +278,11 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
     setSelectedRating(rating);
 
     if (rating >= 4) {
-      // 4-5 Stars -> Rayakan dengan Confetti, Efek Lonceng Kasir & Suara Ucapan Ramah
-      playCelebrationChime();
-      speakThankYouVoice();
+      // 4-5 Stars -> Rayakan dengan Confetti, Efek Lonceng Kasir & Suara Ucapan Ramah (Khusus Member Premium)
+      if (outlet.isMember) {
+        playCelebrationChime();
+        speakThankYouVoice();
+      }
       triggerConfetti();
       setShowRedirectModal(true);
       setSubmittedSuccess(false);

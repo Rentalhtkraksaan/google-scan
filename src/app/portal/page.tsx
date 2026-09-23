@@ -35,6 +35,14 @@ export default async function PortalPage() {
             id: true,
             name: true,
             googleReviewUrl: true,
+            isMember: true,
+            membershipStartedAt: true,
+            membershipExpiresAt: true,
+            membershipPayments: {
+              where: { status: "PENDING" },
+              take: 1,
+              orderBy: { createdAt: "desc" },
+            },
             qrCards: {
               select: {
                 code: true,
@@ -92,6 +100,10 @@ export default async function PortalPage() {
         id: user.outlet.id,
         name: user.outlet.name,
         googleReviewUrl: user.outlet.googleReviewUrl,
+        isMember: user.outlet.isMember,
+        membershipStartedAt: user.outlet.membershipStartedAt,
+        membershipExpiresAt: user.outlet.membershipExpiresAt,
+        hasPendingPayment: (user.outlet.membershipPayments?.length || 0) > 0,
         qrCards: user.outlet.qrCards,
         qrCard: user.outlet.qrCards[0] || null,
         feedbacks: [],
@@ -112,6 +124,7 @@ export default async function PortalPage() {
           }}
           outlet={formattedOutlet}
           adminContact={adminContact}
+          siteSetting={siteSetting as unknown as import("@/types/models").SiteSettingModel}
         />
       </main>
 

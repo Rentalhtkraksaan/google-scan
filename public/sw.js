@@ -18,12 +18,13 @@ self.addEventListener("push", (event) => {
     const title = data.title || "Smart QR Review";
     const options = {
       body: data.body || "Ada pembaruan ulasan di outlet Anda.",
-      icon: data.icon || "/api/og",
-      badge: data.badge || "/api/og",
+      icon: data.icon || "/icon-192.png",
+      badge: data.badge || "/icon-192.png",
       vibrate: [350, 150, 350, 150, 600],
       tag: data.tag || `smartqr-alert-${Date.now()}`,
       renotify: true,
       requireInteraction: true,
+      silent: false,
       data: {
         url: data.url || "/portal",
       },
@@ -38,9 +39,10 @@ self.addEventListener("push", (event) => {
     event.waitUntil(
       self.registration.showNotification("Smart QR Review", {
         body: text,
-        icon: "/api/og",
-        badge: "/api/og",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
         vibrate: [350, 150, 350],
+        silent: false,
         data: {
           url: "/portal",
         },

@@ -1,14 +1,18 @@
 import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@smartqr.id";
+const DEFAULT_VAPID_PUBLIC_KEY = "BB_lciCSON3uC9OmSIiGaIVzWFOOWVxbMarjd2u6EPYFlXBQdXuIza5h1BujaKOawe10bu9vabyeN--drSgPiOU";
+const DEFAULT_VAPID_PRIVATE_KEY = "PPHeP3tri-mAloT-TpvYgtW5AzpxpqgB74q2ooKgHos";
+const DEFAULT_VAPID_SUBJECT = "mailto:admin@smartqr.id";
 
-if (vapidPublicKey && vapidPrivateKey) {
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
+const vapidSubject = process.env.VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
+
+try {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
-} else {
-  console.warn("⚠️ VAPID keys not fully configured for Web Push!");
+} catch (e) {
+  console.warn("⚠️ VAPID details initialization error:", e);
 }
 
 export interface PushNotificationPayload {
@@ -41,8 +45,8 @@ export async function sendWebPushToOutlet(
     const notificationString = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      icon: payload.icon || "/api/og",
-      badge: payload.badge || "/api/og",
+      icon: payload.icon || "/icon-192.png",
+      badge: payload.badge || "/icon-192.png",
       url: payload.url || "/portal",
       tag: payload.tag || `outlet-alert-${Date.now()}`,
       action: payload.action,

@@ -90,6 +90,15 @@ model SiteSetting {
   faviconUrl         String?  @db.LongText
   printTemplates     String?  @db.LongText
   visitorCount       Int      @default(0)
+
+  // Membership & Pricing Settings (Dikelola Super Admin)
+  membershipPrice          Int      @default(45000)
+  membershipBankName       String   @default("BCA")
+  membershipAccountNumber  String   @default("0885172288")
+  membershipAccountName    String   @default("Smart QR Review")
+  membershipNotes          String?  @db.Text
+  membershipTrialNotice    String?  @db.Text
+
   updatedAt          DateTime @updatedAt
 
   @@map("site_settings")
@@ -102,13 +111,20 @@ model Outlet {
   name            String
   googleReviewUrl String   @db.Text
 
-  qrCards           QrCard[]
-  feedbacks         CustomerFeedback[]
-  pushSubscriptions PushSubscription[]
+  // Status Member Premium
+  isMember            Boolean   @default(false)
+  membershipStartedAt DateTime?
+  membershipExpiresAt DateTime?
+
+  qrCards            QrCard[]
+  feedbacks          CustomerFeedback[]
+  pushSubscriptions  PushSubscription[]
+  membershipPayments MembershipPayment[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([isMember])
   @@map("outlets")
 }
 
@@ -273,5 +289,24 @@ model PushSubscription {
   @@index([outletId])
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model MembershipPayment {
+  id            String    @id @default(cuid())
+  outletId      String
+  outlet        Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  amount        Int
+  proofImageUrl String    @db.LongText
+  status        String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  senderName    String?
+  senderNotes   String?   @db.Text
+  adminNotes    String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([outletId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("membership_payments")
 }
 

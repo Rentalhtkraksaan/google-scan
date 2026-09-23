@@ -21,11 +21,14 @@ import {
   ShieldAlert,
   Volume2,
   X,
+  Crown,
+  Clock,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
+import { UpgradeMemberModal } from "@/components/dashboard/UpgradeMemberModal";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
@@ -39,6 +42,7 @@ import {
   sendSmartphoneNotification,
   unlockAudioContext,
 } from "@/lib/notification-sound";
+import { SiteSettingModel } from "@/types/models";
 
 interface PortalClientViewProps {
   user: {
@@ -51,6 +55,10 @@ interface PortalClientViewProps {
     id: string;
     name: string;
     googleReviewUrl: string;
+    isMember?: boolean;
+    membershipStartedAt?: string | Date | null;
+    membershipExpiresAt?: string | Date | null;
+    hasPendingPayment?: boolean;
     qrCards?: {
       code: string;
       status: string;
@@ -67,15 +75,17 @@ interface PortalClientViewProps {
     whatsappNumber: string | null;
     email: string;
   } | null;
+  siteSetting?: SiteSettingModel;
 }
 
-export function PortalClientView({ user, outlet, adminContact }: PortalClientViewProps) {
+export function PortalClientView({ user, outlet, adminContact, siteSetting }: PortalClientViewProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const prevScansRef = useRef<number | null>(null);
 
@@ -119,11 +129,20 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
   // Realtime Poller (Checks every 2.5s for live scans & 5-star review events)
   const lastPolledRef = useRef<number>(Date.now());
   const processedEventIdsRef = useRef<Set<string>>(new Set());
+  const isFirstPollRef = useRef<boolean>(true);
 
   useEffect(() => {
     if (!outlet?.id) return;
 
     let isSubscribed = true;
+
+    // Reset polling timestamp saat aplikasi kembali dibuka / di-unminimize agar tidak spam audio ulasan lama
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        lastPolledRef.current = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const pollRealtime = async () => {
       // Hemat kuota & baterai: jangan poll jika layar HP mati / tab diminimize
@@ -144,13 +163,23 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           setLiveTotalScans((prev) => (prev !== data.totalScans ? data.totalScans : prev));
         }
 
+        const isInitial = isFirstPollRef.current;
+        isFirstPollRef.current = false;
+
         // Process new events (5-star ratings or customer scans)
         if (Array.isArray(data.events) && data.events.length > 0) {
-          for (const ev of data.events) {
-            if (processedEventIdsRef.current.has(ev.id)) continue;
-            processedEventIdsRef.current.add(ev.id);
+          const newEvents = data.events.filter(
+            (ev: { id: string; action: string; description?: string }) =>
+              !processedEventIdsRef.current.has(ev.id)
+          );
 
-            if (ev.action === "FIVE_STAR_REVIEW") {
+          newEvents.forEach((ev: { id: string }) => processedEventIdsRef.current.add(ev.id));
+
+          // HANYA JIKA MEMBER PREMIUM & BUKAN FIRST POLL (agar tidak spam bunyi saat baru buka aplikasi):
+          if (outlet.isMember && !isInitial && newEvents.length > 0) {
+            const fiveStarEvent = newEvents.find((ev: { action: string }) => ev.action === "FIVE_STAR_REVIEW");
+
+            if (fiveStarEvent) {
               // 1. Double Cashier Bell Ring
               playCashierDing();
               // 2. Physical Smartphone Vibration
@@ -160,30 +189,35 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
               // 4. Mobile System Notification
               sendSmartphoneNotification(
                 "⭐⭐⭐⭐⭐ Ulasan Bintang 5 Baru!",
-                `Pelanggan di meja baru saja memberikan rating bintang 5 untuk ${outlet.name}!`
+                newEvents.length > 1
+                  ? `Ada ulasan bintang 5 dan ${newEvents.length - 1} aktivitas lain di ${outlet.name}!`
+                  : `Pelanggan di meja baru saja memberikan rating bintang 5 untuk ${outlet.name}!`
               );
               // 5. In-App Golden Glowing Banner
               setRealtimeAlert({
-                id: ev.id,
-                title: "Ulasan Bintang 5 Baru! ⭐⭐⭐⭐⭐",
-                desc: ev.description || "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
+                id: fiveStarEvent.id,
+                title: newEvents.length > 1
+                  ? `Ulasan Bintang 5 & ${newEvents.length - 1} Aktivitas Baru!`
+                  : "Ulasan Bintang 5 Baru! ⭐⭐⭐⭐⭐",
+                desc: fiveStarEvent.description || "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
                 type: "FIVE_STAR",
               });
-            } else if (ev.action === "SCAN_CARD") {
-              // Bell ding
+            } else {
+              // Scan Event
               playCashierDing();
-              // Vibration
               triggerSmartphoneVibration([200, 100, 200]);
-              // Notification
               sendSmartphoneNotification(
                 "🛎️ Ada Pengunjung Scan Kartu!",
-                `Pengunjung baru saja scan kartu ulasan meja di ${outlet.name}.`
+                newEvents.length > 1
+                  ? `Ada ${newEvents.length} pengunjung baru saja membuka kartu meja di ${outlet.name}.`
+                  : `Pengunjung baru saja scan kartu ulasan meja di ${outlet.name}.`
               );
-              // In-App Toast
               setRealtimeAlert({
-                id: ev.id,
-                title: "Pengunjung Scan Kartu Meja 🛎️",
-                desc: ev.description || "Ada pengunjung sedang membuka ulasan di meja Anda.",
+                id: newEvents[0].id,
+                title: newEvents.length > 1
+                  ? `Ada ${newEvents.length} Pengunjung Scan Meja!`
+                  : "Pengunjung Scan Kartu Meja 🛎️",
+                desc: newEvents[0].description || "Ada pengunjung sedang membuka ulasan di meja Anda.",
                 type: "SCAN",
               });
             }
@@ -199,8 +233,9 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
     return () => {
       isSubscribed = false;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [outlet?.id, outlet?.name]);
+  }, [outlet?.id, outlet?.isMember, outlet?.name]);
 
   const handleCopy = async () => {
     if (!scanUrl) return;
@@ -320,6 +355,74 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
           </div>
         </div>
       </div>
+
+      {/* Membership Status / Upgrade Banner */}
+      {outlet.isMember ? (
+        <div className="p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-500/15 via-slate-900 to-amber-950/20 border border-amber-500/40 text-amber-200 shadow-xl shadow-amber-500/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black shrink-0 shadow-lg shadow-amber-500/30">
+                <Crown className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-white text-sm sm:text-base">MEMBER PREMIUM AKTIF</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] tracking-wide">
+                    👑 VIP OUTLET
+                  </span>
+                </div>
+                <p className="text-xs text-amber-200/90 mt-0.5">
+                  Lonceng kasir berbunyi di pelanggan, notifikasi dering & getar HP mati aktif, serta riwayat ulasan tersimpan rapi.
+                  {outlet.membershipExpiresAt && (
+                    <span className="text-slate-300 ml-1 font-semibold">
+                      (Aktif s/d {new Date(outlet.membershipExpiresAt).toLocaleDateString("id-ID")})
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs">
+                <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Fitur Dering Terbuka</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-2 border-amber-500/50 shadow-xl shadow-amber-500/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              <span>FITUR DERING & NOTIFIKASI TERKUNCI</span>
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-white">
+              Tingkatkan ke Member Premium (Hanya Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")})
+            </h3>
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              Dapatkan suara ucapan sambutan & lonceng kasir di HP pengunjung, dering getar smartphone Anda secara realtime saat aplikasi ditutup total, dan pencatatan riwayat ulasan lengkap di database.
+            </p>
+            {outlet.hasPendingPayment && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs animate-pulse">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Bukti transfer telah dikirim & sedang diverifikasi oleh Super Admin.</span>
+              </div>
+            )}
+          </div>
+
+          <div className="shrink-0 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="w-full md:w-auto px-5 py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Crown className="w-4 h-4" />
+              <span>{outlet.hasPendingPayment ? "Cek Status / Kirim Ulang Bukti" : "Tingkatkan ke Member 🚀"}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
@@ -600,6 +703,15 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="OUTLET"
+      />
+
+      {/* Modal Upgrade Member & Kirim Bukti Transfer */}
+      <UpgradeMemberModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        outlet={outlet}
+        siteSetting={siteSetting}
+        onSuccess={() => router.refresh()}
       />
 
       {/* Pop-Up Sambutan Tawarkan Pasang Aplikasi di HP Saat Login */}

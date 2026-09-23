@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
     const payload = {
       title: "🛎️ Tes Dering & Getar Smart QR!",
       body: `Notifikasi latar belakang ${outletName || "Outlet"} aktif sempurna! HP akan berdering dan bergetar saat ulasan masuk.`,
-      icon: "/api/og",
-      badge: "/api/og",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
       url: "/portal",
       action: "TEST_NOTIFICATION" as const,
     };

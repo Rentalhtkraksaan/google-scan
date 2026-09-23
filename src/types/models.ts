@@ -37,6 +37,12 @@ export interface SiteSettingModel {
   faviconUrl?: string | null;
   printTemplates?: string | null;
   visitorCount?: number;
+  membershipPrice?: number;
+  membershipBankName?: string;
+  membershipAccountNumber?: string;
+  membershipAccountName?: string;
+  membershipNotes?: string | null;
+  membershipTrialNotice?: string | null;
   updatedAt?: string | Date;
 }
 
@@ -60,6 +66,9 @@ export interface OutletModel {
   name: string;
   googleReviewUrl: string;
   ownerId?: string;
+  isMember?: boolean;
+  membershipStartedAt?: string | Date | null;
+  membershipExpiresAt?: string | Date | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   owner?: {
@@ -243,5 +252,28 @@ export interface CustomerFeedbackItem {
     id: string;
     name: string;
   };
+}
+
+export interface MembershipPaymentItem {
+  id: string;
+  outletId: string;
+  outlet?: {
+    id: string;
+    name: string;
+    isMember: boolean;
+    owner?: {
+      fullName: string;
+      whatsappNumber?: string | null;
+      email: string;
+    } | null;
+  };
+  amount: number;
+  proofImageUrl: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  senderName?: string | null;
+  senderNotes?: string | null;
+  adminNotes?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 

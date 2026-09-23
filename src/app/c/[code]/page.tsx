@@ -137,7 +137,8 @@ export default async function SmartReviewPage({
         data: { scanCount: { increment: 1 } },
       });
 
-      if (card.outletId) {
+      // Fitur Member Premium: Catat riwayat scan ke database outlet
+      if (card.outletId && card.outlet?.isMember) {
         await prisma.activityLog.create({
           data: {
             outletId: card.outletId,
@@ -156,8 +157,6 @@ export default async function SmartReviewPage({
     }
   });
 
-  // Log activity removed to save database storage per user request
-
   const formattedGoogleUrl = formatGoogleReviewUrl(card.outlet.googleReviewUrl);
 
   return (
@@ -169,6 +168,7 @@ export default async function SmartReviewPage({
         googleReviewUrl: formattedGoogleUrl,
         whatsappNumber: card.outlet.owner?.whatsappNumber || null,
         ownerName: card.outlet.owner?.fullName || null,
+        isMember: card.outlet.isMember,
       }}
     />
   );
