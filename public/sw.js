@@ -9,7 +9,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Push Notification Event
+// Push Notification Event (Handles incoming Push when App is Closed / Screen Off)
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
@@ -19,11 +19,17 @@ self.addEventListener("push", (event) => {
     const options = {
       body: data.body || "Ada pembaruan ulasan di outlet Anda.",
       icon: data.icon || "/api/og",
-      badge: "/api/og",
-      vibrate: [100, 50, 100],
+      badge: data.badge || "/api/og",
+      vibrate: [350, 150, 350, 150, 600],
+      tag: data.tag || `smartqr-alert-${Date.now()}`,
+      renotify: true,
+      requireInteraction: true,
       data: {
         url: data.url || "/portal",
       },
+      actions: [
+        { action: "open", title: "Buka Portal Outlet 📱" },
+      ],
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
@@ -33,6 +39,11 @@ self.addEventListener("push", (event) => {
       self.registration.showNotification("Smart QR Review", {
         body: text,
         icon: "/api/og",
+        badge: "/api/og",
+        vibrate: [350, 150, 350],
+        data: {
+          url: "/portal",
+        },
       })
     );
   }

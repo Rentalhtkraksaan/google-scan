@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bell, BellRing, BellOff, Volume2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Bell, BellRing, BellOff, Volume2, ShieldCheck, Check } from "lucide-react";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import {
   playCashierDing,
@@ -13,29 +13,85 @@ import {
 
 interface NotificationPromptProps {
   outletName?: string;
+  outletId?: string;
   className?: string;
+}
+
+// Helper untuk konversi VAPID public key base64 URL-safe ke Uint8Array
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 export function NotificationPrompt({
   outletName = "Outlet Anda",
+  outletId,
   className = "",
 }: NotificationPromptProps) {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Mendaftarkan / Menyinkronkan Push Subscription ke Server
+  const registerPushSubscription = useCallback(async () => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      return null;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!subscription && vapidPublicKey) {
+        const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey as unknown as BufferSource,
+        });
+      }
+
+      if (subscription) {
+        setIsSubscribed(true);
+        // Kirim subscription ke backend untuk disimpan di database
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription,
+            outletId,
+          }),
+        });
+        return subscription;
+      }
+    } catch (err) {
+      console.error("Gagal mendaftarkan Push Subscription:", err);
+    }
+    return null;
+  }, [outletId]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setIsSupported(true);
       setPermission(Notification.permission);
+
+      if (Notification.permission === "granted") {
+        registerPushSubscription();
+      }
     }
-  }, []);
+  }, [registerPushSubscription]);
 
   const requestPermission = async () => {
     unlockAudioContext();
 
     if (!isSupported) {
-      // Audio still works even without system notification support
       playCashierDing();
       speakVoiceAnnouncement("Sistem suara ulasan telah aktif.");
       showSuccessAlert(
@@ -49,19 +105,22 @@ export function NotificationPrompt({
       const result = await Notification.requestPermission();
       setPermission(result);
 
-      // Play test ding and vibration
+      // Play local chime and vibration
       playCashierDing();
       triggerSmartphoneVibration();
 
       if (result === "granted") {
+        // Register Web Push ke server untuk background notification saat app ditutup
+        await registerPushSubscription();
+
         speakVoiceAnnouncement("Notifikasi dan lonceng toko berhasil diaktifkan.");
         sendSmartphoneNotification(
           "🔔 Notifikasi Toko Aktif!",
           `Selamat! Anda akan menerima dering pemberitahuan setiap ada ulasan masuk di ${outletName}.`
         );
         showSuccessAlert(
-          "Notifikasi Diaktifkan! 🎉",
-          "Smartphone Anda sekarang akan berdering dan bergetar setiap ada scan atau ulasan bintang 5 baru."
+          "Notifikasi Latar Belakang Aktif! 🎉",
+          "Smartphone Anda sekarang akan berdering dan bergetar setiap ada pengunjung scan atau ulasan bintang 5 baru, bahkan saat aplikasi ini ditutup total!"
         );
       } else if (result === "denied") {
         showErrorAlert(
@@ -74,24 +133,32 @@ export function NotificationPrompt({
     }
   };
 
-  const handleTestSound = () => {
+  const handleTestSound = async () => {
     setIsTesting(true);
     unlockAudioContext();
 
-    // 1. Play Cashier Ding Sound
+    // 1. Play Local Audio Chime & Vibration
     playCashierDing();
-
-    // 2. Play Physical Vibration
     triggerSmartphoneVibration();
+    speakVoiceAnnouncement("Tes notifikasi dan dering ulasan bekerja sempurna!");
 
-    // 3. Voice Announcement
-    speakVoiceAnnouncement("Tes ulasan bintang 5. Sistem suara dan notifikasi toko Anda bekerja sempurna!");
-
-    // 4. Send System Notification
-    sendSmartphoneNotification(
-      "⭐⭐⭐⭐⭐ Tes Notifikasi Ulasan Toko!",
-      `Ini adalah contoh pemberitahuan bintang 5 untuk ${outletName}. Lonceng dan suara kasir berbunyi sempurna!`
-    );
+    // 2. Kirim Server-side Web Push (uji kemampuan notifikasi saat background)
+    try {
+      await fetch("/api/push/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          outletId,
+          outletName,
+        }),
+      });
+    } catch (e) {
+      // Fallback local notification
+      sendSmartphoneNotification(
+        "⭐⭐⭐⭐⭐ Tes Notifikasi Ulasan Toko!",
+        `Ini adalah contoh pemberitahuan ulasan untuk ${outletName}. Lonceng dan dering bekerja sempurna!`
+      );
+    }
 
     setTimeout(() => {
       setIsTesting(false);
@@ -103,7 +170,7 @@ export function NotificationPrompt({
       <div className={`inline-flex items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 ${className}`}>
         <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold px-1">
           <BellRing className="w-3.5 h-3.5 animate-pulse shrink-0" />
-          <span className="hidden sm:inline">Notif & Lonceng Aktif</span>
+          <span className="hidden sm:inline">Dering & Notif Aktif</span>
           <span className="sm:hidden">Notif Aktif</span>
         </div>
         <button
@@ -111,10 +178,10 @@ export function NotificationPrompt({
           onClick={handleTestSound}
           disabled={isTesting}
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold text-[10.5px] border border-emerald-500/40 transition-all cursor-pointer hover:scale-105 active:scale-95"
-          title="Uji bunyi lonceng & notifikasi ulasan di smartphone Anda"
+          title="Uji dering lonceng & notifikasi ulasan di smartphone Anda"
         >
           <Volume2 className="w-3.5 h-3.5" />
-          <span>{isTesting ? "Berdering..." : "Tes Bunyi 🔊"}</span>
+          <span>{isTesting ? "Menderit..." : "Tes Dering HP 🔊"}</span>
         </button>
       </div>
     );
@@ -141,10 +208,10 @@ export function NotificationPrompt({
       type="button"
       onClick={requestPermission}
       className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${className}`}
-      title="Aktifkan pemberitahuan & lonceng di HP setiap ada ulasan masuk"
+      title="Aktifkan notifikasi & lonceng di HP bahkan saat aplikasi ditutup"
     >
       <Bell className="w-3.5 h-3.5 text-sky-200 shrink-0 animate-bounce" />
-      <span>Aktifkan Notifikasi & Suara HP</span>
+      <span>Aktifkan Dering & Notif HP</span>
     </button>
   );
 }

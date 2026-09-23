@@ -287,7 +287,7 @@ export function PortalClientView({ user, outlet, adminContact }: PortalClientVie
 
           {/* Action & Live Scan Metric */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-            <NotificationPrompt outletName={outlet.name} />
+            <NotificationPrompt outletName={outlet.name} outletId={outlet.id} />
 
             <InstallPwaButton variant="compact" label="Pasang Aplikasi di HP" />
 

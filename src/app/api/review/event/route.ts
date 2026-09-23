@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendWebPushToOutlet } from "@/lib/web-push";
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,6 +53,16 @@ export async function POST(req: NextRequest) {
             isResolved: true,
           },
         });
+
+        // 📲 WEB PUSH: Kirim sinyal push ke HP outlet (berbunyi & bergetar meskipun HP mati / aplikasi ditutup)
+        sendWebPushToOutlet(targetOutletId, {
+          title: "⭐⭐⭐⭐⭐ Ulasan Bintang 5 Masuk!",
+          body: targetCardCode
+            ? `Pelanggan di meja "${targetCardCode}" baru saja memberi bintang 5!`
+            : "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
+          url: "/portal",
+          action: "FIVE_STAR_REVIEW",
+        }).catch((err) => console.error("WebPush 5-star error:", err));
       }
 
       return NextResponse.json({
@@ -83,6 +94,18 @@ export async function POST(req: NextRequest) {
           targetName: targetCardCode ? `Kartu ${targetCardCode}` : "Scan Meja",
         },
       });
+
+      // 📲 WEB PUSH: Beritahu HP outlet bahwa ada pengunjung scan kartu meja
+      if (targetOutletId) {
+        sendWebPushToOutlet(targetOutletId, {
+          title: "🛎️ Ada Pengunjung Scan Meja!",
+          body: targetCardCode
+            ? `Pengunjung di meja "${targetCardCode}" baru saja membuka ulasan.`
+            : "Ada pengunjung sedang membuka ulasan di meja Anda.",
+          url: "/portal",
+          action: "SCAN_CARD",
+        }).catch((err) => console.error("WebPush scan error:", err));
+      }
 
       return NextResponse.json({
         success: true,
