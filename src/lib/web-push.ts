@@ -67,12 +67,13 @@ export async function sendWebPushToOutlet(
             TTL: 60 * 60 * 24, // 24 jam
           });
           sentCount++;
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const errorWithStatus = err as { statusCode?: number; message?: string };
           // Status 410 (Gone) atau 404 berarti user sudah uninstall / clear data browser
-          if (err.statusCode === 410 || err.statusCode === 404) {
+          if (errorWithStatus.statusCode === 410 || errorWithStatus.statusCode === 404) {
             expiredIds.push(sub.id);
           } else {
-            console.error("Gagal mengirim web push ke device:", err?.message || err);
+            console.error("Gagal mengirim web push ke device:", errorWithStatus?.message || err);
           }
         }
       })
@@ -116,8 +117,9 @@ export async function sendWebPushDirect(
     });
 
     return { success: true };
-  } catch (error: any) {
-    console.error("sendWebPushDirect error:", error?.message || error);
-    return { success: false, error: error?.message || "Gagal mengirim push" };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Gagal mengirim push";
+    console.error("sendWebPushDirect error:", message);
+    return { success: false, error: message };
   }
 }

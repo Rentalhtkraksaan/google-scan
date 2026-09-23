@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Bell, BellRing, BellOff, Volume2, ShieldCheck, Check } from "lucide-react";
+import { Bell, BellRing, Volume2 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import {
   playCashierDing,
@@ -36,7 +36,6 @@ export function NotificationPrompt({
 }: NotificationPromptProps) {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSupported, setIsSupported] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
   // Mendaftarkan / Menyinkronkan Push Subscription ke Server
@@ -59,7 +58,6 @@ export function NotificationPrompt({
       }
 
       if (subscription) {
-        setIsSubscribed(true);
         // Kirim subscription ke backend untuk disimpan di database
         await fetch("/api/push/subscribe", {
           method: "POST",
@@ -152,7 +150,7 @@ export function NotificationPrompt({
           outletName,
         }),
       });
-    } catch (e) {
+    } catch {
       // Fallback local notification
       sendSmartphoneNotification(
         "⭐⭐⭐⭐⭐ Tes Notifikasi Ulasan Toko!",

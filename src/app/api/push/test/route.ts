@@ -29,10 +29,11 @@ export async function POST(req: NextRequest) {
       { success: false, message: "outletId atau subscription diperlukan." },
       { status: 400 }
     );
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Gagal mengirim tes notifikasi.";
     console.error("Error in test push route:", error);
     return NextResponse.json(
-      { success: false, message: error?.message || "Gagal mengirim tes notifikasi." },
+      { success: false, message },
       { status: 500 }
     );
   }
