@@ -110,19 +110,65 @@ export default function ActivityLogTable({
     }
   };
 
-  const handleDeleteAll = async () => {
-    if (!confirm(`Hapus SEMUA ${total} log aktivitas? Tindakan ini tidak dapat dibatalkan dan permanen!`)) return;
-    if (!confirm("Konfirmasi sekali lagi: yakin ingin menghapus semua log?")) return;
-    setIsDeletingAll(true);
-    const res = await deleteAllActivityLogsAction();
-    setIsDeletingAll(false);
-    if (res.success) {
-      showSuccessAlert("Semua Log Dihapus!", res.message, 1800);
-      fetchLogs(1, "", "ALL");
-    } else {
-      showErrorAlert("Gagal", res.message);
+  const isFiltered = Boolean(search.trim() || (category && category !== "ALL"));
+
+  const getCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case "SCAN": return "Scan Meja Pelanggan";
+      case "FIVE_STAR": return "Ulasan Bintang 5";
+      case "FOUR_STAR": return "Ulasan Bintang 4";
+      case "AUTH": return "Login & Sesi";
+      case "GENERATE_CARDS": return "Generate Kartu";
+      case "ASSIGN": return "Hubungkan Kartu";
+      case "TOGGLE_CARD": return "Status Kartu";
+      case "REGISTER_OUTLET": return "Registrasi Outlet";
+      case "UPDATE_OUTLET": return "Update Outlet";
+      case "CREATE_ADMIN": return "Buat Admin Lapangan";
+      case "CREATE_SUPER_ADMIN": return "Buat Super Admin 2";
+      default: return cat;
     }
   };
+
+  const handleDeleteAll = async () => {
+    if (isFiltered) {
+      const filterParts: string[] = [];
+      if (category && category !== "ALL") filterParts.push(`Kategori: "${getCategoryLabel(category)}"`);
+      if (search.trim()) filterParts.push(`Pencarian: "${search.trim()}"`);
+      const filterDesc = filterParts.join(" & ");
+
+      if (!confirm(`Hapus ${total} log aktivitas yang SEDANG DIFILTER (${filterDesc})?\n\nPerhatian: Log aktivitas di luar filter ini TETAP AMAN dan TIDAK akan terhapus.`)) return;
+      if (!confirm(`Konfirmasi Terakhir: Yakin ingin menghapus ${total} data log terfilter ini?`)) return;
+
+      setIsDeletingAll(true);
+      const res = await deleteAllActivityLogsAction({
+        search: search.trim(),
+        actionCategory: category,
+      });
+      setIsDeletingAll(false);
+
+      if (res.success) {
+        showSuccessAlert("Log Terfilter Dihapus!", res.message, 1800);
+        fetchLogs(1, search, category);
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } else {
+      if (!confirm(`PERINGATAN! Anda TIDAK sedang memfilter log aktivitas.\n\nYakin ingin menghapus SEMUA ${total} log aktivitas sistem secara permanen?`)) return;
+      if (!confirm("Konfirmasi Terakhir: SEMUA riwayat log aktivitas di database akan DIHAPUS BERSIH. Lanjutkan?")) return;
+
+      setIsDeletingAll(true);
+      const res = await deleteAllActivityLogsAction();
+      setIsDeletingAll(false);
+
+      if (res.success) {
+        showSuccessAlert("Semua Log Dihapus!", res.message, 1800);
+        fetchLogs(1, "", "ALL");
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    }
+  };
+
 
   const formatTimestamp = (dateInput: Date | string) => {
     const d = new Date(dateInput);
@@ -299,13 +345,21 @@ export default function ActivityLogTable({
               <button
                 onClick={handleDeleteAll}
                 disabled={isDeletingAll || isPending}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-900/30 hover:bg-rose-800/50 text-rose-400 hover:text-rose-300 border border-rose-700/40 text-xs font-medium transition-all shadow-sm disabled:opacity-50"
-                title="Hapus semua log (hanya Super Admin Master)"
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all shadow-sm disabled:opacity-50 ${
+                  isFiltered
+                    ? "bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-600/40"
+                    : "bg-rose-900/30 hover:bg-rose-800/50 text-rose-400 hover:text-rose-300 border border-rose-700/40"
+                }`}
+                title={
+                  isFiltered
+                    ? `Hapus hanya ${total} data log yang sedang difilter (${getCategoryLabel(category)})`
+                    : "Hapus seluruh log aktivitas di database (hanya Super Admin Master)"
+                }
               >
                 {isDeletingAll
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   : <AlertTriangle className="w-3.5 h-3.5" />}
-                <span>Hapus Semua</span>
+                <span>{isFiltered ? `Hapus Terfilter (${total})` : `Hapus Semua (${total})`}</span>
               </button>
             )}
             <button
@@ -393,6 +447,7 @@ export default function ActivityLogTable({
                 <option value="ALL">Semua Aktivitas</option>
                 <option value="SCAN">Scan Meja Pelanggan</option>
                 <option value="FIVE_STAR">Ulasan Bintang 5</option>
+                <option value="FOUR_STAR">Ulasan Bintang 4</option>
                 <option value="AUTH">Login & Sesi</option>
                 <option value="GENERATE_CARDS">Generate Kartu</option>
                 <option value="ASSIGN">Hubungkan Kartu</option>

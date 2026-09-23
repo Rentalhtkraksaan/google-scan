@@ -328,9 +328,18 @@ export async function getActivityLogsAction(
     }
 
     if (actionCategory && actionCategory !== "ALL") {
-      andFilters.push({
-        action: { startsWith: actionCategory },
-      });
+      if (actionCategory === "AUTH") {
+        andFilters.push({
+          OR: [
+            { action: { startsWith: "AUTH" } },
+            { action: { in: ["LOGIN", "LOGOUT"] } },
+          ],
+        });
+      } else {
+        andFilters.push({
+          action: { startsWith: actionCategory },
+        });
+      }
     }
 
     const where: Prisma.ActivityLogWhereInput = andFilters.length > 0 ? { AND: andFilters } : {};
@@ -396,10 +405,15 @@ export async function deleteActivityLogAction(logId: string): Promise<ActionResu
 }
 
 /**
- * Delete ALL activity logs.
+ * Delete activity logs.
+ * Jika parameter filter (search / actionCategory) diberikan, hanya log yang cocok dengan filter yang dihapus.
+ * Jika tidak ada filter, menghapus seluruh log aktivitas sistem.
  * Hanya Super Admin Master (isSuperAdminMaster = true) yang boleh.
  */
-export async function deleteAllActivityLogsAction(): Promise<ActionResult<{ count: number }>> {
+export async function deleteAllActivityLogsAction(params?: {
+  search?: string;
+  actionCategory?: string;
+}): Promise<ActionResult<{ count: number }>> {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -415,16 +429,52 @@ export async function deleteAllActivityLogsAction(): Promise<ActionResult<{ coun
       return { success: false, message: "Hanya Super Admin Master yang dapat menghapus semua log." };
     }
 
-    const { count } = await prisma.activityLog.deleteMany({});
+    const andFilters: Prisma.ActivityLogWhereInput[] = [];
 
+    const search = params?.search?.trim();
+    if (search) {
+      andFilters.push({
+        OR: [
+          { userName: { contains: search } },
+          { title: { contains: search } },
+          { description: { contains: search } },
+          { targetName: { contains: search } },
+          { action: { contains: search } },
+        ],
+      });
+    }
+
+    const actionCategory = params?.actionCategory;
+    if (actionCategory && actionCategory !== "ALL") {
+      if (actionCategory === "AUTH") {
+        andFilters.push({
+          OR: [
+            { action: { startsWith: "AUTH" } },
+            { action: { in: ["LOGIN", "LOGOUT"] } },
+          ],
+        });
+      } else {
+        andFilters.push({
+          action: { startsWith: actionCategory },
+        });
+      }
+    }
+
+    const where: Prisma.ActivityLogWhereInput = andFilters.length > 0 ? { AND: andFilters } : {};
+
+    const { count } = await prisma.activityLog.deleteMany({ where });
+
+    const isFiltered = andFilters.length > 0;
     return {
       success: true,
-      message: `Berhasil menghapus ${count} log aktivitas.`,
+      message: isFiltered
+        ? `Berhasil menghapus ${count} log aktivitas terfilter.`
+        : `Berhasil menghapus seluruh ${count} log aktivitas.`,
       data: { count },
     };
   } catch (error) {
-    console.error("Error deleting all activity logs:", error);
-    return { success: false, message: "Gagal menghapus semua log aktivitas." };
+    console.error("Error deleting activity logs:", error);
+    return { success: false, message: "Gagal menghapus log aktivitas." };
   }
 }
 
