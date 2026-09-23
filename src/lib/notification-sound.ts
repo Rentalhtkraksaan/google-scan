@@ -145,8 +145,8 @@ export function sendSmartphoneNotification(title: string, body: string, url: str
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification(title, {
           body,
-          icon: "/icon-192.png",
-          badge: "/icon-192.png",
+          icon: "/api/logo/landing",
+          badge: "/api/logo/landing",
           vibrate: [250, 100, 250, 100, 450],
           tag: `alert-${Date.now()}`,
           data: { url },
@@ -169,8 +169,8 @@ function fallbackNotification(title: string, body: string, url: string) {
   try {
     const notif = new Notification(title, {
       body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      icon: "/api/logo/landing",
+      badge: "/api/logo/landing",
     });
     notif.onclick = () => {
       window.focus();

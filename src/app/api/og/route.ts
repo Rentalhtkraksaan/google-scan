@@ -7,10 +7,10 @@ export async function GET(req: NextRequest) {
   try {
     const setting = await prisma.siteSetting.findUnique({
       where: { id: "default" },
-      select: { faviconUrl: true, dashboardLogoUrl: true },
+      select: { landingPageLogoUrl: true, faviconUrl: true, dashboardLogoUrl: true },
     });
 
-    const candidateUrl = setting?.faviconUrl || setting?.dashboardLogoUrl;
+    const candidateUrl = setting?.landingPageLogoUrl || setting?.faviconUrl || setting?.dashboardLogoUrl;
 
     if (candidateUrl) {
       if (candidateUrl.startsWith("http://") || candidateUrl.startsWith("https://") || candidateUrl.startsWith("/")) {

@@ -45,8 +45,8 @@ export async function sendWebPushToOutlet(
     const notificationString = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      icon: payload.icon || "/icon-192.png",
-      badge: payload.badge || "/icon-192.png",
+      icon: payload.icon || "/api/logo/landing",
+      badge: payload.badge || "/api/logo/landing",
       url: payload.url || "/portal",
       tag: payload.tag || `outlet-alert-${Date.now()}`,
       action: payload.action,
@@ -108,8 +108,8 @@ export async function sendWebPushDirect(
     const notificationString = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      icon: payload.icon || "/api/og",
-      badge: payload.badge || "/api/og",
+      icon: payload.icon || "/api/logo/landing",
+      badge: payload.badge || "/api/logo/landing",
       url: payload.url || "/portal",
       tag: payload.tag || `direct-alert-${Date.now()}`,
       action: payload.action,

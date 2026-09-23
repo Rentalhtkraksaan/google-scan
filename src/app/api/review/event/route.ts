@@ -75,6 +75,8 @@ export async function POST(req: NextRequest) {
             body: targetCardCode
               ? `Pelanggan di meja "${targetCardCode}" baru saja memberi bintang 5!`
               : "Pelanggan baru saja memberikan rating bintang 5 di Google Review!",
+            icon: "/api/logo/landing",
+            badge: "/api/logo/landing",
             url: "/portal",
             action: "FIVE_STAR_REVIEW",
           });
@@ -126,6 +128,8 @@ export async function POST(req: NextRequest) {
             body: targetCardCode
               ? `Pengunjung di meja "${targetCardCode}" baru saja membuka ulasan.`
               : "Ada pengunjung sedang membuka ulasan di meja Anda.",
+            icon: "/api/logo/landing",
+            badge: "/api/logo/landing",
             url: "/portal",
             action: "SCAN_CARD",
           });

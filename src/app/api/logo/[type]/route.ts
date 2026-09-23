@@ -26,7 +26,7 @@ export async function GET(
     const dataUrl = setting ? setting[selectField] : null;
 
     if (!dataUrl) {
-      return new NextResponse(null, { status: 404 });
+      return NextResponse.redirect(new URL("/icon-192.png", req.url));
     }
 
     // If it's a standard URL (http/https), redirect directly

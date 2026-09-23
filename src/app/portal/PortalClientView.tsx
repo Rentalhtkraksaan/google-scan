@@ -660,12 +660,17 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         </div>
       </div>
 
-      {/* Riwayat Aktivitas Outlet */}
+      {/* Riwayat Aktivitas & Scan Ulasan Outlet */}
       <div className="pt-2">
         <ActivityLogTable
-          title="Riwayat Aktivitas Login & Logout"
-          subtitle="Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem."
+          title={outlet.isMember ? "Riwayat Scan Kartu & Ulasan Pelanggan 🛎️" : "Riwayat Aktivitas Akun"}
+          subtitle={
+            outlet.isMember
+              ? "Catatan riwayat setiap pengunjung yang scan kartu meja, ulasan bintang 5, serta akses akun outlet Anda."
+              : "Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem. (Tingkatkan ke Member Premium untuk membuka pencatatan riwayat scan & ulasan pelanggan)."
+          }
           isOutletView={true}
+          isMember={outlet.isMember}
         />
       </div>
 

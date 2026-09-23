@@ -263,18 +263,49 @@ export async function getActivityLogsAction(
       };
     } else {
       // 🏪 USER (Outlet Owner):
-      // Hanya menampilkan riwayat kapan pemilik login dan logout dari sistem.
-      // STRICT FILTER: Bebas dari log scan kartu pengunjung, masukan/feedback, atau log admin.
-      roleWhereClause = {
-        AND: [
-          { userId: currentUser.id },
-          {
-            action: {
-              in: ["AUTH_LOGIN", "AUTH_LOGOUT", "LOGIN", "LOGOUT"],
+      const outlet = currentUser.outlet;
+      const isMember = outlet?.isMember ?? false;
+
+      if (outlet && isMember) {
+        // 👑 Outlet A adalah Member Premium:
+        // Dapat melihat:
+        // 1. Log scan kartu meja pengunjung di outlet ini (SCAN_CARD)
+        // 2. Log ulasan bintang 5 pengunjung di outlet ini (FIVE_STAR_REVIEW)
+        // 3. Log login & logout akun outlet ini
+        roleWhereClause = {
+          OR: [
+            { outletId: outlet.id },
+            { userId: currentUser.id },
+          ],
+          AND: [
+            {
+              action: {
+                in: [
+                  "AUTH_LOGIN",
+                  "AUTH_LOGOUT",
+                  "LOGIN",
+                  "LOGOUT",
+                  "SCAN_CARD",
+                  "FIVE_STAR_REVIEW",
+                ],
+              },
             },
-          },
-        ],
-      };
+          ],
+        };
+      } else {
+        // Outlet B yang BUKAN Member:
+        // "kalau outlet b yg tidak member maka yauda biarin" -> Hanya log autentikasi login/logout sendiri
+        roleWhereClause = {
+          AND: [
+            { userId: currentUser.id },
+            {
+              action: {
+                in: ["AUTH_LOGIN", "AUTH_LOGOUT", "LOGIN", "LOGOUT"],
+              },
+            },
+          ],
+        };
+      }
     }
 
     // ─── Search & Category Filters ─────────────────────────────────────────
