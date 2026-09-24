@@ -73,6 +73,150 @@ export function playCashierDing() {
   }
 }
 
+/**
+ * Plays a vibrant cash register "Cha-Ching!" sound with coin jingle
+ */
+export function playChaChing() {
+  if (typeof window === "undefined") return;
+
+  try {
+    unlockAudioContext();
+    if (!sharedAudioCtx) return;
+
+    const ctx = sharedAudioCtx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const now = ctx.currentTime;
+
+    // 1. Register mechanical snap / drawer slide
+    const slideOsc = ctx.createOscillator();
+    const slideGain = ctx.createGain();
+    slideOsc.type = "triangle";
+    slideOsc.frequency.setValueAtTime(480, now);
+    slideOsc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+    slideGain.gain.setValueAtTime(0.35, now);
+    slideGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    slideOsc.connect(slideGain);
+    slideGain.connect(ctx.destination);
+    slideOsc.start(now);
+    slideOsc.stop(now + 0.15);
+
+    // 2. High-pitched cash register bell ping ("Ching!")
+    createBellStrike(ctx, 2093, now + 0.08, 0.5); // C7
+    createBellStrike(ctx, 3135.96, now + 0.08, 0.35); // G7
+    createBellStrike(ctx, 4186, now + 0.08, 0.2); // C8
+
+    // 3. Coins dropping / clinking jingle (scattered metallic pings)
+    createBellStrike(ctx, 3520, now + 0.18, 0.35);
+    createBellStrike(ctx, 2793.83, now + 0.24, 0.4);
+    createBellStrike(ctx, 4434.92, now + 0.28, 0.3);
+    createBellStrike(ctx, 3951, now + 0.33, 0.25);
+  } catch (e) {
+    console.warn("playChaChing failed:", e);
+  }
+}
+
+/**
+ * Plays an ultra-elegant crystal hotel concierge chime ("Crystal Ting")
+ */
+export function playLuxuryChime() {
+  if (typeof window === "undefined") return;
+
+  try {
+    unlockAudioContext();
+    if (!sharedAudioCtx) return;
+
+    const ctx = sharedAudioCtx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const now = ctx.currentTime;
+
+    // Rich harmonic chord with slow crystal decay (E6, G#6, B6, E7)
+    createBellStrike(ctx, 1318.5, now, 0.35);
+    createBellStrike(ctx, 1661.22, now + 0.09, 0.4);
+    createBellStrike(ctx, 1975.53, now + 0.18, 0.45);
+    createBellStrike(ctx, 2637, now + 0.27, 0.6);
+  } catch (e) {
+    console.warn("playLuxuryChime failed:", e);
+  }
+}
+
+/**
+ * Plays a triumphant victory fanfare celebration arpeggio
+ */
+export function playCelebrationCheer() {
+  if (typeof window === "undefined") return;
+
+  try {
+    unlockAudioContext();
+    if (!sharedAudioCtx) return;
+
+    const ctx = sharedAudioCtx;
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const now = ctx.currentTime;
+
+    // C5 -> E5 -> G5 -> C6 -> E6 victory fanfare
+    const freqs = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    freqs.forEach((freq, idx) => {
+      createBellStrike(ctx, freq, now + idx * 0.08, 0.35 + idx * 0.05);
+    });
+    // Final flourish ping
+    createBellStrike(ctx, 2093, now + 0.48, 0.6);
+  } catch (e) {
+    console.warn("playCelebrationCheer failed:", e);
+  }
+}
+
+/**
+ * Plays sound effect by identifier
+ */
+export function playSoundEffect(effectType: string = "BELL_DOUBLE") {
+  switch (effectType) {
+    case "CHA_CHING":
+      playChaChing();
+      break;
+    case "LUXURY_CHIME":
+      playLuxuryChime();
+      break;
+    case "CELEBRATION":
+      playCelebrationCheer();
+      break;
+    case "BELL_DOUBLE":
+    default:
+      playCashierDing();
+      break;
+  }
+}
+
+export const SOUND_EFFECT_OPTIONS = [
+  {
+    id: "BELL_DOUBLE",
+    name: "Lonceng Kasir Ganda",
+    badge: "Populer 🔔",
+    icon: "🔔",
+    desc: "Suara denting lonceng ganda meja kasir yang tajam, jernih & bergetar",
+  },
+  {
+    id: "CHA_CHING",
+    name: "Register Uang Masuk (Cha-Ching!)",
+    badge: "Cuan 💵",
+    icon: "💵",
+    desc: "Suara laci kasir terbuka dan gemerincing koin cuan tanda transaksi",
+  },
+  {
+    id: "LUXURY_CHIME",
+    name: "Lonceng Kristal Mewah",
+    badge: "Elegan ✨",
+    icon: "✨",
+    desc: "Harmoni denting kristal hotel bintang 5 yang mewah dan ramah di telinga",
+  },
+  {
+    id: "CELEBRATION",
+    name: "Selebrasi Kemenangan (Fanfare)",
+    badge: "Meriah 🎉",
+    icon: "🎉",
+    desc: "Arpeggio nada bertingkat gembira merayakan apresiasi bintang 5 dari pelanggan",
+  },
+];
+
 function createBellStrike(ctx: AudioContext, frequency: number, startTime: number, volume: number) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();

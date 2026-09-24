@@ -427,3 +427,99 @@ export async function getMembershipRequestsAction() {
     return { success: false, requests: [], message: "Gagal memuat daftar permintaan." };
   }
 }
+
+/**
+ * Update Pengaturan Fitur VIP Outlet (Efek Suara & Teks Sambutan Audio Custom)
+ */
+export async function updateOutletVipSettingsAction(data: {
+  outletId: string;
+  soundEffect?: string;
+  customGreetingText?: string;
+}) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: data.outletId },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    // Role check: Admin, Super Admin, atau pemilik outlet itu sendiri
+    if (session.user.role === "USER" && outlet.ownerId !== session.user.id) {
+      return { success: false, message: "Akses ditolak." };
+    }
+
+    await prisma.outlet.update({
+      where: { id: data.outletId },
+      data: {
+        soundEffect: data.soundEffect !== undefined ? data.soundEffect : outlet.soundEffect,
+        customGreetingText: data.customGreetingText !== undefined ? data.customGreetingText : outlet.customGreetingText,
+      },
+    });
+
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      message: "Pengaturan fitur VIP berhasil disimpan!",
+    };
+  } catch (err: unknown) {
+    console.error("Error updateOutletVipSettingsAction:", err);
+    return {
+      success: false,
+      message: (err as Error)?.message || "Gagal menyimpan pengaturan VIP.",
+    };
+  }
+}
+
+/**
+ * Reset / Refresh Token Pairing QR Kasir
+ */
+export async function resetStaffPairingTokenAction(outletId: string) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    if (session.user.role === "USER" && outlet.ownerId !== session.user.id) {
+      return { success: false, message: "Akses ditolak." };
+    }
+
+    const newToken = "ksr_" + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+
+    await prisma.outlet.update({
+      where: { id: outletId },
+      data: { staffPairingToken: newToken },
+    });
+
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      newToken,
+      message: "Kode Pairing Kasir berhasil direset! HP staf sebelumnya telah diputus.",
+    };
+  } catch (err: unknown) {
+    console.error("Error resetStaffPairingTokenAction:", err);
+    return {
+      success: false,
+      message: (err as Error)?.message || "Gagal mereset token kasir.",
+    };
+  }
+}
+

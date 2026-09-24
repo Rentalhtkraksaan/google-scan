@@ -116,6 +116,11 @@ model Outlet {
   membershipStartedAt DateTime?
   membershipExpiresAt DateTime?
 
+  // Fitur Eksklusif Member VIP
+  soundEffect         String    @default("BELL_DOUBLE") // BELL_DOUBLE | CHA_CHING | LUXURY_CHIME | CELEBRATION
+  customGreetingText  String?   @db.Text
+  staffPairingToken   String?   @unique
+
   qrCards            QrCard[]
   feedbacks          CustomerFeedback[]
   pushSubscriptions  PushSubscription[]

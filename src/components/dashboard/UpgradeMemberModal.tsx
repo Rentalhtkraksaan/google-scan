@@ -164,26 +164,26 @@ export function UpgradeMemberModal({
             Tingkatkan ke Member Premium
           </h3>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Buka fitur notifikasi dering kasir & getar realtime saat ulasan bintang 5 masuk.
+            Buka fitur suara AI sebut nama toko, pilihan efek suara kasir, dan multi-pairing HP staf.
           </p>
 
           {/* Fitur yang Didapat */}
           <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] sm:text-xs">
             <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Suara AI Sebut Nama Toko</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
               <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Suara Lonceng Kasir</span>
+              <span>Pilihan Suara (Cha-ching!)</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
               <BellRing className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Dering & Getar HP Mati</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Sambutan Ramah Audio</span>
+              <span>Multi-Kasir Pairing QR</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
               <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Badge Member Mewah</span>
+              <span>Dering & Getar HP Layar Mati</span>
             </div>
           </div>
         </div>

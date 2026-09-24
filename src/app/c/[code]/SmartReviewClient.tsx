@@ -15,6 +15,7 @@ import {
   User,
   Volume2,
 } from "lucide-react";
+import { playSoundEffect } from "@/lib/notification-sound";
 
 interface SmartReviewClientProps {
   cardCode: string;
@@ -25,6 +26,8 @@ interface SmartReviewClientProps {
     whatsappNumber?: string | null;
     ownerName?: string | null;
     isMember?: boolean;
+    soundEffect?: string | null;
+    customGreetingText?: string | null;
   };
 }
 
@@ -105,14 +108,17 @@ function playCelebrationChime() {
 }
 
 // Web Speech API Voice (0 KB audio file download, realtime Bahasa Indonesia)
-function speakThankYouVoice(rating: number = 5) {
+function speakThankYouVoice(outletName: string, customGreeting?: string | null, rating: number = 5) {
   try {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      const text =
-        rating === 4
-          ? "Terima kasih banyak atas bintang empatnya, tunggu sebentar sistem sedang dialihkan."
-          : "Terima kasih banyak atas bintang limanya, tunggu sebentar sistem sedang dialihkan.";
+      let text = customGreeting?.trim();
+      if (!text) {
+        text =
+          rating === 4
+            ? `Terima kasih banyak atas bintang empatnya untuk ${outletName}. Ulasan kakak sangat berarti bagi kami.`
+            : `Terima kasih banyak kak sudah mampir ke ${outletName}! Ulasan bintang lima kakak sangat berharga bagi kemajuan usaha kami.`;
+      }
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "id-ID";
       utterance.rate = 0.98;
@@ -281,10 +287,10 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
     setSelectedRating(rating);
 
     if (rating >= 4) {
-      // 4-5 Stars -> Rayakan dengan Confetti, Efek Lonceng Kasir & Suara Ucapan Ramah (Khusus Member Premium)
+      // 4-5 Stars -> Rayakan dengan Confetti, Efek Suara Kasir Pilihan & Suara Ucapan Ramah (Khusus Member Premium)
       if (outlet.isMember) {
-        playCelebrationChime();
-        speakThankYouVoice(rating);
+        playSoundEffect(outlet.soundEffect || "BELL_DOUBLE");
+        speakThankYouVoice(outlet.name, outlet.customGreetingText, rating);
       }
       triggerConfetti();
       setShowRedirectModal(true);

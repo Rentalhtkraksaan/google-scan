@@ -37,6 +37,9 @@ export default async function PortalPage() {
             isMember: true,
             membershipStartedAt: true,
             membershipExpiresAt: true,
+            soundEffect: true,
+            customGreetingText: true,
+            staffPairingToken: true,
             membershipPayments: {
               where: { status: "PENDING" },
               take: 1,
@@ -82,6 +85,16 @@ export default async function PortalPage() {
     redirect("/admin");
   }
 
+  // Auto-init staffPairingToken if null
+  if (user.outlet && !user.outlet.staffPairingToken) {
+    const generatedToken = "ksr_" + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+    await prisma.outlet.update({
+      where: { id: user.outlet.id },
+      data: { staffPairingToken: generatedToken },
+    }).catch(() => {});
+    user.outlet.staffPairingToken = generatedToken;
+  }
+
   // Prioritas Mitra Lapangan: Admin yang memegang salah satu kartu (assignedAdmin), jika tidak ada fallback ke pembuat akun (createdBy)
   const adminContact =
     user.outlet?.qrCards?.find((c) => c.assignedAdmin)?.assignedAdmin || user.createdBy;
@@ -96,6 +109,9 @@ export default async function PortalPage() {
         isMember: isMemberActive,
         membershipStartedAt: user.outlet.membershipStartedAt,
         membershipExpiresAt: user.outlet.membershipExpiresAt,
+        soundEffect: user.outlet.soundEffect || "BELL_DOUBLE",
+        customGreetingText: user.outlet.customGreetingText || null,
+        staffPairingToken: user.outlet.staffPairingToken || null,
         hasPendingPayment: (user.outlet.membershipPayments?.length || 0) > 0,
         qrCards: user.outlet.qrCards,
         qrCard: user.outlet.qrCards[0] || null,

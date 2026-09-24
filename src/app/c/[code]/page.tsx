@@ -184,6 +184,8 @@ export default async function SmartReviewPage({
         whatsappNumber: card.outlet.owner?.whatsappNumber || null,
         ownerName: card.outlet.owner?.fullName || null,
         isMember: isMemberActive,
+        soundEffect: card.outlet.soundEffect || "BELL_DOUBLE",
+        customGreetingText: card.outlet.customGreetingText || null,
       }}
     />
   );
