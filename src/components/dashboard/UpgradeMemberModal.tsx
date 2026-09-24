@@ -185,6 +185,10 @@ export function UpgradeMemberModal({
               <Crown className="w-4 h-4 text-amber-400 shrink-0" />
               <span>Dering & Getar HP Layar Mati</span>
             </div>
+            <div className="col-span-2 flex items-center justify-center gap-2 p-2 rounded-xl bg-gradient-to-r from-amber-500/15 to-indigo-500/15 border border-amber-500/30 text-amber-200 font-semibold">
+              <span className="text-base">📢</span>
+              <span>Mode Speaker Bluetooth (Umumkan Bintang 5 ke Kafe)</span>
+            </div>
           </div>
         </div>
 

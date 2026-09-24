@@ -17,6 +17,8 @@ import {
   X,
   Share,
   PlusSquare,
+  Megaphone,
+  Radio,
 } from "lucide-react";
 import {
   unlockAudioContext,
@@ -50,6 +52,57 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
   const [lastCheckTime, setLastCheckTime] = useState<number>(Date.now());
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [isPushLoading, setIsPushLoading] = useState(false);
+  const [isSpeakerAnnouncement, setIsSpeakerAnnouncement] = useState(true);
+
+  // Load Bluetooth Speaker Announcement preference from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(`cashier_speaker_mode_${outlet.id}`);
+        if (saved !== null) {
+          setIsSpeakerAnnouncement(saved === "true");
+        }
+      } catch {}
+    }
+  }, [outlet.id]);
+
+  const handleToggleSpeakerAnnouncement = () => {
+    const nextVal = !isSpeakerAnnouncement;
+    setIsSpeakerAnnouncement(nextVal);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`cashier_speaker_mode_${outlet.id}`, String(nextVal));
+      } catch {}
+    }
+  };
+
+  // Helper: Announce 5-star review via Web Speech API (Bluetooth/AUX speaker connected)
+  const speakSpeakerAnnouncement = (outletName: string, isFiveStar: boolean = true) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const text = isFiveStar
+        ? `Perhatian! Baru saja ada ulasan bintang 5 untuk ${outletName}. Terima kasih banyak atas kunjungannya!`
+        : `Pemberitahuan. Ada pelanggan baru saja memindai kartu ulasan di ${outletName}.`;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "id-ID";
+      utterance.rate = 0.92;
+      utterance.pitch = 1.05;
+
+      const voices = window.speechSynthesis.getVoices();
+      const idVoice = voices.find((v) => v.lang === "id-ID" || v.lang.startsWith("id"));
+      if (idVoice) {
+        utterance.voice = idVoice;
+      }
+
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+      }, 700);
+    } catch (e) {
+      console.error("Speaker announcement error:", e);
+    }
+  };
 
   const { isInstalled, isIOS, showIOSModal, setShowIOSModal, triggerInstall } = usePwaInstall();
 
@@ -171,9 +224,12 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
 
             setAlerts((prev) => [newAlert, ...prev.slice(0, 19)]);
 
-            // Trigger ring & flash
+            // Trigger ring & flash & Bluetooth Speaker Announcement
             if (!isMuted) {
               playSoundEffect(outlet.soundEffect);
+              if (isSpeakerAnnouncement) {
+                speakSpeakerAnnouncement(outlet.name, ev.action.includes("FIVE_STAR") || ev.action.includes("FOUR_STAR"));
+              }
             }
             triggerSmartphoneVibration([300, 150, 300, 150, 500]);
             setIsFlashing(true);
@@ -383,6 +439,81 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
                   : "Aktifkan Dering HP Mati 📲"}
               </span>
             </button>
+          </div>
+        </div>
+
+        {/* Mode Sambungan Speaker Toko (Bluetooth Announcement) - VIP Killer Feature */}
+        <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-900 border-2 border-indigo-500/30 shadow-xl space-y-4 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xl shadow-lg shrink-0">
+                📢
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-sm sm:text-base text-white">
+                    Mode Speaker Bluetooth Toko
+                  </h3>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border ${
+                    isSpeakerAnnouncement
+                      ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                      : "bg-slate-800 text-slate-400 border-slate-700"
+                  }`}>
+                    {isSpeakerAnnouncement ? "🔊 SPEAKER AKTIF" : "NONAKTIF"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Suara pengumuman ulasan bintang 5 otomatis tersambung ke sound system kafe
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleSpeakerAnnouncement();
+              }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer self-start sm:self-auto shrink-0 ${
+                isSpeakerAnnouncement
+                  ? "bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400 shadow-md shadow-indigo-600/30"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+              }`}
+            >
+              {isSpeakerAnnouncement ? "Matikan Pengumuman" : "Aktifkan Mode Speaker"}
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/80">
+            <div className="text-[11px] text-slate-300 leading-relaxed space-y-1">
+              <div className="flex items-center gap-1.5 font-semibold text-white">
+                <span>🔊 Contoh Suara Speaker Kafe:</span>
+              </div>
+              <p className="text-slate-400 italic">
+                &ldquo;Ting tong! Perhatian, baru saja ada ulasan bintang 5 untuk {outlet.name}. Terima kasih banyak atas kunjungannya!&rdquo;
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!audioUnlocked) handleUnlockAudio();
+                playSoundEffect(outlet.soundEffect);
+                speakSpeakerAnnouncement(outlet.name, true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center justify-center gap-2 shrink-0 transition-colors cursor-pointer"
+            >
+              <Megaphone className="w-4 h-4 text-indigo-400" />
+              <span>Tes Pengumuman Speaker 📢</span>
+            </button>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-950/50 border border-slate-800/60 text-[11px] text-slate-400 flex items-start gap-2">
+            <span className="text-amber-400 font-bold shrink-0">💡 TIPS:</span>
+            <span>
+              Cukup sambungkan HP kasir ini ke <strong>Speaker Bluetooth</strong> kafe atau colokkan kabel AUX ke sound system. Setiap ada ulasan bintang 5 di meja makan, speaker toko langsung mengumumkan ucapan terima kasih ke seluruh ruangan kafe!
+            </span>
           </div>
         </div>
 

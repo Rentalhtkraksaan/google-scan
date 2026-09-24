@@ -1436,46 +1436,66 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       )}
                     </div>
 
-                    {/* 4 Poin Fitur Unggulan VIP */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                          <Sparkles className="w-4 h-4" />
+                    {/* 5 Poin Fitur Unggulan VIP */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-2">
+                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <h4 className="text-xs font-bold text-white">Suara AI Sebut Toko</h4>
+                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                            Menyebut nama toko Anda di HP pelanggan saat ulasan 5 bintang.
+                          </p>
                         </div>
-                        <h4 className="text-xs font-bold text-white">Suara AI Sebut Nama Toko</h4>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          Menyebut nama toko Anda langsung di HP pengunjung saat ulasan bintang 5.
-                        </p>
                       </div>
 
-                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                          <Volume2 className="w-4 h-4" />
+                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">
+                            <Volume2 className="w-4 h-4" />
+                          </div>
+                          <h4 className="text-xs font-bold text-white">4 Efek Suara Kasir</h4>
+                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                            Nada dering kasir: Lonceng Kasir, Cha-Ching Uang, Kristal, Fanfare.
+                          </p>
                         </div>
-                        <h4 className="text-xs font-bold text-white">4 Efek Suara Kasir</h4>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          Pilihan nada dering kasir: Lonceng Kasir, Cha-Ching Uang Masuk, Kristal, Fanfare.
-                        </p>
                       </div>
 
-                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                          <Smartphone className="w-4 h-4" />
+                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">
+                            <Smartphone className="w-4 h-4" />
+                          </div>
+                          <h4 className="text-xs font-bold text-white">Multi-Kasir Pairing</h4>
+                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                            Konek hingga 3-5 HP staf kasir/barista tanpa bagi-bagi password.
+                          </p>
                         </div>
-                        <h4 className="text-xs font-bold text-white">Multi-Kasir Pairing QR</h4>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          Hubungkan HP kasir/barista tanpa bagi-bagi password toko ke karyawan.
-                        </p>
                       </div>
 
-                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5">
-                        <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                          <Bell className="w-4 h-4" />
+                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-indigo-500/30 space-y-1.5 flex flex-col justify-between bg-indigo-950/20">
+                        <div>
+                          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold mb-2">
+                            📢
+                          </div>
+                          <h4 className="text-xs font-bold text-white">Speaker Bluetooth</h4>
+                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                            Umumkan ulasan bintang 5 ke seluruh ruangan kafe via sound system.
+                          </p>
                         </div>
-                        <h4 className="text-xs font-bold text-white">Dering HP Layar Mati</h4>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          HP kasir berdering kencang & bergetar walau aplikasi ditutup / layar standby.
-                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5 flex flex-col justify-between sm:col-span-2 lg:col-span-1">
+                        <div>
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">
+                            <Bell className="w-4 h-4" />
+                          </div>
+                          <h4 className="text-xs font-bold text-white">Dering HP Layar Mati</h4>
+                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                            HP kasir berdering kencang walau aplikasi ditutup / layar standby.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
