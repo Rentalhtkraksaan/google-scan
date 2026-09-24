@@ -302,7 +302,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       case "CARDS":
         return "Kartu Smart QR";
       case "REVIEWS":
-        return "Riwayat Scan & Ulasan";
+        return "Notifikasi & Sesi Akun";
       case "GOOGLE_REVIEW":
         return "Google Review & Tips";
       case "MEMBERSHIP":
@@ -463,7 +463,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
               </span>
             </button>
 
-            {/* 3. Riwayat Scan & Ulasan */}
+            {/* 3. Notifikasi & Log Sesi */}
             <button
               onClick={() => {
                 setActiveTab("REVIEWS");
@@ -477,7 +477,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             >
               <div className="flex items-center gap-3 truncate">
                 <History className="w-4 h-4 shrink-0" />
-                <span className="truncate">Riwayat & Ulasan</span>
+                <span className="truncate">Notifikasi & Sesi</span>
               </div>
               {outlet.isMember ? (
                 <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -839,7 +839,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           </span>
                         </div>
                         <p className="text-xs text-amber-200/90 mt-0.5">
-                          Lonceng kasir berbunyi di HP pelanggan, notifikasi dering & getar HP mati aktif, serta riwayat ulasan tersimpan rapi.
+                          Lonceng kasir berbunyi di HP pelanggan, sambutan suara ramah, serta notifikasi dering & getar HP mati aktif.
                           {outlet.membershipExpiresAt && (
                             <span className="text-slate-300 ml-1 font-semibold">
                               (Aktif s/d {new Date(outlet.membershipExpiresAt).toLocaleDateString("id-ID")})
@@ -868,7 +868,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       Tingkatkan ke Member Premium (Hanya Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")})
                     </h3>
                     <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                      Dapatkan lonceng kasir & sambutan audio di HP pengunjung, notifikasi dering saat HP tertutup, dan pencatatan riwayat ulasan lengkap di database.
+                      Dapatkan lonceng kasir & sambutan audio di HP pengunjung, serta notifikasi dering & getar otomatis saat HP tertutup secara instan.
                     </p>
                     {outlet.hasPendingPayment && (
                       <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs animate-pulse">
@@ -1142,13 +1142,13 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             </div>
           )}
 
-          {/* TAB 3: REVIEWS (Riwayat Scan & Ulasan) */}
+          {/* TAB 3: REVIEWS (Notifikasi & Sesi Akun) */}
           {activeTab === "REVIEWS" && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="pb-3 border-b border-slate-800">
-                <h2 className="text-lg sm:text-xl font-bold text-white">Riwayat Scan Meja & Ulasan Pelanggan</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-white">Notifikasi Real-time & Sesi Akun</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Pantau setiap pelanggan yang melakukan tap kartu meja atau memberikan penilaian bintang di Google Review.
+                  Pantau notifikasi instan saat pelanggan melakukan tap kartu meja atau memberikan penilaian bintang di Google Review.
                 </p>
               </div>
 
@@ -1159,24 +1159,24 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="font-semibold text-white flex items-center gap-2">
-                      <span>Notifikasi Real-time Aktif (Bebas Memori Database)</span>
+                      <span>Notifikasi Real-time Siaga Aktif</span>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         Live Dering 🛎️
                       </span>
                     </div>
                     <p className="text-slate-300 leading-relaxed text-[11px]">
-                      Setiap kali pelanggan scan kartu meja atau memberikan bintang 5, lonceng kasir & push notifikasi di HP Anda langsung berdering secara instan. Notifikasi diproses langsung ke perangkat secara real-time tanpa membebani penyimpanan database.
+                      Setiap kali pelanggan scan kartu meja atau memberikan bintang 5, lonceng kasir di HP pengunjung & notifikasi push di HP Anda langsung berdering secara instan.
                     </p>
                   </div>
                 </div>
               )}
 
               <ActivityLogTable
-                title={outlet.isMember ? "Riwayat Scan Kartu & Ulasan Pelanggan 🛎️" : "Riwayat Aktivitas Akun"}
+                title={outlet.isMember ? "Riwayat Aktivitas & Sesi Akun 👑" : "Riwayat Aktivitas Akun"}
                 subtitle={
                   outlet.isMember
-                    ? "Catatan riwayat setiap pengunjung yang scan kartu meja, ulasan bintang 5 & 4, serta akses akun outlet Anda."
-                    : "Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem. (Tingkatkan ke Member Premium untuk membuka fitur lonceng kasir & notifikasi ulasan)."
+                    ? "Catatan riwayat sesi login, logout, dan status keamanan akun outlet Anda."
+                    : "Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem. (Tingkatkan ke Member Premium untuk membuka fitur lonceng kasir & notifikasi dering)."
                 }
                 isOutletView={true}
                 isMember={outlet.isMember}
@@ -1295,7 +1295,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
               <div className="pb-3 border-b border-slate-800">
                 <h2 className="text-lg sm:text-xl font-bold text-white">Status & Keanggotaan Member Premium VIP</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Buka fitur suara lonceng kasir di HP pengunjung, dering notifikasi smartphone realtime, dan pencatatan riwayat ulasan.
+                  Buka fitur suara lonceng kasir di HP pengunjung, sambutan ramah audio, dan dering notifikasi smartphone realtime.
                 </p>
               </div>
 
@@ -1357,11 +1357,11 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
 
                     <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-2">
                       <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                        <History className="w-4 h-4" />
+                        <Zap className="w-4 h-4" />
                       </div>
-                      <h4 className="text-xs font-bold text-white">Riwayat Database</h4>
+                      <h4 className="text-xs font-bold text-white">Notifikasi Real-Time</h4>
                       <p className="text-[11px] text-slate-300 leading-relaxed">
-                        Seluruh aktivitas scan meja & ulasan bintang 5 tersimpan permanen di cloud storage akun Anda.
+                        Sinyal dering lonceng & notifikasi push langsung terkirim tanpa delay ke perangkat Anda.
                       </p>
                     </div>
 
@@ -1387,7 +1387,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           <span>UPGRADE KEANGGOTAAN</span>
                         </div>
                         <h3 className="text-xl sm:text-2xl font-black text-white">
-                          Buka Seluruh Fitur Dering & Riwayat Ulasan
+                          Buka Seluruh Fitur Dering & Notifikasi Lonceng Kasir
                         </h3>
                         <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
                           Hanya dengan biaya terjangkau <strong>Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}</strong>, toko Anda akan menjadi outlet prioritas dengan notifikasi dering instan saat pelanggan memberi bintang 5.
@@ -1450,9 +1450,9 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                             <td className="py-3 text-center text-amber-400 font-bold">Aktif (Push Realtime) 📲</td>
                           </tr>
                           <tr>
-                            <td className="py-3 text-slate-300">Pencatatan Riwayat Scan di Database</td>
-                            <td className="py-3 text-center text-slate-500">Tidak Disimpan</td>
-                            <td className="py-3 text-center text-emerald-400 font-bold">Tersimpan Lengkap 📊</td>
+                            <td className="py-3 text-slate-300">Suara Sambutan Ramah di HP Pelanggan</td>
+                            <td className="py-3 text-center text-slate-500">Mati (Hening)</td>
+                            <td className="py-3 text-center text-emerald-400 font-bold">Aktif (Audio Ramah) 🎙️</td>
                           </tr>
                           <tr>
                             <td className="py-3 text-slate-300">Lencana VIP Gold di Dashboard</td>

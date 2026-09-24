@@ -15,7 +15,6 @@ import {
   CreditCard,
   Volume2,
   BellRing,
-  Database,
   Crown,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -179,8 +178,8 @@ export function UpgradeMemberModal({
               <span>Dering & Getar HP Mati</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-              <Database className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Riwayat Lengkap Ulasan</span>
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Sambutan Ramah Audio</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
               <Crown className="w-4 h-4 text-amber-400 shrink-0" />
