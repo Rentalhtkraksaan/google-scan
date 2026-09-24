@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendWebPushToOutlet } from "@/lib/web-push";
 import { isOutletMemberActive } from "@/lib/membership-utils";
+import { broadcastRealtimeReviewEvent } from "@/lib/realtime-events";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,35 +49,18 @@ export async function POST(req: NextRequest) {
         ? `Pelanggan baru saja memberikan ulasan bintang ${starCount} pada kartu "${targetCardCode}".`
         : `Pelanggan baru saja memberikan ulasan bintang ${starCount} di Google Review.`;
 
-      // Fitur Member Premium: Simpan ke database & kirim dering realtime
+      // Fitur Member Premium: Broadcast ke in-memory bus & kirim notifikasi push (Murni realtime, 0 DB storage!)
       if (isMember && targetOutletId) {
-        // Record Activity Log specifically for outlet realtime notification
-        await prisma.activityLog.create({
-          data: {
-            outletId: targetOutletId,
-            userName: "Pengunjung Toko",
-            userRole: "USER",
-            action: actionType,
-            title: titleText,
-            description: descText,
-            targetId: targetCardCode || null,
-            targetName: targetCardCode ? `Kartu ${targetCardCode}` : "Google Review",
-          },
+        // 1. Broadcast ke in-memory RAM event bus untuk portal yang sedang terbuka
+        broadcastRealtimeReviewEvent({
+          outletId: targetOutletId,
+          action: actionType,
+          title: titleText,
+          description: descText,
+          targetId: targetCardCode || null,
         });
 
-        // Record in CustomerFeedback with rating
-        await prisma.customerFeedback.create({
-          data: {
-            outletId: targetOutletId,
-            cardCode: targetCardCode || null,
-            rating: starCount,
-            customerName: "Pengunjung Toko",
-            message: `Pelanggan memberikan rating bintang ${starCount} via kartu ulasan.`,
-            isResolved: true,
-          },
-        });
-
-        // 📲 WEB PUSH: Kirim sinyal push ke HP outlet (berbunyi & bergetar meskipun HP mati / aplikasi ditutup)
+        // 2. 📲 WEB PUSH: Kirim sinyal push ke HP outlet (berbunyi & bergetar meskipun HP mati / aplikasi ditutup)
         try {
           await sendWebPushToOutlet(targetOutletId, {
             title: `${starIcons} Ulasan Bintang ${starCount} Masuk!`,
@@ -97,14 +81,14 @@ export async function POST(req: NextRequest) {
         success: true,
         isMember,
         message: isMember
-          ? `Event ulasan bintang ${starCount} berhasil dicatat & notifikasi dikirim.`
-          : `Event ulasan bintang ${starCount} berhasil (Non-member: tanpa dering & storage).`,
+          ? `Notifikasi ulasan bintang ${starCount} berhasil dikirim (Murni realtime, bebas simpan DB).`
+          : `Event ulasan bintang ${starCount} berhasil (Non-member: tanpa dering).`,
       });
     }
 
     // 2. If Scan Event
     if (eventType === "SCAN") {
-      // Counter scan kartu fisik tetap dihitung
+      // Counter total scan kartu fisik tetap dihitung agar statistik akurat
       if (targetCardCode) {
         await prisma.qrCard.update({
           where: { code: targetCardCode },
@@ -112,24 +96,20 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Fitur Member Premium: Catat log aktivitas & kirim push notif dering
+      // Fitur Member Premium: Broadcast ke in-memory bus & kirim notifikasi push (Murni realtime, 0 DB storage!)
       if (isMember && targetOutletId) {
-        await prisma.activityLog.create({
-          data: {
-            outletId: targetOutletId,
-            userName: "Pengunjung Toko",
-            userRole: "USER",
-            action: "SCAN_CARD",
-            title: "Pengunjung Scan Kartu Meja 🛎️",
-            description: targetCardCode
-              ? `Pengunjung baru saja scan kartu ulasan "${targetCardCode}".`
-              : "Pengunjung baru saja scan kartu ulasan.",
-            targetId: targetCardCode || null,
-            targetName: targetCardCode ? `Kartu ${targetCardCode}` : "Scan Meja",
-          },
+        // 1. Broadcast ke in-memory RAM event bus
+        broadcastRealtimeReviewEvent({
+          outletId: targetOutletId,
+          action: "SCAN_CARD",
+          title: "Pengunjung Scan Kartu Meja 🛎️",
+          description: targetCardCode
+            ? `Pengunjung baru saja scan kartu ulasan "${targetCardCode}".`
+            : "Pengunjung baru saja scan kartu ulasan.",
+          targetId: targetCardCode || null,
         });
 
-        // 📲 WEB PUSH: Beritahu HP outlet bahwa ada pengunjung scan kartu meja
+        // 2. 📲 WEB PUSH: Beritahu HP outlet bahwa ada pengunjung scan kartu meja
         try {
           await sendWebPushToOutlet(targetOutletId, {
             title: "🛎️ Ada Pengunjung Scan Meja!",
@@ -150,8 +130,8 @@ export async function POST(req: NextRequest) {
         success: true,
         isMember,
         message: isMember
-          ? "Event scan kartu berhasil dicatat."
-          : "Event scan kartu dicatat (Non-member: tanpa dering & storage).",
+          ? "Notifikasi scan kartu berhasil dikirim (Murni realtime, bebas simpan DB)."
+          : "Event scan kartu (Non-member: tanpa dering).",
       });
     }
 

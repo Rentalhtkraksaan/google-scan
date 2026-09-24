@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   History,
   Info,
+  Zap,
 } from "lucide-react";
 import { getCardScanUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert } from "@/lib/swal";
@@ -1151,12 +1152,31 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 </p>
               </div>
 
+              {outlet.isMember && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-sky-950/30 to-purple-950/40 border border-indigo-500/20 flex items-start gap-3.5 shadow-lg">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400 mt-0.5">
+                    <Zap className="w-5 h-5 text-indigo-300" />
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="font-semibold text-white flex items-center gap-2">
+                      <span>Notifikasi Real-time Aktif (Bebas Memori Database)</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Live Dering 🛎️
+                      </span>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed text-[11px]">
+                      Setiap kali pelanggan scan kartu meja atau memberikan bintang 5, lonceng kasir & push notifikasi di HP Anda langsung berdering secara instan. Notifikasi diproses langsung ke perangkat secara real-time tanpa membebani penyimpanan database.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <ActivityLogTable
                 title={outlet.isMember ? "Riwayat Scan Kartu & Ulasan Pelanggan 🛎️" : "Riwayat Aktivitas Akun"}
                 subtitle={
                   outlet.isMember
                     ? "Catatan riwayat setiap pengunjung yang scan kartu meja, ulasan bintang 5 & 4, serta akses akun outlet Anda."
-                    : "Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem. (Tingkatkan ke Member Premium untuk membuka pencatatan riwayat scan & ulasan pelanggan)."
+                    : "Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem. (Tingkatkan ke Member Premium untuk membuka fitur lonceng kasir & notifikasi ulasan)."
                 }
                 isOutletView={true}
                 isMember={outlet.isMember}

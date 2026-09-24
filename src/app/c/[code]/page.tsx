@@ -8,6 +8,8 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 import { isOutletMemberActive } from "@/lib/membership-utils";
+import { broadcastRealtimeReviewEvent } from "@/lib/realtime-events";
+import { sendWebPushToOutlet } from "@/lib/web-push";
 
 export const dynamic = "force-dynamic";
 
@@ -138,21 +140,31 @@ export default async function SmartReviewPage({
         data: { scanCount: { increment: 1 } },
       });
 
-      // Fitur Member Premium: Catat riwayat scan ke database outlet
+      // Fitur Member Premium: Broadcast realtime & kirim push notif dering (Murni realtime, 0 DB storage!)
       const isMemberActive = isOutletMemberActive(card.outlet);
       if (card.outletId && isMemberActive) {
-        await prisma.activityLog.create({
-          data: {
-            outletId: card.outletId,
-            userName: "Pengunjung Toko",
-            userRole: "USER",
-            action: "SCAN_CARD",
-            title: "Pengunjung Scan Kartu Meja 🛎️",
-            description: `Pengunjung baru saja scan kartu ulasan "${card.code}".`,
-            targetId: card.code,
-            targetName: `Kartu ${card.code}`,
-          },
+        // 1. In-memory RAM broadcast untuk portal yang sedang terbuka
+        broadcastRealtimeReviewEvent({
+          outletId: card.outletId,
+          action: "SCAN_CARD",
+          title: "Pengunjung Scan Kartu Meja 🛎️",
+          description: `Pengunjung baru saja scan kartu ulasan "${card.code}".`,
+          targetId: card.code,
         });
+
+        // 2. 📲 WEB PUSH: Beritahu HP outlet bahwa ada pengunjung scan kartu meja
+        try {
+          await sendWebPushToOutlet(card.outletId, {
+            title: "🛎️ Ada Pengunjung Scan Meja!",
+            body: `Pengunjung di meja "${card.code}" baru saja membuka ulasan.`,
+            icon: "/api/logo/landing",
+            badge: "/api/logo/landing",
+            url: "/portal",
+            action: "SCAN_CARD",
+          });
+        } catch (pushErr) {
+          console.error("WebPush scan error:", pushErr);
+        }
       }
     } catch (e) {
       console.error("Gagal update scanCount:", e);
