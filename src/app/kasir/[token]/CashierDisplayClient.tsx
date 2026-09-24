@@ -13,6 +13,10 @@ import {
   RotateCw,
   Store,
   Zap,
+  Download,
+  X,
+  Share,
+  PlusSquare,
 } from "lucide-react";
 import {
   unlockAudioContext,
@@ -20,6 +24,7 @@ import {
   triggerSmartphoneVibration,
   SOUND_EFFECT_OPTIONS,
 } from "@/lib/notification-sound";
+import { usePwaInstall } from "@/components/pwa/InstallPwaPrompt";
 
 interface CashierDisplayClientProps {
   outlet: {
@@ -45,6 +50,8 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
   const [lastCheckTime, setLastCheckTime] = useState<number>(Date.now());
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [isPushLoading, setIsPushLoading] = useState(false);
+
+  const { isInstalled, isIOS, showIOSModal, setShowIOSModal, triggerInstall } = usePwaInstall();
 
   const soundOption =
     SOUND_EFFECT_OPTIONS.find((s) => s.id === outlet.soundEffect) ||
@@ -219,6 +226,28 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {!isInstalled ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerInstall();
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+                title="Pasang Aplikasi Kasir di Layar Utama HP"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Pasang Aplikasi</span>
+                <span className="sm:hidden">Pasang APK</span>
+              </button>
+            ) : (
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-[10px] flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                <span className="hidden sm:inline">Aplikasi Terpasang</span>
+                <span className="sm:hidden">Terpasang</span>
+              </span>
+            )}
+
             <button
               type="button"
               onClick={(e) => {
@@ -240,6 +269,41 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
 
       {/* Main Content */}
       <main className="max-w-2xl w-full mx-auto p-4 sm:p-6 space-y-5 flex-1">
+        {/* Banner Pasang Aplikasi Kasir */}
+        {!isInstalled && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-950/30 border-2 border-amber-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center gap-3.5 text-left w-full sm:w-auto">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-bold text-2xl shadow-lg shadow-amber-500/30 shrink-0">
+                📲
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-extrabold text-sm sm:text-base text-white">
+                    Pasang Aplikasi Kasir di HP Ini
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] uppercase tracking-wide">
+                    Rekomendasi
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 leading-relaxed">
+                  Tambahkan ke beranda HP kasir agar langsung terbuka tanpa buka browser & dering saat layar mati lebih stabil.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerInstall();
+              }}
+              className="w-full sm:w-auto shrink-0 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Download className="w-4 h-4" />
+              <span>Pasang Aplikasi Sekarang 🚀</span>
+            </button>
+          </div>
+        )}
         {/* Status Audio Box */}
         {!audioUnlocked && (
           <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-3 animate-pulse">
@@ -375,6 +439,96 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
         <p>🔒 Layar Khusus Kasir & Staf (Aman tanpa akses password & pengaturan toko)</p>
         <p className="text-[10px] text-slate-600">Smart QR Review &bull; Multi-Kasir System</p>
       </footer>
+
+      {/* Modal Panduan Pasang di iPhone / Browser Manual */}
+      {showIOSModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl text-left space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-amber-500/25">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    Pasang Aplikasi Layar Kasir
+                  </h3>
+                  <span className="text-[10px] text-amber-400 font-medium">
+                    Akses Cepat Seperti Aplikasi Play Store
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowIOSModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Ikuti langkah mudah ini untuk memasang layar kasir <strong>&quot;{outlet.name}&quot;</strong> langsung di beranda HP Anda:
+            </p>
+
+            <div className="space-y-2.5 text-xs text-slate-200">
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                  1
+                </div>
+                <div>
+                  <span className="font-semibold text-white block">
+                    {isIOS ? "Ketuk Ikon Bagikan (Share)" : "Buka Menu Browser (Titik Tiga)"}
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    {isIOS
+                      ? "Ketuk tombol kotak berpanah atas [ ⎋ ] di bilah bawah browser Safari Anda."
+                      : "Ketuk ikon menu titik tiga [ ⋮ ] di pojok kanan atas browser Chrome Anda."}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                  2
+                </div>
+                <div>
+                  <span className="font-semibold text-white block">
+                    Pilih &ldquo;Tambahkan ke Layar Utama&rdquo; (Add to Home Screen)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Gulir menu ke bawah lalu ketuk opsi <strong>&ldquo;Add to Home Screen / Tambahkan ke Layar Utama&rdquo;</strong>.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                  3
+                </div>
+                <div>
+                  <span className="font-semibold text-white block">
+                    Ketuk &ldquo;Tambah&rdquo; (Add)
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Ikon aplikasi Layar Kasir akan langsung muncul di beranda HP kasir Anda!
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowIOSModal(false)}
+                className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-amber-500/30 cursor-pointer text-center"
+              >
+                Saya Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
