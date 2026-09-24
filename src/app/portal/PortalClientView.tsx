@@ -950,20 +950,27 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                   </div>
                 </div>
               ) : (
-                <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-2 border-amber-500/50 shadow-xl shadow-amber-500/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-2 border-amber-500/50 shadow-xl shadow-amber-500/10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
                       <Crown className="w-3.5 h-3.5 text-amber-400" />
-                      <span>FITUR DERING & NOTIFIKASI TERKUNCI</span>
+                      <span>FITUR VIP & MULTI-KASIR TERKUNCI</span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-black text-white">
-                      Tingkatkan ke Member Premium (Hanya Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")})
+                    <h3 className="text-base sm:text-xl font-black text-white">
+                      Tingkatkan ke Member VIP Premium (Hanya Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")})
                     </h3>
-                    <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                      Dapatkan lonceng kasir & sambutan audio di HP pengunjung, serta notifikasi dering & getar otomatis saat HP tertutup secara instan.
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                      Buka 5 fasilitas eksklusif: Sambutan Suara AI sebut nama toko Anda, pengumuman ulasan bintang 5 ke speaker kafe/toko via Bluetooth, 4 pilihan nada kasir cuan (&quot;Cha-Ching! 💵&quot;), multi-kasir QR pairing staf, & dering getar layar mati.
                     </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-300">🎙️ Suara AI Toko</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-300">📢 Speaker Bluetooth Kafe</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-300">🔔 Suara Kasir Cha-Ching</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-300">📲 Multi-Kasir QR Staf</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-bold text-amber-300">⚡ Dering Layar Mati</span>
+                    </div>
                     {outlet.hasPendingPayment && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs animate-pulse">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-xs animate-pulse">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Bukti transfer telah dikirim & sedang diverifikasi oleh Super Admin.</span>
                       </div>
@@ -974,7 +981,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                     <button
                       type="button"
                       onClick={() => setIsUpgradeModalOpen(true)}
-                      className="w-full md:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     >
                       <Crown className="w-4 h-4" />
                       <span>{outlet.hasPendingPayment ? "Cek Status / Kirim Ulang Bukti" : "Tingkatkan ke Member 🚀"}</span>
@@ -1748,10 +1755,10 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           <span>UPGRADE KEANGGOTAAN</span>
                         </div>
                         <h3 className="text-xl sm:text-2xl font-black text-white">
-                          Buka Suara AI Sebut Nama Toko, 4 Efek Suara Kasir, & Multi-Kasir Pairing
+                          Buka Suara AI Sebut Nama Toko, Mode Speaker Bluetooth, 4 Efek Suara Kasir, & Multi-Kasir Staf
                         </h3>
                         <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                          Hanya dengan biaya terjangkau <strong>Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}</strong>, toko Anda akan menjadi outlet prioritas dengan suara AI ramah menyebutkan brand toko Anda, efek suara kasir cuan (&quot;Cha-Ching!&quot;), dan menghubungkan banyak HP staf kasir tanpa bagi-bagi password toko.
+                          Hanya dengan biaya terjangkau <strong>Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}</strong>, jadikan outlet Anda modern setara brand waralaba internasional! Dapatkan sambutan suara AI ramah menyebutkan brand toko Anda, pengumuman ulasan bintang 5 ke speaker kafe/toko via Bluetooth, efek suara kasir cuan (&quot;Cha-Ching! 💵&quot;), dan hubungkan banyak HP kasir/barista tanpa bagi-bagi password toko.
                         </p>
                       </div>
 
@@ -1782,46 +1789,71 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                     )}
                   </div>
 
-                  {/* 4 Kartu Fitur Menjual */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
-                        🎙️
+                  {/* 5 Kartu Fitur Menjual */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2 hover:border-amber-500/40 transition-colors flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
+                          🎙️
+                        </div>
+                        <h4 className="text-xs font-bold text-white">Suara AI Sebut Nama Toko</h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          HP pengunjung otomatis menyapa ramah berbahasa Indonesia dan menyebutkan nama brand toko Anda saat kartu ulasan di-tap.
+                        </p>
                       </div>
-                      <h4 className="text-xs font-bold text-white">Suara AI Sebut Nama Toko</h4>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        HP pengunjung memutar ucapan apresiasi ramah berbahasa Indonesia yang menyebutkan nama brand toko Anda secara bangga.
-                      </p>
+                      <span className="inline-block mt-2 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md self-start">Kesan Eksklusif</span>
                     </div>
 
-                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
-                        🔔
+                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2 hover:border-amber-500/40 transition-colors flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
+                          🔔
+                        </div>
+                        <h4 className="text-xs font-bold text-white">4 Efek Suara Kasir Pilihan</h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Bebas pilih nada kasir: Register Uang Masuk (&quot;Cha-Ching! 💵&quot;), Lonceng Kasir Ganda, Lonceng Kristal Mewah, atau Nada Fanfare.
+                        </p>
                       </div>
-                      <h4 className="text-xs font-bold text-white">4 Efek Suara Kasir Pilihan</h4>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Bebas pilih suara: Lonceng Kasir Ganda, Register Uang Masuk (&quot;Cha-Ching! 💵&quot;), Lonceng Kristal Mewah, atau Fanfare.
-                      </p>
+                      <span className="inline-block mt-2 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md self-start">Sensasi Cuan</span>
                     </div>
 
-                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
-                        📲
+                    <div className="p-5 rounded-3xl bg-slate-900 border border-amber-500/40 bg-gradient-to-b from-amber-950/20 to-slate-900 space-y-2 hover:border-amber-500/60 transition-colors flex flex-col justify-between shadow-lg shadow-amber-500/5">
+                      <div className="space-y-2">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
+                          📢
+                        </div>
+                        <h4 className="text-xs font-bold text-white">Mode Speaker Toko (Bluetooth)</h4>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          Umumkan ulasan bintang 5 langsung ke sound system / speaker kafe via Bluetooth! Pengunjung lain ikut terkesan & terinspirasi review.
+                        </p>
                       </div>
-                      <h4 className="text-xs font-bold text-white">Multi-Kasir QR Pairing</h4>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Hubungkan 3–5 HP kasir/barista cukup dengan scan QR code tanpa perlu bagi-bagi password akun utama toko Anda.
-                      </p>
+                      <span className="inline-block mt-2 text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md self-start">Fitur Primadona ⭐</span>
                     </div>
 
-                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2">
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
-                        ⚡
+                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2 hover:border-amber-500/40 transition-colors flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
+                          📲
+                        </div>
+                        <h4 className="text-xs font-bold text-white">Multi-Kasir QR Pairing</h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Hubungkan banyak HP kasir & barista cukup scan QR tanpa bagi-bagi password akun utama toko Anda. Aman jika ada staf yang resign.
+                        </p>
                       </div>
-                      <h4 className="text-xs font-bold text-white">Dering & Getar Layar Mati</h4>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Sinyal push notifikasi instan langsung berdering kencang & bergetar ke HP Anda meski aplikasi ditutup total.
-                      </p>
+                      <span className="inline-block mt-2 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md self-start">Keamanan 100%</span>
+                    </div>
+
+                    <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-2 hover:border-amber-500/40 transition-colors flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xl">
+                          ⚡
+                        </div>
+                        <h4 className="text-xs font-bold text-white">Dering & Getar Layar Mati</h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Sinyal push notifikasi instan langsung berdering kencang & bergetar ke HP Anda meski layar terkunci atau aplikasi ditutup total.
+                        </p>
+                      </div>
+                      <span className="inline-block mt-2 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md self-start">Anti Ketinggalan</span>
                     </div>
                   </div>
 
@@ -1849,24 +1881,29 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                             <td className="py-3 text-center text-emerald-400 font-bold">Suara AI Sebut Nama Toko 🎙️</td>
                           </tr>
                           <tr>
-                            <td className="py-3 text-slate-300">Efek Suara Nada Kasir</td>
+                            <td className="py-3 text-slate-300">Efek Suara Nada Kasir Cuan</td>
                             <td className="py-3 text-center text-slate-500">Standar</td>
                             <td className="py-3 text-center text-amber-400 font-bold">Bebas Pilih (Cha-Ching, Lonceng, Kristal) 🔔</td>
                           </tr>
                           <tr>
+                            <td className="py-3 text-slate-300">Mode Speaker Kafe / Bluetooth Toko</td>
+                            <td className="py-3 text-center text-slate-500">Tidak Tersedia ❌</td>
+                            <td className="py-3 text-center text-emerald-400 font-bold">Umumkan Ulasan Otomatis 📢</td>
+                          </tr>
+                          <tr>
                             <td className="py-3 text-slate-300">Multi-Kasir Staf (Banyak HP Karyawan)</td>
                             <td className="py-3 text-center text-slate-500">Bagi Password Beresiko ⚠️</td>
-                            <td className="py-3 text-center text-emerald-400 font-bold">QR Pairing Kasir Aman 📲</td>
+                            <td className="py-3 text-center text-emerald-400 font-bold">QR Pairing Kasir Aman (Tanpa Password) 📲</td>
                           </tr>
                           <tr>
                             <td className="py-3 text-slate-300">Dering & Getar HP Pemilik (Layar Mati)</td>
                             <td className="py-3 text-center text-slate-500">Tidak Tersedia</td>
-                            <td className="py-3 text-center text-amber-400 font-bold">Aktif (Push Realtime Kencang) 📲</td>
+                            <td className="py-3 text-center text-amber-400 font-bold">Aktif (Push Realtime Kencang) ⚡</td>
                           </tr>
                           <tr>
                             <td className="py-3 text-slate-300">Lencana VIP Gold di Dashboard</td>
                             <td className="py-3 text-center text-slate-500">Standar</td>
-                            <td className="py-3 text-center text-amber-400 font-bold">👑 VIP Gold</td>
+                            <td className="py-3 text-center text-amber-400 font-bold">👑 VIP Gold Member</td>
                           </tr>
                         </tbody>
                       </table>
