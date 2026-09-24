@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { PortalClientView } from "./PortalClientView";
 import { getCachedSiteSetting } from "@/lib/site-settings-cache";
+import { isOutletMemberActive } from "@/lib/membership-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -85,12 +86,14 @@ export default async function PortalPage() {
   const adminContact =
     user.outlet?.qrCards?.find((c) => c.assignedAdmin)?.assignedAdmin || user.createdBy;
 
+  const isMemberActive = isOutletMemberActive(user.outlet);
+
   const formattedOutlet = user.outlet
     ? {
         id: user.outlet.id,
         name: user.outlet.name,
         googleReviewUrl: user.outlet.googleReviewUrl,
-        isMember: user.outlet.isMember,
+        isMember: isMemberActive,
         membershipStartedAt: user.outlet.membershipStartedAt,
         membershipExpiresAt: user.outlet.membershipExpiresAt,
         hasPendingPayment: (user.outlet.membershipPayments?.length || 0) > 0,

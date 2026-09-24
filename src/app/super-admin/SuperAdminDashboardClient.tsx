@@ -45,7 +45,10 @@ import {
   BookOpen,
   Crown,
   Zap,
+  Calendar,
 } from "lucide-react";
+import { EditMembershipDateModal } from "@/components/dashboard/EditMembershipDateModal";
+import { formatMembershipExpiry, getDefaultSeptember30Expiry } from "@/lib/membership-utils";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
 import { FieldAdminLeaderboard } from "@/components/dashboard/FieldAdminLeaderboard";
@@ -325,13 +328,19 @@ export function SuperAdminDashboardClient({
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
+  const [editingMembershipOutlet, setEditingMembershipOutlet] = useState<{
+    id: string;
+    name: string;
+    isMember?: boolean;
+    membershipExpiresAt?: string | Date | null;
+  } | null>(null);
 
   // Handler: Tombol Super Aktifkan Semua Outlet ke Member Premium
   const handleBulkActivateMembers = async () => {
     const resConfirm = await showConfirmAlert(
       "⚡ Aktifkan Semua ke Member Premium?",
-      "Seluruh outlet di sistem akan otomatis mendapatkan status Member Premium aktif secara serentak.",
-      "Ya, Aktifkan Semua! ⚡",
+      "Seluruh outlet di sistem akan otomatis mendapatkan status Member Premium aktif sampai 30 September 2026 secara serentak.",
+      "Ya, Aktifkan Semua (s/d 30 Sep)! ⚡",
       "#eab308"
     );
 
@@ -341,7 +350,14 @@ export function SuperAdminDashboardClient({
       const res = await bulkActivateAllMembersAction();
       if (res.success) {
         showSuccessAlert("Luar Biasa! 🎉", res.message);
-        setLocalOutlets((prev) => prev.map((o) => ({ ...o, isMember: true })));
+        const defaultExpiry = getDefaultSeptember30Expiry();
+        setLocalOutlets((prev) =>
+          prev.map((o) => ({
+            ...o,
+            isMember: true,
+            membershipExpiresAt: defaultExpiry,
+          }))
+        );
         router.refresh();
       } else {
         showErrorAlert("Gagal", res.message);
@@ -3150,19 +3166,34 @@ Tim Layanan Smart QR`;
                           </td>
 
                           <td className="py-3.5 px-4 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleMember(outlet.id, outlet.name, !!outlet.isMember)}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
-                                outlet.isMember
-                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 shadow-sm shadow-amber-500/10"
-                                  : "bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:bg-slate-700"
-                              }`}
-                              title={outlet.isMember ? "Member Aktif - Klik untuk menonaktifkan" : "Bukan Member - Klik untuk mengaktifkan"}
-                            >
-                              <Crown className={`w-3 h-3 ${outlet.isMember ? "text-amber-400" : "text-slate-500"}`} />
-                              <span>{outlet.isMember ? "👑 Member" : "Non-Member"}</span>
-                            </button>
+                            <div className="flex flex-col items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingMembershipOutlet({
+                                    id: outlet.id,
+                                    name: outlet.name,
+                                    isMember: !!outlet.isMember,
+                                    membershipExpiresAt: outlet.membershipExpiresAt,
+                                  })
+                                }
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer hover:scale-105 shadow-sm ${
+                                  outlet.isMember
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 shadow-amber-500/10"
+                                    : "bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:bg-slate-700"
+                                }`}
+                                title="Klik untuk memperpanjang, ganti tanggal, atau ubah status member"
+                              >
+                                <Crown className={`w-3 h-3 ${outlet.isMember ? "text-amber-400" : "text-slate-500"}`} />
+                                <span>{outlet.isMember ? "👑 Member" : "Non-Member"}</span>
+                                <Calendar className="w-3 h-3 opacity-60 ml-0.5" />
+                              </button>
+                              {outlet.isMember && outlet.membershipExpiresAt ? (
+                                <span className="text-[10px] text-amber-300/80 font-medium whitespace-nowrap">
+                                  s/d {formatMembershipExpiry(outlet.membershipExpiresAt, true)}
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
 
                           <td className="py-3.5 px-4 text-right">
@@ -3858,6 +3889,28 @@ Tim Layanan Smart QR`;
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="SUPER_ADMIN"
       />
+
+      {/* Modal Edit Tanggal & Perpanjang Member Outlet */}
+      {editingMembershipOutlet && (
+        <EditMembershipDateModal
+          outlet={editingMembershipOutlet}
+          onClose={() => setEditingMembershipOutlet(null)}
+          onSuccess={(updated) => {
+            setLocalOutlets((prev) =>
+              prev.map((o) =>
+                o.id === updated.id
+                  ? {
+                      ...o,
+                      isMember: updated.isMember,
+                      membershipExpiresAt: updated.membershipExpiresAt,
+                    }
+                  : o
+              )
+            );
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

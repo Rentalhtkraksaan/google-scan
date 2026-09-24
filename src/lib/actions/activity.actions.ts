@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Role, Prisma } from "@prisma/client";
+import { isOutletMemberActive } from "@/lib/membership-utils";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
@@ -264,7 +265,7 @@ export async function getActivityLogsAction(
     } else {
       // 🏪 USER (Outlet Owner):
       const outlet = currentUser.outlet;
-      const isMember = outlet?.isMember ?? false;
+      const isMember = isOutletMemberActive(outlet);
 
       if (outlet && isMember) {
         // 👑 Outlet A adalah Member Premium:

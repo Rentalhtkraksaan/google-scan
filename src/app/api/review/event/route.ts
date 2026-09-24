@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendWebPushToOutlet } from "@/lib/web-push";
+import { isOutletMemberActive } from "@/lib/membership-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,26 +16,26 @@ export async function POST(req: NextRequest) {
     let targetCardCode = cardCode;
 
     // Resolve outlet details to verify membership status
-    let targetOutlet: { id: string; name: string; isMember: boolean } | null = null;
+    let targetOutlet: { id: string; name: string; isMember: boolean; membershipExpiresAt: Date | null } | null = null;
 
     if (targetOutletId) {
       targetOutlet = await prisma.outlet.findUnique({
         where: { id: targetOutletId },
-        select: { id: true, name: true, isMember: true },
+        select: { id: true, name: true, isMember: true, membershipExpiresAt: true },
       });
     } else if (targetCardCode) {
       const card = await prisma.qrCard.findUnique({
         where: { code: targetCardCode },
         select: {
           outletId: true,
-          outlet: { select: { id: true, name: true, isMember: true } },
+          outlet: { select: { id: true, name: true, isMember: true, membershipExpiresAt: true } },
         },
       });
       targetOutletId = card?.outletId;
       targetOutlet = card?.outlet || null;
     }
 
-    const isMember = targetOutlet?.isMember ?? false;
+    const isMember = isOutletMemberActive(targetOutlet);
 
     // 1. If 4-Star or 5-Star Rating Event
     if (eventType === "FIVE_STAR" || eventType === "FOUR_STAR" || (typeof rating === "number" && rating >= 4)) {

@@ -64,10 +64,12 @@ export async function submitPaymentProofAction(
   }
 }
 
+import { getDefaultSeptember30Expiry, isOutletMemberActive, formatMembershipExpiry } from "@/lib/membership-utils";
+
 /**
  * Super Admin: 1-Klik Menyetujui bukti transfer & mengaktifkan status member outlet
  */
-export async function approvePaymentProofAction(paymentId: string, durationMonths = 1) {
+export async function approvePaymentProofAction(paymentId: string, customExpiryDate?: string | Date) {
   try {
     const session = await auth();
     if (!session || session.user.role !== "SUPER_ADMIN") {
@@ -84,7 +86,7 @@ export async function approvePaymentProofAction(paymentId: string, durationMonth
     }
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = customExpiryDate ? new Date(customExpiryDate) : getDefaultSeptember30Expiry();
 
     // Update status payment & outlet
     await prisma.$transaction([
@@ -110,7 +112,7 @@ export async function approvePaymentProofAction(paymentId: string, durationMonth
 
     return {
       success: true,
-      message: `Pembayaran ${payment.outlet.name} disetujui! Status Member Premium telah aktif.`,
+      message: `Pembayaran ${payment.outlet.name} disetujui! Status Member aktif s/d ${formatMembershipExpiry(expiresAt)}.`,
     };
   } catch (error) {
     console.error("Error approving payment proof:", error);
@@ -152,7 +154,7 @@ export async function rejectPaymentProofAction(paymentId: string, reason: string
 export async function toggleOutletMembershipAction(
   outletId: string,
   isMember: boolean,
-  durationMonths = 1
+  customExpiryDate?: string | Date
 ) {
   try {
     const session = await auth();
@@ -162,7 +164,7 @@ export async function toggleOutletMembershipAction(
 
     const now = new Date();
     const expiresAt = isMember
-      ? new Date(now.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000)
+      ? (customExpiryDate ? new Date(customExpiryDate) : getDefaultSeptember30Expiry())
       : null;
 
     const updated = await prisma.outlet.update({
@@ -180,8 +182,9 @@ export async function toggleOutletMembershipAction(
     return {
       success: true,
       isMember: updated.isMember,
+      membershipExpiresAt: updated.membershipExpiresAt,
       message: isMember
-        ? `Status Member Premium "${updated.name}" berhasil diaktifkan!`
+        ? `Status Member Premium "${updated.name}" aktif s/d ${formatMembershipExpiry(expiresAt)}!`
         : `Status Member Premium "${updated.name}" dinonaktifkan.`,
     };
   } catch (error) {
@@ -191,9 +194,79 @@ export async function toggleOutletMembershipAction(
 }
 
 /**
- * 🔥 TOMBOL SUPER: Aktifkan SEMUA outlet ke Member Premium sekaligus!
+ * Super Admin: Mengganti tanggal kadaluarsa atau memperpanjang masa aktif member outlet
+ * "super admin bisa membperpanjang juga dan bisa mengganti tnggl juga"
  */
-export async function bulkActivateAllMembersAction(durationMonths = 1) {
+export async function updateOutletMembershipExpiryAction(
+  outletId: string,
+  newExpiryDate: string | Date,
+  forceActive?: boolean
+) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak. Khusus Super Admin." };
+    }
+
+    const parsedDate = new Date(newExpiryDate);
+    if (isNaN(parsedDate.getTime())) {
+      return { success: false, message: "Format tanggal tidak valid." };
+    }
+
+    const isFuture = parsedDate.getTime() > Date.now();
+    const shouldBeMember = forceActive !== undefined ? forceActive : isFuture;
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+      select: { name: true, membershipStartedAt: true },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    const updated = await prisma.outlet.update({
+      where: { id: outletId },
+      data: {
+        isMember: shouldBeMember,
+        membershipExpiresAt: parsedDate,
+        membershipStartedAt: outlet.membershipStartedAt || new Date(),
+      },
+    });
+
+    // Catat log aktivitas
+    await prisma.activityLog.create({
+      data: {
+        outletId,
+        userName: session.user.name || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "UPDATE_STATUS",
+        title: "Perbarui Masa Aktif Member 📅",
+        description: `Masa aktif Member Premium "${outlet.name}" diatur hingga ${formatMembershipExpiry(parsedDate)}. Status: ${shouldBeMember ? "Aktif" : "Nonaktif"}.`,
+        targetId: outletId,
+        targetName: outlet.name,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      outlet: updated,
+      message: `Masa aktif "${outlet.name}" berhasil diatur hingga ${formatMembershipExpiry(parsedDate)}!`,
+    };
+  } catch (error) {
+    console.error("Error updating outlet membership expiry:", error);
+    return { success: false, message: "Gagal memperbarui masa aktif member." };
+  }
+}
+
+/**
+ * 🔥 TOMBOL SUPER: Aktifkan SEMUA outlet ke Member Premium sekaligus!
+ * Default masa aktif: 30 September 2026 23:59:59 WIB ("seluruh masa aktif member hanya smpai 30 septmber ya")
+ */
+export async function bulkActivateAllMembersAction(customExpiryDate?: string | Date) {
   try {
     const session = await auth();
     if (!session || session.user.role !== "SUPER_ADMIN") {
@@ -201,7 +274,7 @@ export async function bulkActivateAllMembersAction(durationMonths = 1) {
     }
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000);
+    const expiresAt = customExpiryDate ? new Date(customExpiryDate) : getDefaultSeptember30Expiry();
 
     const result = await prisma.outlet.updateMany({
       data: {
@@ -218,7 +291,7 @@ export async function bulkActivateAllMembersAction(durationMonths = 1) {
         userRole: "SUPER_ADMIN",
         action: "UPDATE_STATUS",
         title: "⚡ Tombol Super: Seluruh Outlet Menjadi Member Premium",
-        description: `Super Admin mengaktifkan seluruh ${result.count} outlet menjadi Member Premium serentak.`,
+        description: `Super Admin mengaktifkan seluruh ${result.count} outlet menjadi Member Premium hingga ${formatMembershipExpiry(expiresAt)}.`,
       },
     }).catch(() => {});
 
@@ -228,11 +301,42 @@ export async function bulkActivateAllMembersAction(durationMonths = 1) {
     return {
       success: true,
       count: result.count,
-      message: `Luar biasa! Seluruh ${result.count} outlet kini resmi berstatus Member Premium!`,
+      message: `Luar biasa! Seluruh ${result.count} outlet kini aktif Member Premium s/d ${formatMembershipExpiry(expiresAt)}!`,
     };
   } catch (error) {
     console.error("Error bulk activating members:", error);
     return { success: false, message: "Gagal mengaktifkan semua member." };
+  }
+}
+
+/**
+ * Sinkronisasi otomatis outlet yang masa aktifnya telah habis
+ * "dan jika habis otomatis udh ga member dan fitur dihilangkan smua"
+ */
+export async function syncExpiredMembershipsAction() {
+  try {
+    const now = new Date();
+    const result = await prisma.outlet.updateMany({
+      where: {
+        isMember: true,
+        membershipExpiresAt: {
+          lte: now,
+        },
+      },
+      data: {
+        isMember: false,
+      },
+    });
+
+    if (result.count > 0) {
+      revalidatePath("/super-admin");
+      revalidatePath("/portal");
+    }
+
+    return { success: true, expiredCount: result.count };
+  } catch (error) {
+    console.error("Error syncing expired memberships:", error);
+    return { success: false, expiredCount: 0 };
   }
 }
 

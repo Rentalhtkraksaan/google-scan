@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SuperAdminDashboardClient } from "./SuperAdminDashboardClient";
 import { AdminWithRelations, AuthenticatedUser, OutletModel, QrCardModel } from "@/types/models";
+import { isOutletMemberActive } from "@/lib/membership-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -181,6 +182,8 @@ export default async function SuperAdminPage() {
 
   const allOutlets = rawOutlets.map((o) => ({
     ...o,
+    isMember: isOutletMemberActive(o),
+    membershipExpiresAt: o.membershipExpiresAt,
     qrCard: o.qrCards?.[0] || null,
   }));
 

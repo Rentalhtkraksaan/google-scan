@@ -7,6 +7,7 @@ import { SmartReviewClient } from "./SmartReviewClient";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { getCachedSiteSetting } from "@/lib/site-settings-cache";
+import { isOutletMemberActive } from "@/lib/membership-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -138,7 +139,8 @@ export default async function SmartReviewPage({
       });
 
       // Fitur Member Premium: Catat riwayat scan ke database outlet
-      if (card.outletId && card.outlet?.isMember) {
+      const isMemberActive = isOutletMemberActive(card.outlet);
+      if (card.outletId && isMemberActive) {
         await prisma.activityLog.create({
           data: {
             outletId: card.outletId,
@@ -158,6 +160,7 @@ export default async function SmartReviewPage({
   });
 
   const formattedGoogleUrl = formatGoogleReviewUrl(card.outlet.googleReviewUrl);
+  const isMemberActive = isOutletMemberActive(card.outlet);
 
   return (
     <SmartReviewClient
@@ -168,7 +171,7 @@ export default async function SmartReviewPage({
         googleReviewUrl: formattedGoogleUrl,
         whatsappNumber: card.outlet.owner?.whatsappNumber || null,
         ownerName: card.outlet.owner?.fullName || null,
-        isMember: card.outlet.isMember,
+        isMember: isMemberActive,
       }}
     />
   );
