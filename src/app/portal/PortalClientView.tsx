@@ -755,46 +755,47 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <NotificationPrompt outletName={outlet.name} outletId={outlet.id} />
 
             {/* Member Status Badge / Upgrade Button */}
             {outlet.isMember ? (
               <button
                 onClick={() => setActiveTab("MEMBERSHIP")}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold shadow-sm hover:scale-105 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold shadow-sm hover:scale-105 transition-all cursor-pointer shrink-0"
                 title="Lihat status Member VIP"
               >
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-                <span>VIP Member</span>
+                <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="hidden sm:inline">VIP Member</span>
+                <span className="sm:hidden text-[11px]">VIP</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsUpgradeModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-slate-950 text-xs font-extrabold shadow-md shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer animate-pulse"
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-slate-950 text-xs font-extrabold shadow-md shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer animate-pulse shrink-0"
                 title="Tingkatkan ke Member VIP"
               >
-                <Crown className="w-3.5 h-3.5 text-slate-950" />
+                <Crown className="w-3.5 h-3.5 text-slate-950 shrink-0" />
                 <span className="hidden sm:inline">Tingkatkan Member</span>
-                <span className="sm:hidden">Upgrade</span>
+                <span className="sm:hidden text-[11px]">Upgrade</span>
               </button>
             )}
 
-            {/* Quick Tes Scan Button */}
+            {/* Quick Tes Scan Button - Icon only on small mobile */}
             {scanUrl && (
               <a
                 href={scanUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold transition-all cursor-pointer shrink-0"
                 title="Uji coba scan kartu pelanggan"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
-                <span className="hidden sm:inline">Tes Scan</span>
+                <ExternalLink className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <span className="hidden md:inline">Tes Scan</span>
               </a>
             )}
 
-            <InstallPwaButton variant="compact" label="Pasang APK" />
+            <InstallPwaButton variant="compact" label="APK" />
           </div>
         </header>
 
@@ -982,15 +983,17 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 </div>
               )}
 
-              {/* Quick Actions Row */}
+              {/* Quick Actions Row - Equal Height Precision */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <button
                   onClick={() => setActiveTab("CARDS")}
-                  className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group"
+                  className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group h-full flex flex-col justify-between"
                 >
-                  <CreditCard className="w-5 h-5 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold text-white block">Kartu Smart QR</span>
-                  <span className="text-[11px] text-slate-400">Lihat visual 3D & unit</span>
+                  <CreditCard className="w-5 h-5 text-indigo-400 mb-2 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-white block">Kartu Smart QR</span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">Lihat visual 3D & unit</span>
+                  </div>
                 </button>
 
                 {scanUrl && (
@@ -998,36 +1001,42 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                     href={scanUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group"
+                    className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group h-full flex flex-col justify-between"
                   >
-                    <ExternalLink className="w-5 h-5 text-sky-400 mb-2 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold text-white block">Uji Tes Scan</span>
-                    <span className="text-[11px] text-slate-400">Buka link kartu meja</span>
+                    <ExternalLink className="w-5 h-5 text-sky-400 mb-2 group-hover:scale-110 transition-transform shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-white block">Uji Tes Scan</span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">Buka link kartu meja</span>
+                    </div>
                   </a>
                 )}
 
                 <button
                   onClick={handleCopy}
-                  className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group"
+                  className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group h-full flex flex-col justify-between"
                 >
                   {copied ? (
-                    <Check className="w-5 h-5 text-emerald-400 mb-2" />
+                    <Check className="w-5 h-5 text-emerald-400 mb-2 shrink-0" />
                   ) : (
-                    <Copy className="w-5 h-5 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+                    <Copy className="w-5 h-5 text-purple-400 mb-2 group-hover:scale-110 transition-transform shrink-0" />
                   )}
-                  <span className="text-xs font-bold text-white block">
-                    {copied ? "Link Tersalin!" : "Salin Link Scan"}
-                  </span>
-                  <span className="text-[11px] text-slate-400">Untuk bagikan ke medsos</span>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      {copied ? "Link Tersalin!" : "Salin Link Scan"}
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">Untuk bagikan ke medsos</span>
+                  </div>
                 </button>
 
                 <button
                   onClick={() => setIsRequestCardModalOpen(true)}
-                  className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group"
+                  className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group h-full flex flex-col justify-between"
                 >
-                  <PlusCircle className="w-5 h-5 text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold text-white block">Tambah Kartu QR</span>
-                  <span className="text-[11px] text-slate-400">Minta ke mitra lapangan</span>
+                  <PlusCircle className="w-5 h-5 text-emerald-400 mb-2 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-white block">Tambah Kartu QR</span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">Minta ke mitra lapangan</span>
+                  </div>
                 </button>
               </div>
 
@@ -1471,110 +1480,116 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                     </div>
                   </div>
 
-                  {/* PUSAT PENGATURAN FITUR VIP */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* PUSAT PENGATURAN FITUR VIP - Equal Height Panels */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                     {/* PANEL 1: EFEK SUARA KASIR */}
-                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
-                            <Volume2 className="w-4 h-4" />
+                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between h-full">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
+                              <Volume2 className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">1. Pilihan Efek Suara Kasir</h3>
+                              <p className="text-[11px] text-slate-400">Pilih nada dering yang berbunyi di meja & kasir</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-white">1. Pilihan Efek Suara Kasir</h3>
-                            <p className="text-[11px] text-slate-400">Pilih nada dering yang berbunyi di meja & kasir</p>
-                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {SOUND_EFFECT_OPTIONS.map((opt) => (
+                            <div
+                              key={opt.id}
+                              onClick={() => setSelectedSoundEffect(opt.id)}
+                              className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                                selectedSoundEffect === opt.id
+                                  ? "bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10"
+                                  : "bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700"
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xl">{opt.icon}</span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-slate-300">
+                                    {opt.badge}
+                                  </span>
+                                </div>
+                                <div className="text-xs font-bold text-white leading-tight">{opt.name}</div>
+                                <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">{opt.desc}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTestSoundChime(opt.id);
+                                }}
+                                className="w-full py-1.5 mt-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <span>▶️ Tes Dering</span>
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {SOUND_EFFECT_OPTIONS.map((opt) => (
-                          <div
-                            key={opt.id}
-                            onClick={() => setSelectedSoundEffect(opt.id)}
-                            className={`p-3 rounded-2xl border transition-all cursor-pointer space-y-2 ${
-                              selectedSoundEffect === opt.id
-                                ? "bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10"
-                                : "bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xl">{opt.icon}</span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-slate-300">
-                                {opt.badge}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="text-xs font-bold text-white leading-tight">{opt.name}</div>
-                              <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{opt.desc}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTestSoundChime(opt.id);
-                              }}
-                              className="w-full py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
-                            >
-                              <span>▶️ Tes Dering</span>
-                            </button>
-                          </div>
-                        ))}
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          disabled={isSavingVipSettings}
+                          onClick={handleSaveVipSettings}
+                          className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSavingVipSettings ? "Menyimpan..." : "💾 Terapkan Nada Dering Kasir"}
+                        </button>
                       </div>
-
-                      <button
-                        type="button"
-                        disabled={isSavingVipSettings}
-                        onClick={handleSaveVipSettings}
-                        className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95"
-                      >
-                        {isSavingVipSettings ? "Menyimpan..." : "💾 Terapkan Nada Dering Kasir"}
-                      </button>
                     </div>
 
                     {/* PANEL 2: SAMBUTAN SUARA AI SEBUT NAMA TOKO */}
-                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl">
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
-                            <Sparkles className="w-4 h-4" />
+                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between h-full">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold shrink-0">
+                              <Sparkles className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">2. Suara AI Menyebut Nama Toko</h3>
+                              <p className="text-[11px] text-slate-400">Diputar langsung di HP pelanggan saat ulasan 5 bintang</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-white">2. Suara AI Menyebut Nama Toko</h3>
-                            <p className="text-[11px] text-slate-400">Diputar langsung di HP pelanggan saat ulasan 5 bintang</p>
-                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="block text-[11px] font-bold text-slate-300">
+                            Teks Ucapan Terima Kasih (Bahasa Indonesia):
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={customGreetingText}
+                            onChange={(e) => setCustomGreetingText(e.target.value)}
+                            placeholder={`Terima kasih banyak kak sudah mampir ke ${outlet.name}! Ulasan bintang 5 kakak sangat berharga bagi kemajuan usaha kami.`}
+                            className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 leading-relaxed"
+                          />
+                          <p className="text-[10px] text-slate-400">
+                            💡 <em>Biarkan kosong untuk menggunakan teks sambutan otomatis yang sudah ramah & menyebut nama brand toko Anda.</em>
+                          </p>
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="block text-[11px] font-bold text-slate-300">
-                          Teks Ucapan Terima Kasih (Bahasa Indonesia):
-                        </label>
-                        <textarea
-                          rows={3}
-                          value={customGreetingText}
-                          onChange={(e) => setCustomGreetingText(e.target.value)}
-                          placeholder={`Terima kasih banyak kak sudah mampir ke ${outlet.name}! Ulasan bintang 5 kakak sangat berharga bagi kemajuan usaha kami.`}
-                          className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                        />
-                        <p className="text-[10px] text-slate-400">
-                          💡 <em>Biarkan kosong untuk menggunakan teks sambutan otomatis yang sudah ramah & menyebut nama brand toko Anda.</em>
-                        </p>
-                      </div>
-
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2">
                         <button
                           type="button"
                           onClick={() => handleTestVoice(customGreetingText)}
-                          className="flex-1 py-2.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          className="flex-1 py-2.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <span>▶️ Dengarkan Suara AI</span>
+                          <span>▶️ Dengarkan AI</span>
                         </button>
                         <button
                           type="button"
                           disabled={isSavingVipSettings}
                           onClick={handleSaveVipSettings}
-                          className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95"
+                          className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                         >
                           {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Ucapan AI"}
                         </button>
@@ -1652,41 +1667,43 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           </ol>
                         </div>
 
-                        {/* Input Link Kasir */}
+                        {/* Input Link Kasir - Responsive & Touch Friendly */}
                         <div className="space-y-1.5">
                           <label className="text-[11px] font-bold text-slate-400 block">
                             Tautan Layar Kasir Khusus (Bisa Dikirim ke WhatsApp Staf):
                           </label>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <input
                               type="text"
                               readOnly
                               value={typeof window !== "undefined" ? `${window.location.origin}/kasir/${activePairingToken}` : `/kasir/${activePairingToken}`}
-                              className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 focus:outline-none"
+                              className="w-full sm:flex-1 px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-300 focus:outline-none min-w-0"
                             />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (typeof window !== "undefined") {
-                                  navigator.clipboard.writeText(`${window.location.origin}/kasir/${activePairingToken}`);
-                                  setCopiedStaffLink(true);
-                                  setTimeout(() => setCopiedStaffLink(false), 2000);
-                                }
-                              }}
-                              className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 shrink-0 transition-colors"
-                            >
-                              {copiedStaffLink ? <CheckCircle2 className="w-4 h-4 text-slate-950" /> : <Copy className="w-4 h-4" />}
-                              <span>{copiedStaffLink ? "Tersalin!" : "Salin Link"}</span>
-                            </button>
-                            <a
-                              href={`/kasir/${activePairingToken}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1 shrink-0 transition-colors"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                              <span>Tes Layar</span>
-                            </a>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== "undefined") {
+                                    navigator.clipboard.writeText(`${window.location.origin}/kasir/${activePairingToken}`);
+                                    setCopiedStaffLink(true);
+                                    setTimeout(() => setCopiedStaffLink(false), 2000);
+                                  }
+                                }}
+                                className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                {copiedStaffLink ? <CheckCircle2 className="w-4 h-4 text-slate-950" /> : <Copy className="w-4 h-4" />}
+                                <span>{copiedStaffLink ? "Tersalin!" : "Salin Link"}</span>
+                              </button>
+                              <a
+                                href={`/kasir/${activePairingToken}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                                <span>Tes Layar</span>
+                              </a>
+                            </div>
                           </div>
                         </div>
 

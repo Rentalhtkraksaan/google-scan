@@ -1455,24 +1455,6 @@ Tim Layanan Smart QR`;
               <span className="truncate">Ekspor Cetak (CSV/ZIP)</span>
             </button>
 
-            {/* Cetak & Download Invoice Penjualan */}
-            <button
-              onClick={() => setIsInvoiceModalOpen(true)}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-            >
-              <Receipt className="w-4 h-4 shrink-0 text-emerald-400" />
-              <span className="truncate">Cetak Invoice Penjualan</span>
-            </button>
-
-            {/* Buku Modul & Panduan Sistem */}
-            <button
-              onClick={() => setIsGuideModalOpen(true)}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-            >
-              <BookOpen className="w-4 h-4 shrink-0 text-indigo-400" />
-              <span className="truncate">Buku Panduan & Modul</span>
-            </button>
-
             {/* Scan Kamera QR */}
             <button
               onClick={() => setIsScannerModalOpen(true)}
@@ -1643,17 +1625,17 @@ Tim Layanan Smart QR`;
           {/* Realtime Live Activity Ticker Bar */}
           <LiveActivityTicker />
 
-          {/* 5 Modern Squircle Stat Cards (4 for SA2) */}
-          <div className={`grid grid-cols-2 ${isMaster ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
+          {/* 5 Modern Squircle Stat Cards (4 for SA2) - Balanced & Symmetric */}
+          <div className={`grid grid-cols-2 md:grid-cols-3 ${isMaster ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3.5 sm:gap-4`}>
             {/* Total Kartu QR */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-indigo-500/40 transition-all">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-indigo-500/40 transition-all flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Kartu QR</span>
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Layers className="w-5 h-5" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-2.5 flex items-baseline gap-1.5">
                 <span className="text-2xl sm:text-3xl font-extrabold text-white">{totalCards}</span>
                 <span className="text-xs text-indigo-400 font-semibold">kartu</span>
               </div>
@@ -1665,68 +1647,68 @@ Tim Layanan Smart QR`;
             </div>
 
             {/* Total Scan Global */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Scan Ulasan</span>
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-5 h-5" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-2.5 flex items-baseline gap-1.5">
                 <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400">{totalScans}</span>
                 <span className="text-xs text-slate-400 font-semibold">scan</span>
               </div>
-              <span className="text-[11px] text-slate-400 mt-1 block">Akumulasi seluruh outlet</span>
+              <span className="text-[11px] text-slate-400 mt-1 block truncate">Akumulasi seluruh outlet</span>
             </div>
 
             {/* Total Outlet */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-sky-500/40 transition-all">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-sky-500/40 transition-all flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Outlet Klien</span>
-                <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Store className="w-5 h-5" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <Store className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-2.5 flex items-baseline gap-1.5">
                 <span className="text-2xl sm:text-3xl font-extrabold text-sky-400">{totalOutlets}</span>
                 <span className="text-xs text-slate-400 font-semibold">toko</span>
               </div>
-              <span className="text-[11px] text-slate-400 mt-1 block">Terdaftar & aktif</span>
+              <span className="text-[11px] text-slate-400 mt-1 block truncate">Terdaftar & aktif</span>
             </div>
 
             {/* Total Tim Admin */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-amber-500/40 transition-all">
+            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-amber-500/40 transition-all flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Admin Tim</span>
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <UserCheck className="w-5 h-5" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                  <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-2.5 flex items-baseline gap-1.5 flex-wrap">
                 <span className="text-2xl sm:text-3xl font-extrabold text-amber-400">{totalAdmins}</span>
                 <span className="text-xs text-slate-400 font-semibold">lapangan</span>
-                <span className="text-xs text-purple-400 font-medium ml-1">({totalSuperAdmins} Super)</span>
+                <span className="text-xs text-purple-400 font-medium">({totalSuperAdmins} Super)</span>
               </div>
-              <span className="text-[11px] text-slate-400 mt-1 block">Manajemen operasional</span>
+              <span className="text-[11px] text-slate-400 mt-1 block truncate">Manajemen operasional</span>
             </div>
 
-            {/* Total Pengunjung (SA1 atau SA2 berizin) */}
+            {/* Total Pengunjung (SA1 atau SA2 berizin) - Fills full width on 2-col mobile gracefully */}
             {canViewVisitorAnalytics && (
               <div
                 onClick={() => setIsVisitorModalOpen(true)}
-                className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-rose-500/50 transition-all cursor-pointer"
+                className="col-span-2 md:col-span-1 bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 relative overflow-hidden group hover:border-rose-500/50 transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-300">Pengunjung Web</span>
-                  <div className="w-10 h-10 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Globe className="w-5 h-5" />
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                    <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
-                <div className="mt-2 flex items-baseline gap-1.5">
+                <div className="mt-2.5 flex items-baseline gap-1.5">
                   <span className="text-2xl sm:text-3xl font-extrabold text-rose-400">{siteSetting?.visitorCount || 0}</span>
                   <span className="text-xs text-slate-400 font-semibold">user</span>
                 </div>
-                <span className="text-[11px] text-rose-400/80 mt-1 block">Klik untuk analitik detail &rarr;</span>
+                <span className="text-[11px] text-rose-400/80 mt-1 block truncate">Klik untuk analitik detail &rarr;</span>
               </div>
             )}
           </div>
@@ -1946,21 +1928,21 @@ Tim Layanan Smart QR`;
             </div>
           )}
 
-          {/* Main Tabs Container (When activeTab is CARDS, OUTLETS, ADMINS, etc) */}
           {activeTab !== "OVERVIEW" && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
+                {/* Horizontal Scrollable Tabs Pill */}
+                <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 xl:pb-0 scrollbar-none">
                   <button
                     onClick={() => setActiveTab("OVERVIEW")}
-                    className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 bg-slate-800/80 text-slate-400 hover:text-white"
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 bg-slate-800/80 text-slate-400 hover:text-white shrink-0 whitespace-nowrap"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5" />
                     <span>Dashboard Utama</span>
                   </button>
                   <button
                     onClick={() => setActiveTab("CARDS")}
-                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                       activeTab === "CARDS"
                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 font-bold"
                         : "bg-slate-800/80 text-slate-400 hover:text-white"
@@ -1968,109 +1950,110 @@ Tim Layanan Smart QR`;
                   >
                     Semua Kartu QR ({searchQuery.trim() ? searchMatchedCards.length : displayCards.length})
                   </button>
-            <button
-              onClick={() => setActiveTab("ADMINS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                activeTab === "ADMINS"
-                  ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25"
-                  : "bg-slate-800/80 text-slate-400 hover:text-white"
-              }`}
-            >
-              Admin Lapangan ({searchQuery.trim() ? filteredAdmins.length : admins.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("OUTLETS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                activeTab === "OUTLETS"
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
-                  : "bg-slate-800/80 text-slate-400 hover:text-white"
-              }`}
-            >
-              Semua Outlet ({searchQuery.trim() ? filteredOutlets.length : displayOutlets.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("SUPER_ADMINS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === "SUPER_ADMINS"
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/25"
-                  : "bg-slate-800/80 text-purple-300 hover:text-white"
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Kelola Super Admin ({searchQuery.trim() ? filteredSuperAdmins.length : superAdmins.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("ACTIVITY_LOGS")}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === "ACTIVITY_LOGS"
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
-                  : "bg-slate-800/80 text-blue-300 hover:text-white"
-              }`}
-            >
-              <History className="w-3.5 h-3.5" />
-              <span>Log Aktivitas</span>
-            </button>
-            {isMaster && (
-              <button
-                onClick={() => setActiveTab("DATABASE_BACKUP")}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === "DATABASE_BACKUP"
-                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
-                    : "bg-slate-800/80 text-emerald-400 hover:text-white"
-                }`}
-              >
-                <Database className="w-3.5 h-3.5" />
-                <span>Database & Auto-Backup</span>
-              </button>
-            )}
-          </div>
+                  <button
+                    onClick={() => setActiveTab("ADMINS")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                      activeTab === "ADMINS"
+                        ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25"
+                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Admin Lapangan ({searchQuery.trim() ? filteredAdmins.length : admins.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("OUTLETS")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                      activeTab === "OUTLETS"
+                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
+                        : "bg-slate-800/80 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Semua Outlet ({searchQuery.trim() ? filteredOutlets.length : displayOutlets.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("SUPER_ADMINS")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+                      activeTab === "SUPER_ADMINS"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-600/25"
+                        : "bg-slate-800/80 text-purple-300 hover:text-white"
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Kelola Super Admin ({searchQuery.trim() ? filteredSuperAdmins.length : superAdmins.length})</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("ACTIVITY_LOGS")}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+                      activeTab === "ACTIVITY_LOGS"
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                        : "bg-slate-800/80 text-blue-300 hover:text-white"
+                    }`}
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    <span>Log Aktivitas</span>
+                  </button>
+                  {isMaster && (
+                    <button
+                      onClick={() => setActiveTab("DATABASE_BACKUP")}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+                        activeTab === "DATABASE_BACKUP"
+                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25"
+                          : "bg-slate-800/80 text-emerald-400 hover:text-white"
+                      }`}
+                    >
+                      <Database className="w-3.5 h-3.5" />
+                      <span>Database & Auto-Backup</span>
+                    </button>
+                  )}
+                </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-            {/* Dropdown Kategori Pencarian */}
-            <div className="relative">
-              <select
-                value={searchScope}
-                onChange={(e) => setSearchScope(e.target.value as "ALL" | "OUTLET" | "ADMIN" | "CODE")}
-                className="w-full sm:w-auto px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer pr-8 appearance-none"
-              >
-                <option value="ALL">🔍 Semua Kategori</option>
-                <option value="OUTLET">🏪 Cari Outlet / Pemilik</option>
-                <option value="ADMIN">👤 Cari Admin Lapangan</option>
-                <option value="CODE">💳 Cari Kode Kartu</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+                {/* Search Bar & Scope Selector */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full xl:w-auto shrink-0">
+                  {/* Dropdown Kategori Pencarian */}
+                  <div className="relative shrink-0">
+                    <select
+                      value={searchScope}
+                      onChange={(e) => setSearchScope(e.target.value as "ALL" | "OUTLET" | "ADMIN" | "CODE")}
+                      className="w-full sm:w-auto px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer pr-8 appearance-none"
+                    >
+                      <option value="ALL">🔍 Semua Kategori</option>
+                      <option value="OUTLET">🏪 Cari Outlet / Pemilik</option>
+                      <option value="ADMIN">👤 Cari Admin Lapangan</option>
+                      <option value="CODE">💳 Cari Kode Kartu</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
 
-            {/* Input Search */}
-            <div className="relative flex-1 sm:w-64 md:w-72">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  searchScope === "OUTLET"
-                    ? "Cari nama outlet / pemilik..."
-                    : searchScope === "ADMIN"
-                    ? "Cari nama / email admin..."
-                    : searchScope === "CODE"
-                    ? "Cari kode kartu (cth: c-002)..."
-                    : "Cari outlet, pemilik, admin, kode..."
-                }
-                className="w-full pl-9 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Bersihkan pencarian"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+                  {/* Input Search */}
+                  <div className="relative flex-1 sm:w-64 md:w-72">
+                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={
+                        searchScope === "OUTLET"
+                          ? "Cari nama outlet / pemilik..."
+                          : searchScope === "ADMIN"
+                          ? "Cari nama / email admin..."
+                          : searchScope === "CODE"
+                          ? "Cari kode kartu (cth: c-002)..."
+                          : "Cari outlet, pemilik, admin, kode..."
+                      }
+                      className="w-full pl-9 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Bersihkan pencarian"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
 
 
 

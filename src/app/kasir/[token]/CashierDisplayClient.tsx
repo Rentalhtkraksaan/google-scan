@@ -297,7 +297,7 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
                 e.stopPropagation();
                 triggerInstall();
               }}
-              className="w-full sm:w-auto shrink-0 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="w-full sm:w-auto shrink-0 px-4 py-2.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Pasang Aplikasi Sekarang 🚀</span>
@@ -321,7 +321,7 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
                 e.stopPropagation();
                 handleUnlockAudio();
               }}
-              className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow"
+              className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow cursor-pointer"
             >
               Aktifkan Audio 🔊
             </button>
@@ -347,7 +347,7 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
             </p>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Equal Min-Height Precision */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <button
               type="button"
@@ -355,9 +355,9 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
                 e.stopPropagation();
                 handleTestChime();
               }}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+              className="w-full min-h-[46px] py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-4 h-4 shrink-0" />
               <span>Tes Dering Suara ({soundOption.icon})</span>
             </button>
 
@@ -368,13 +368,13 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
                 e.stopPropagation();
                 handleSubscribePush();
               }}
-              className={`w-full py-3 px-4 rounded-2xl border font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+              className={`w-full min-h-[46px] py-3 px-4 rounded-2xl border font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 isPushSubscribed
                   ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
                   : "bg-slate-800 hover:bg-slate-750 border-slate-700 text-white"
               }`}
             >
-              <Smartphone className="w-4 h-4" />
+              <Smartphone className="w-4 h-4 shrink-0" />
               <span>
                 {isPushSubscribed
                   ? "Dering Layar Mati Aktif ✅"
@@ -415,16 +415,16 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
                   key={alert.id}
                   className="p-3.5 rounded-2xl bg-slate-900 border border-amber-500/30 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-2"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0 mt-0.5">
                       ⭐
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white">{alert.title}</h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{alert.description}</p>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-bold text-white truncate">{alert.title}</h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{alert.description}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                  <span className="text-[10px] text-slate-500 font-mono shrink-0 pl-2">
                     {alert.timestamp}
                   </span>
                 </div>

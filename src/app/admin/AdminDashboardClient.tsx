@@ -267,114 +267,117 @@ Tim Layanan Smart QR`;
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-          <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
-
-          <button
-            onClick={() => setIsGuideModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs rounded-xl border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
-            title="Buka Buku Panduan Admin Lapangan"
-          >
-            <BookOpen className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Panduan Admin</span>
-          </button>
-
-          <button
-            onClick={() => setIsProfileModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
-            title="Edit Profil & Password Saya"
-          >
-            <UserCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Profil Saya</span>
-          </button>
-
-          <button
-            onClick={() => setIsRequestCardModalOpen(true)}
-            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:px-3.5 sm:py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm"
-            title="Minta Tambahan Jatah Kuota Kartu ke Super Admin via WhatsApp"
-          >
-            <Layers className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="sm:hidden">Minta Kuota Kartu</span>
-            <span className="hidden sm:inline">Minta Tambah Jatah Kartu</span>
-          </button>
-
+        <div className="flex flex-col gap-2.5 w-full xl:w-auto shrink-0">
+          {/* Primary Action Button (Daftarkan Outlet Baru) */}
           <button
             onClick={() => {
               setPrefilledCardCode("");
               setIsRegisterModalOpen(true);
             }}
             disabled={blankCards.length === 0}
-            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            className="w-full inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
           >
             <Plus className="w-4 h-4 shrink-0" />
             <span>+ Daftarkan Outlet Baru</span>
           </button>
+
+          {/* 4 Secondary Action Buttons: 2x2 on Mobile, Flex on Tablet/Desktop */}
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+            <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
+
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs rounded-xl border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+              title="Buka Buku Panduan Admin Lapangan"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Panduan</span>
+            </button>
+
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer"
+              title="Edit Profil & Password Saya"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Profil</span>
+            </button>
+
+            <button
+              onClick={() => setIsRequestCardModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm"
+              title="Minta Tambahan Jatah Kuota Kartu ke Super Admin via WhatsApp"
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Minta Kuota</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Realtime Live Activity Ticker Bar */}
       <LiveActivityTicker />
 
-      {/* 4 Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* 4 Stat Cards - Balanced & Harmonious */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Total Kartu */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-indigo">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 stats-card stats-card-indigo flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Jatah Kartu</span>
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-xs font-semibold text-slate-400">Total Jatah Kartu</span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-bold text-white">{totalAssignedCards}</span>
-            <span className="text-xs text-slate-400 font-medium">kartu</span>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-white">{totalAssignedCards}</span>
+            <span className="text-xs text-slate-400 font-semibold">kartu</span>
           </div>
-          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Dialokasikan oleh Super Admin</span>
+          <span className="text-[11px] text-slate-400 mt-1 block truncate">Dialokasikan Super Admin</span>
         </div>
 
         {/* Outlet Terdaftar */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-emerald">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 stats-card stats-card-emerald flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Outlet Binaan Aktif</span>
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-xs font-semibold text-slate-400">Outlet Binaan Aktif</span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Store className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-bold text-emerald-400">{claimedCards.length}</span>
-            <span className="text-xs text-slate-400 font-medium">outlet</span>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400">{claimedCards.length}</span>
+            <span className="text-xs text-slate-400 font-semibold">outlet</span>
           </div>
-          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Toko aktif ulasan</span>
+          <span className="text-[11px] text-slate-400 mt-1 block truncate">Toko aktif ulasan</span>
         </div>
 
         {/* Sisa Kartu Kosong */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-amber">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 stats-card stats-card-amber flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Sisa Kartu Kosong</span>
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-xs font-semibold text-slate-400">Sisa Kartu Kosong</span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <QrCode className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-bold text-amber-400">{blankCards.length}</span>
-            <span className="text-xs text-slate-400 font-medium">siap aktivasi</span>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-amber-400">{blankCards.length}</span>
+            <span className="text-xs text-slate-400 font-semibold">siap aktivasi</span>
           </div>
-          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Siap didaftarkan ke toko baru</span>
+          <span className="text-[11px] text-slate-400 mt-1 block truncate">Siap didaftarkan ke toko baru</span>
         </div>
 
         {/* Total Scan */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl p-3.5 sm:p-5 stats-card stats-card-cyan">
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 stats-card stats-card-cyan flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Scan Pelanggan</span>
-            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-xs font-semibold text-slate-400">Total Scan Pelanggan</span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
-          <div className="mt-2.5 sm:mt-3 flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-bold text-sky-400">{totalScans}</span>
-            <span className="text-xs text-slate-400 font-medium">scan</span>
+          <div className="mt-2.5 flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-sky-400">{totalScans}</span>
+            <span className="text-xs text-slate-400 font-semibold">scan</span>
           </div>
-          <span className="text-[10px] sm:text-[11px] text-slate-400 mt-1 block truncate">Akumulasi scan outlet</span>
+          <span className="text-[11px] text-slate-400 mt-1 block truncate">Akumulasi ulasan outlet</span>
         </div>
       </div>
 
