@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { recordActivityLog } from "@/lib/actions/activity.actions";
@@ -46,6 +46,7 @@ import {
   Crown,
   Zap,
   Calendar,
+  MoreHorizontal,
 } from "lucide-react";
 import { EditMembershipDateModal } from "@/components/dashboard/EditMembershipDateModal";
 import { formatMembershipExpiry, getDefaultSeptember30Expiry } from "@/lib/membership-utils";
@@ -1454,6 +1455,24 @@ Tim Layanan Smart QR`;
               <span className="truncate">Ekspor Cetak (CSV/ZIP)</span>
             </button>
 
+            {/* Cetak & Download Invoice Penjualan */}
+            <button
+              onClick={() => setIsInvoiceModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+            >
+              <Receipt className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span className="truncate">Cetak Invoice Penjualan</span>
+            </button>
+
+            {/* Buku Modul & Panduan Sistem */}
+            <button
+              onClick={() => setIsGuideModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
+            >
+              <BookOpen className="w-4 h-4 shrink-0 text-indigo-400" />
+              <span className="truncate">Buku Panduan & Modul</span>
+            </button>
+
             {/* Scan Kamera QR */}
             <button
               onClick={() => setIsScannerModalOpen(true)}
@@ -1561,20 +1580,20 @@ Tim Layanan Smart QR`;
       {/* Main Content Area (Offset by Sidebar width on desktop) */}
       <div className="flex-1 lg:pl-72 flex flex-col min-w-0 min-h-screen">
         {/* Modern Sticky Top Header */}
-        <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             {/* Mobile Hamburger Toggle Button */}
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors"
+              className="lg:hidden p-2 rounded-xl bg-slate-900 text-slate-300 border border-slate-800 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
               title="Buka Navigasi"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="min-w-0 overflow-hidden">
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2 truncate">
+                <h1 className="text-base sm:text-xl lg:text-2xl font-extrabold text-white tracking-tight truncate">
                   {activeTab === "OVERVIEW" && "Dashboard Utama"}
                   {activeTab === "CARDS" && "Data Kartu QR"}
                   {activeTab === "OUTLETS" && "Data Outlet Mitra"}
@@ -1584,91 +1603,37 @@ Tim Layanan Smart QR`;
                   {activeTab === "ACTIVITY_LOGS" && "Log Audit Sistem"}
                   {activeTab === "LEADERBOARD" && "Leaderboard Mitra Lapangan"}
                 </h1>
-                <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 shrink-0">
+                <span className="text-[10px] font-mono font-bold text-sky-400 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 shrink-0 hidden sm:inline-block">
                   {localSiteSetting?.appVersion || "V 1.1.2"}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
+              <p className="text-xs text-slate-400 hidden md:block truncate">
                 Selamat datang kembali, <strong className="text-slate-200">{currentUser.fullName}</strong> ({isMaster ? "Super Admin 1 - CEO" : "Super Admin 2"})
               </p>
             </div>
           </div>
 
-          {/* Top-Right Quick Action CTA Buttons (Identical to reference image) */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Cetak Invoice (Khusus SA 1 & SA 2) */}
-            {/* Tombol Pasang Aplikasi PWA */}
-            <div className="hidden lg:block">
-              <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
-            </div>
-
-            {/* Tombol Super: Aktifkan Semua ke Member */}
-            <button
-              onClick={handleBulkActivateMembers}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer shrink-0 border border-yellow-300/50"
-              title="Aktifkan seluruh outlet menjadi Member Premium serentak"
-            >
-              <Zap className="w-3.5 h-3.5 text-slate-950 fill-slate-950 shrink-0" />
-              <span className="hidden sm:inline">Aktifkan Semua Member ⚡</span>
-              <span className="sm:hidden text-[11px]">Semua Member ⚡</span>
-            </button>
-
-            {/* Kelola Member & Bukti Transfer */}
+          {/* Top-Right Quick Action CTA Buttons (Clean Minimalist 2-Button Design) */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* 1. Kelola Member & Bukti Transfer */}
             <button
               onClick={() => setIsMembershipModalOpen(true)}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Kelola bukti transfer masuk & tarif member"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Kelola bukti transfer masuk, tarif member & perpanjangan"
             >
               <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="hidden md:inline">Kelola Member</span>
-              <span className="md:hidden text-[11px]">Member</span>
+              <span className="hidden sm:inline">Kelola Member</span>
+              <span className="sm:hidden text-xs">Member</span>
             </button>
 
-            <button
-              onClick={() => setIsInvoiceModalOpen(true)}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer shrink-0 border border-emerald-400/40"
-              title="Cetak & Download Invoice Penjualan (JPG)"
-            >
-              <Receipt className="w-3.5 h-3.5 text-white shrink-0" />
-              <span className="hidden sm:inline">Cetak Invoice</span>
-              <span className="sm:hidden text-[11px]">Invoice</span>
-            </button>
-
-            {/* Buku Modul Panduan Sistem */}
-            <button
-              onClick={() => setIsGuideModalOpen(true)}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Buka Buku Modul & Panduan Sistem Lengkap"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="hidden md:inline">Buku Modul</span>
-              <span className="md:hidden hidden sm:inline text-[11px]">Modul</span>
-            </button>
-
-            <button
-              onClick={() => setIsScannerModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-semibold text-xs border border-indigo-500/30 hover:border-indigo-500/60 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Pindai Kamera QR atau Pulihkan Banyak Kartu Sekaligus"
-            >
-              <Camera className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="hidden sm:inline">Scan / Pulihkan Kartu</span>
-            </button>
-
-            <button
-              onClick={() => setIsCreateAdminOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700/80 transition-all cursor-pointer shadow-sm hover:border-slate-600"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>+ Admin Lapangan</span>
-            </button>
-
+            {/* 2. Input Kartu Baru (CTA Utama) */}
             <button
               onClick={() => setIsBatchGenerateOpen(true)}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
             >
-              <Plus className="w-4 h-4 shrink-0" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="hidden sm:inline">Input Kartu Baru</span>
-              <span className="sm:hidden text-[11px]">+ Kartu</span>
+              <span className="sm:hidden text-xs">Kartu</span>
             </button>
           </div>
         </header>
@@ -2926,9 +2891,21 @@ Tim Layanan Smart QR`;
 
             {/* Filter bar for Outlets */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/40 p-3 rounded-xl border border-slate-800/60">
-              <span className="text-xs text-slate-400 font-medium">
-                Total {filteredOutlets.length} outlet terhubung
-              </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs text-slate-400 font-medium">
+                  Total {filteredOutlets.length} outlet terhubung
+                </span>
+
+                {/* Tombol Super: Aktifkan Semua ke Member */}
+                <button
+                  onClick={handleBulkActivateMembers}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer border border-yellow-300/40"
+                  title="Aktifkan seluruh outlet menjadi Member Premium serentak hingga 30 September 2026"
+                >
+                  <Zap className="w-3.5 h-3.5 text-slate-950 fill-slate-950 shrink-0" />
+                  <span>Aktifkan Semua Member (s/d 30 Sep) ⚡</span>
+                </button>
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 flex items-center gap-1">
                   <UserCheck className="w-3.5 h-3.5 text-amber-400" /> Filter Admin Lapangan:
