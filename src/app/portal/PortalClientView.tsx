@@ -393,7 +393,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       case "CARDS":
         return "Kartu Smart QR";
       case "REVIEWS":
-        return "Notifikasi & Sesi Akun";
+        return "Riwayat & Sesi Akun";
       case "GOOGLE_REVIEW":
         return "Google Review & Tips";
       case "MEMBERSHIP":
@@ -568,17 +568,11 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             >
               <div className="flex items-center gap-3 truncate">
                 <History className="w-4 h-4 shrink-0" />
-                <span className="truncate">Notifikasi & Sesi</span>
+                <span className="truncate">Riwayat Sesi Akun</span>
               </div>
-              {outlet.isMember ? (
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  👑 VIP
-                </span>
-              ) : (
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-400">
-                  {liveTotalScans}
-                </span>
-              )}
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-400">
+                Log
+              </span>
             </button>
 
             {/* 4. Google Review & Tips */}
@@ -1249,44 +1243,21 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             </div>
           )}
 
-          {/* TAB 3: REVIEWS (Notifikasi & Sesi Akun) */}
+          {/* TAB 3: REVIEWS (Riwayat & Sesi Akun) */}
           {activeTab === "REVIEWS" && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="pb-3 border-b border-slate-800">
-                <h2 className="text-lg sm:text-xl font-bold text-white">Notifikasi Real-time & Sesi Akun</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-white">Riwayat Sesi & Log Akun</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Pantau notifikasi instan saat pelanggan melakukan tap kartu meja atau memberikan penilaian bintang di Google Review.
+                  Catatan riwayat aktivitas masuk (login), keluar (logout), dan keamanan akses akun outlet Anda.
                 </p>
               </div>
 
-              {outlet.isMember && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-sky-950/30 to-purple-950/40 border border-indigo-500/20 flex items-start gap-3.5 shadow-lg">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400 mt-0.5">
-                    <Zap className="w-5 h-5 text-indigo-300" />
-                  </div>
-                  <div className="space-y-1 text-xs">
-                    <div className="font-semibold text-white flex items-center gap-2">
-                      <span>Notifikasi Real-time Siaga Aktif</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Live Dering 🛎️
-                      </span>
-                    </div>
-                    <p className="text-slate-300 leading-relaxed text-[11px]">
-                      Setiap kali pelanggan scan kartu meja atau memberikan bintang 5, lonceng kasir di HP pengunjung & notifikasi push di HP Anda langsung berdering secara instan.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               <ActivityLogTable
-                title={outlet.isMember ? "Riwayat Aktivitas & Sesi Akun 👑" : "Riwayat Aktivitas Akun"}
-                subtitle={
-                  outlet.isMember
-                    ? "Catatan riwayat sesi login, logout, dan status keamanan akun outlet Anda."
-                    : "Catatan riwayat kapan pemilik akun outlet login dan logout dari sistem. (Tingkatkan ke Member Premium untuk membuka fitur lonceng kasir & notifikasi dering)."
-                }
+                title="Riwayat Aktivitas & Sesi Akun"
+                subtitle="Catatan riwayat sesi login, logout, dan status keamanan akun outlet Anda."
                 isOutletView={true}
-                isMember={outlet.isMember}
+                isMember={false}
               />
             </div>
           )}

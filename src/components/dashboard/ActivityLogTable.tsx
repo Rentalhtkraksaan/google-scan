@@ -405,29 +405,6 @@ export default function ActivityLogTable({
             </button>
           </form>
 
-          {isOutletView && isMember && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-              <span className="text-xs text-amber-300 font-semibold flex items-center gap-1 pl-1">
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-                Filter:
-              </span>
-              <select
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setPage(1);
-                }}
-                aria-label="Filter Riwayat Aktivitas Outlet"
-                className="px-3 py-2 rounded-xl bg-slate-950/60 border border-amber-500/40 text-amber-200 text-xs focus:outline-none focus:border-amber-400 transition-all cursor-pointer shadow-sm"
-              >
-                <option value="ALL">Semua Riwayat (Scan, Ulasan & Akses)</option>
-                <option value="SCAN">🛎️ Scan Kartu Meja</option>
-                <option value="FIVE_STAR">⭐⭐⭐⭐⭐ Ulasan Bintang 5</option>
-                <option value="FOUR_STAR">⭐⭐⭐⭐ Ulasan Bintang 4</option>
-                <option value="AUTH">🔐 Akses Login & Logout</option>
-              </select>
-            </div>
-          )}
 
           {!isOutletView && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
