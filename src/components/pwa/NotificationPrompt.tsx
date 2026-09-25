@@ -187,20 +187,19 @@ export function NotificationPrompt({
 
   if (permission === "granted") {
     return (
-      <div className={`inline-flex items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 ${className}`}>
+      <div className={`inline-flex items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shrink-0 ${className}`}>
         <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold px-1">
           <BellRing className="w-3.5 h-3.5 animate-pulse shrink-0" />
-          <span className="hidden sm:inline">Dering & Notif Aktif</span>
-          <span className="sm:hidden">Notif Aktif</span>
+          <span>Dering & Notif Aktif</span>
         </div>
         <button
           type="button"
           onClick={handleTestSound}
           disabled={isTesting}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold text-[10.5px] border border-emerald-500/40 transition-all cursor-pointer hover:scale-105 active:scale-95"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 font-bold text-xs border border-emerald-500/40 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
           title="Uji dering lonceng & notifikasi ulasan di smartphone Anda"
         >
-          <Volume2 className="w-3.5 h-3.5" />
+          <Volume2 className="w-3.5 h-3.5 shrink-0" />
           <span>{isTesting ? "Menderit..." : "Tes Dering HP 🔊"}</span>
         </button>
       </div>
@@ -209,14 +208,14 @@ export function NotificationPrompt({
 
   if (permission === "denied") {
     return (
-      <div className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-amber-500/30 text-amber-300 text-xs ${className}`}>
+      <div className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-amber-500/30 text-amber-300 text-xs shrink-0 ${className}`}>
         <button
           type="button"
           onClick={handleTestSound}
           disabled={isTesting}
-          className="inline-flex items-center gap-1 text-amber-300 font-semibold cursor-pointer hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-amber-300 font-semibold cursor-pointer hover:text-white transition-colors shrink-0"
         >
-          <Volume2 className="w-3.5 h-3.5" />
+          <Volume2 className="w-3.5 h-3.5 shrink-0" />
           <span>{isTesting ? "Berdering..." : "Tes Suara 🔊"}</span>
         </button>
       </div>
@@ -227,7 +226,7 @@ export function NotificationPrompt({
     <button
       type="button"
       onClick={requestPermission}
-      className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-sky-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0 ${className}`}
       title="Aktifkan notifikasi & lonceng di HP bahkan saat aplikasi ditutup"
     >
       <Bell className="w-3.5 h-3.5 text-sky-200 shrink-0 animate-bounce" />
