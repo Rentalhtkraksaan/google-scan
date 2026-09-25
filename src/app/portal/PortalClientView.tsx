@@ -110,7 +110,6 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [activeTab, setActiveTab] = useState<PortalTab>("OVERVIEW");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
@@ -352,17 +351,6 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     };
   }, [outlet?.id, outlet?.isMember, outlet?.name]);
 
-  const handleCopy = async () => {
-    if (!scanUrl) return;
-    try {
-      await navigator.clipboard.writeText(scanUrl);
-      setCopied(true);
-      showSuccessAlert("Link Disalin!", `Link scan kartu ${activeCard?.code || ""} berhasil disalin ke clipboard.`, 1200);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-    }
-  };
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -1063,19 +1051,13 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 )}
 
                 <button
-                  onClick={handleCopy}
+                  onClick={() => setIsGuideModalOpen(true)}
                   className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 text-left transition-all hover:scale-[1.01] cursor-pointer group h-full flex flex-col justify-between"
                 >
-                  {copied ? (
-                    <Check className="w-5 h-5 text-emerald-400 mb-2 shrink-0" />
-                  ) : (
-                    <Copy className="w-5 h-5 text-purple-400 mb-2 group-hover:scale-110 transition-transform shrink-0" />
-                  )}
+                  <BookOpen className="w-5 h-5 text-amber-400 mb-2 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
-                    <span className="text-xs font-bold text-white block">
-                      {copied ? "Link Tersalin!" : "Salin Link Scan"}
-                    </span>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">Untuk bagikan ke medsos</span>
+                    <span className="text-xs font-bold text-white block">Buku Panduan</span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">Tata cara pemakaian</span>
                   </div>
                 </button>
 
@@ -1194,29 +1176,16 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                     />
                   </div>
 
-                  <div className="w-full mt-4 grid grid-cols-2 gap-2">
+                  <div className="w-full mt-4">
                     <a
                       href={scanUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
                     >
                       <ExternalLink className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                      <span>Tes Scan</span>
+                      <span>Uji Coba Scan Kartu</span>
                     </a>
-
-                    <button
-                      type="button"
-                      onClick={handleCopy}
-                      className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors cursor-pointer"
-                    >
-                      {copied ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                      )}
-                      <span>{copied ? "Tersalin" : "Salin Link"}</span>
-                    </button>
                   </div>
                 </div>
 
@@ -1228,33 +1197,23 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       Informasi Kartu Aktif ({activeCard?.code || "-"})
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                       <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
                         <span className="text-slate-400 block mb-1">Kode Kartu:</span>
                         <strong className="text-white font-mono font-bold text-sm">{activeCard?.code || "-"}</strong>
                       </div>
 
                       <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
-                        <span className="text-slate-400 block mb-1">Total Scan Meja Ini:</span>
-                        <strong className="text-emerald-400 font-bold text-sm">{activeCard?.scanCount || 0} kali</strong>
+                        <span className="text-slate-400 block mb-1">Status Fisik:</span>
+                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          Aktif di Meja
+                        </span>
                       </div>
-                    </div>
 
-                    <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 block text-xs mb-1.5">Link Scan Kartu Meja:</span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={scanUrl}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-300 font-mono text-xs px-3 py-2 rounded-lg focus:outline-none"
-                        />
-                        <button
-                          onClick={handleCopy}
-                          className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors"
-                        >
-                          Salin
-                        </button>
+                      <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                        <span className="text-slate-400 block mb-1">Total Scan:</span>
+                        <strong className="text-sky-400 font-bold text-sm">{activeCard?.scanCount || 0} kali</strong>
                       </div>
                     </div>
                   </div>
@@ -1340,7 +1299,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                     </div>
                     <div className="pt-1 flex items-center justify-end">
                       <a
-                        href={scanUrl || outlet.googleReviewUrl}
+                        href={outlet.googleReviewUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 rounded-lg text-xs font-semibold transition-colors"
