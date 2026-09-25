@@ -290,7 +290,7 @@ export function sendSmartphoneNotification(title: string, body: string, url: str
         registration.showNotification(title, {
           body,
           icon: "/api/logo/landing",
-          badge: "/api/logo/landing",
+          badge: "/api/logo/badge",
           vibrate: [250, 100, 250, 100, 450],
           tag: `alert-${Date.now()}`,
           data: { url },
@@ -314,7 +314,7 @@ function fallbackNotification(title: string, body: string, url: string) {
     const notif = new Notification(title, {
       body,
       icon: "/api/logo/landing",
-      badge: "/api/logo/landing",
+      badge: "/api/logo/badge",
     });
     notif.onclick = () => {
       window.focus();

@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
     const options = {
       body: data.body || "Ada pembaruan ulasan di outlet Anda.",
       icon: data.icon || "/api/logo/landing",
-      badge: data.badge || "/api/logo/landing",
+      badge: data.badge || "/api/logo/badge",
       vibrate: [500, 200, 500, 200, 500, 200, 800],
       sound: "/sounds/bell.wav",
       tag: data.tag || `smartqr-alert-${Date.now()}`,
@@ -42,7 +42,7 @@ self.addEventListener("push", (event) => {
       self.registration.showNotification("Smart QR Review", {
         body: text,
         icon: "/api/logo/landing",
-        badge: "/api/logo/landing",
+        badge: "/api/logo/badge",
         vibrate: [500, 200, 500, 200, 800],
         sound: "/sounds/bell.wav",
         silent: false,
@@ -82,7 +82,7 @@ self.addEventListener("message", (event) => {
     const options = {
       body: event.data.body || "Aktivitas ulasan baru terdeteksi.",
       icon: event.data.icon || "/api/logo/landing",
-      badge: event.data.badge || "/api/logo/landing",
+      badge: event.data.badge || "/api/logo/badge",
       vibrate: [250, 100, 250, 100, 450],
       tag: `review-alert-${Date.now()}`,
       data: {

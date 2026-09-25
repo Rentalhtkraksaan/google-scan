@@ -10,6 +10,23 @@ export async function GET(
   try {
     const { type } = await params;
 
+    if (type === "badge") {
+      const fs = await import("fs");
+      const path = await import("path");
+      const badgePath = path.join(process.cwd(), "public", "badge.png");
+      if (fs.existsSync(badgePath)) {
+        const buffer = fs.readFileSync(badgePath);
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "public, max-age=86400",
+            "Content-Length": buffer.length.toString(),
+          },
+        });
+      }
+    }
+
     let selectField: "dashboardLogoUrl" | "landingPageLogoUrl" | "faviconUrl" = "dashboardLogoUrl";
     if (type === "landing") selectField = "landingPageLogoUrl";
     else if (type === "favicon") selectField = "faviconUrl";
