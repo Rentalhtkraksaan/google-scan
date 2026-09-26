@@ -3900,6 +3900,7 @@ Tim Layanan Smart QR`;
         onClose={() => setIsMembershipModalOpen(false)}
         siteSetting={localSiteSetting}
         onRefreshData={() => router.refresh()}
+        isMaster={isMaster}
       />
 
       {/* Modal Bulk Aktifkan Semua Member VIP (Bebas Atur Tanggal / Presets) */}

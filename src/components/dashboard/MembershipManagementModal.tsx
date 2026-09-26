@@ -29,12 +29,14 @@ import {
   Edit2,
   ChevronRight,
   Sliders,
+  Trash2,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 import {
   getMembershipRequestsAction,
   approvePaymentProofAction,
   rejectPaymentProofAction,
+  deletePaymentRecordAction,
   updateMembershipSettingsAction,
   getAllOutletsMembershipAction,
   toggleOutletMembershipAction,
@@ -65,6 +67,7 @@ interface MembershipManagementModalProps {
   onClose: () => void;
   siteSetting?: SiteSettingModel;
   onRefreshData?: () => void;
+  isMaster?: boolean;
 }
 
 export function MembershipManagementModal({
@@ -72,8 +75,15 @@ export function MembershipManagementModal({
   onClose,
   siteSetting,
   onRefreshData,
+  isMaster = true,
 }: MembershipManagementModalProps) {
   const [activeTab, setActiveTab] = useState<"OUTLETS" | "REQUESTS" | "SETTINGS">("OUTLETS");
+
+  useEffect(() => {
+    if (!isMaster && activeTab !== "OUTLETS") {
+      setActiveTab("OUTLETS");
+    }
+  }, [isMaster, activeTab]);
   
   // Tab Outlets State
   const [outlets, setOutlets] = useState<OutletMembershipRow[]>([]);
@@ -334,6 +344,31 @@ export function MembershipManagementModal({
     }
   };
 
+  // Handle Delete Payment Request (Khusus Super Admin)
+  const handleDeleteRequest = async (id: string, outletName: string) => {
+    const resConfirm = await showConfirmAlert(
+      `Hapus Riwayat ${outletName}?`,
+      "Data riwayat pembayaran/struk ini akan dihapus permanen dari sistem.",
+      "Ya, Hapus Sekarang 🗑️",
+      "#ef4444"
+    );
+
+    if (!resConfirm.isConfirmed) return;
+
+    try {
+      const res = await deletePaymentRecordAction(id);
+      if (res.success) {
+        showSuccessAlert("Terhapus!", res.message);
+        fetchRequests();
+        if (onRefreshData) onRefreshData();
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghapus riwayat pembayaran.");
+    }
+  };
+
   // Handle Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -428,34 +463,38 @@ export function MembershipManagementModal({
             <span>Daftar Member Outlet ({outlets.length})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("REQUESTS")}
-            className={`flex items-center gap-2 px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "REQUESTS"
-                ? "border-amber-400 text-amber-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Riwayat Pembayaran & Struk ({requests.length})</span>
-            {pendingRequests.length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-            )}
-          </button>
+          {isMaster && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("REQUESTS")}
+              className={`flex items-center gap-2 px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === "REQUESTS"
+                  ? "border-amber-400 text-amber-400"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Riwayat Pembayaran & Struk ({requests.length})</span>
+              {pendingRequests.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              )}
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("SETTINGS")}
-            className={`flex items-center gap-2 px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === "SETTINGS"
-                ? "border-amber-400 text-amber-400"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Tarif Master & Midtrans QRIS</span>
-          </button>
+          {isMaster && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("SETTINGS")}
+              className={`flex items-center gap-2 px-4 py-3 font-bold text-xs sm:text-sm border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === "SETTINGS"
+                  ? "border-amber-400 text-amber-400"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Tarif Master & Midtrans QRIS</span>
+            </button>
+          )}
         </div>
 
         {/* Modal Body */}
@@ -772,8 +811,8 @@ export function MembershipManagementModal({
             </div>
           )}
 
-          {/* TAB 2: RIWAYAT PEMBAYARAN & STRUK */}
-          {activeTab === "REQUESTS" && (
+          {/* TAB 2: RIWAYAT PEMBAYARAN & STRUK (Khusus Super Admin 1) */}
+          {activeTab === "REQUESTS" && isMaster && (
             <div className="space-y-4 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-400">
@@ -882,25 +921,38 @@ export function MembershipManagementModal({
                             </span>
                           )}
 
-                          {isPending && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleRejectRequest(item.id, item.outlet?.name || "Outlet")}
-                                className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
-                              >
-                                Tolak ❌
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleApproveRequest(item.id, item.outlet?.name || "Outlet")}
-                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Setujui & Aktifkan Member ✅</span>
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {/* Tombol Hapus Riwayat Transaksi */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRequest(item.id, item.outlet?.name || "Outlet")}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                              title="Hapus riwayat transaksi ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                              <span>Hapus</span>
+                            </button>
+
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRejectRequest(item.id, item.outlet?.name || "Outlet")}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+                                >
+                                  Tolak ❌
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveRequest(item.id, item.outlet?.name || "Outlet")}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Setujui & Aktifkan Member ✅</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -910,8 +962,8 @@ export function MembershipManagementModal({
             </div>
           )}
 
-          {/* TAB 3: PENGATURAN HARGA & MIDTRANS */}
-          {activeTab === "SETTINGS" && (
+          {/* TAB 3: PENGATURAN HARGA & MIDTRANS (Khusus Super Admin 1) */}
+          {activeTab === "SETTINGS" && isMaster && (
             <form onSubmit={handleSaveSettings} className="space-y-6 max-w-2xl mx-auto animate-in fade-in duration-200">
               {/* Section: Master Price & Trial Duration */}
               <div className="p-5 rounded-2xl bg-slate-850 border border-slate-800 space-y-4">

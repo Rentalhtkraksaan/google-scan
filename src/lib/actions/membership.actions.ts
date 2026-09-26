@@ -987,4 +987,54 @@ export async function getRecentVipRenewalsAction(sinceTimestamp?: number) {
   }
 }
 
+/**
+ * Super Admin: Hapus data riwayat transaksi pembayaran / struk
+ */
+export async function deletePaymentRecordAction(paymentId: string) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak. Khusus Super Admin." };
+    }
+
+    const payment = await prisma.membershipPayment.findUnique({
+      where: { id: paymentId },
+      include: { outlet: true },
+    });
+
+    if (!payment) {
+      return { success: false, message: "Data riwayat pembayaran tidak ditemukan." };
+    }
+
+    await prisma.membershipPayment.delete({
+      where: { id: paymentId },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        outletId: payment.outletId,
+        userId: session.user.id,
+        userName: session.user.name || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "DELETE_PAYMENT",
+        title: "Hapus Riwayat Pembayaran 🗑️",
+        description: `Super Admin menghapus riwayat pembayaran sebesar Rp ${payment.amount.toLocaleString("id-ID")} untuk outlet "${payment.outlet.name}".`,
+        targetId: payment.id,
+        targetName: payment.outlet.name,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      message: `Riwayat pembayaran "${payment.outlet.name}" berhasil dihapus.`,
+    };
+  } catch (error) {
+    console.error("Error deleting payment record:", error);
+    return { success: false, message: "Gagal menghapus riwayat pembayaran." };
+  }
+}
+
 
