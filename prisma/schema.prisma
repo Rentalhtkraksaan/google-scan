@@ -99,6 +99,12 @@ model SiteSetting {
   membershipNotes          String?  @db.Text
   membershipTrialNotice    String?  @db.Text
 
+  // Midtrans Payment Gateway Configuration
+  midtransServerKey        String?  @db.Text
+  midtransClientKey        String?  @db.Text
+  midtransIsProduction     Boolean  @default(false)
+  trialDurationDays        Int      @default(30)
+
   updatedAt          DateTime @updatedAt
 
   @@map("site_settings")
@@ -115,6 +121,7 @@ model Outlet {
   isMember            Boolean   @default(false)
   membershipStartedAt DateTime?
   membershipExpiresAt DateTime?
+  customVipPrice      Int?      // Harga VIP khusus untuk outlet ini (override harga master jika diisi)
 
   // Fitur Eksklusif Member VIP
   soundEffect         String    @default("BELL_DOUBLE") // BELL_DOUBLE | CHA_CHING | LUXURY_CHIME | CELEBRATION
@@ -297,20 +304,26 @@ model PushSubscription {
 }
 
 model MembershipPayment {
-  id            String    @id @default(cuid())
-  outletId      String
-  outlet        Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  amount        Int
-  proofImageUrl String    @db.LongText
-  status        String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
-  senderName    String?
-  senderNotes   String?   @db.Text
-  adminNotes    String?   @db.Text
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  outletId              String
+  outlet                Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  amount                Int
+  paymentType           String    @default("MIDTRANS_QRIS") // "MIDTRANS_QRIS" | "MANUAL"
+  proofImageUrl         String?   @db.LongText
+  status                String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED"
+  midtransOrderId       String?   @unique
+  midtransTransactionId String?
+  qrisUrl               String?   @db.Text
+  snapToken             String?   @db.Text
+  senderName            String?
+  senderNotes           String?   @db.Text
+  adminNotes            String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([outletId])
   @@index([status])
+  @@index([midtransOrderId])
   @@index([createdAt])
   @@map("membership_payments")
 }

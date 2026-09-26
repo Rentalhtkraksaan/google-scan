@@ -349,7 +349,11 @@ export async function updateMembershipSettingsAction(
   accountNumber: string,
   accountName: string,
   notes?: string,
-  trialNotice?: string
+  trialNotice?: string,
+  midtransServerKey?: string,
+  midtransClientKey?: string,
+  midtransIsProduction?: boolean,
+  trialDurationDays?: number
 ) {
   try {
     const session = await auth();
@@ -366,6 +370,10 @@ export async function updateMembershipSettingsAction(
         membershipAccountName: accountName || "Smart QR Review",
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
+        midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : undefined,
+        midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : undefined,
+        midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
+        trialDurationDays: trialDurationDays !== undefined ? trialDurationDays : 30,
       },
       create: {
         id: "default",
@@ -375,6 +383,10 @@ export async function updateMembershipSettingsAction(
         membershipAccountName: accountName || "Smart QR Review",
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
+        midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : null,
+        midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : null,
+        midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
+        trialDurationDays: trialDurationDays !== undefined ? trialDurationDays : 30,
       },
     });
 
@@ -383,11 +395,381 @@ export async function updateMembershipSettingsAction(
 
     return {
       success: true,
-      message: "Pengaturan harga & rekening pembayaran member berhasil disimpan!",
+      message: "Pengaturan harga & Payment Gateway Midtrans berhasil disimpan!",
     };
   } catch (error) {
     console.error("Error updating membership settings:", error);
     return { success: false, message: "Gagal menyimpan pengaturan membership." };
+  }
+}
+
+/**
+ * Super Admin: Atur harga khusus VIP per outlet tertentu (override harga master jika diisi)
+ */
+export async function updateOutletCustomVipPriceAction(outletId: string, customVipPrice: number | null) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak. Khusus Super Admin." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+      select: { name: true },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    const updated = await prisma.outlet.update({
+      where: { id: outletId },
+      data: {
+        customVipPrice: customVipPrice && customVipPrice > 0 ? Math.round(customVipPrice) : null,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        outletId,
+        userName: session.user.name || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "UPDATE_STATUS",
+        title: "Atur Harga Khusus VIP Outlet",
+        description: `Super Admin mengatur harga khusus VIP untuk outlet "${outlet.name}" menjadi ${
+          updated.customVipPrice ? `Rp ${updated.customVipPrice.toLocaleString("id-ID")}` : "Mengikuti Harga Master Global"
+        }.`,
+        targetId: outletId,
+        targetName: outlet.name,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      customVipPrice: updated.customVipPrice,
+      message: updated.customVipPrice
+        ? `Harga khusus VIP untuk "${outlet.name}" diset Rp ${updated.customVipPrice.toLocaleString("id-ID")}/bulan.`
+        : `Harga VIP untuk "${outlet.name}" kembali mengikuti Harga Master Global.`,
+    };
+  } catch (error) {
+    console.error("Error updateOutletCustomVipPriceAction:", error);
+    return { success: false, message: "Gagal menyimpan harga khusus outlet." };
+  }
+}
+
+/**
+ * Buat transaksi Midtrans Snap Token untuk pembayaran perpanjangan VIP Outlet (Khusus QRIS)
+ */
+export async function createMidtransVipTransactionAction(outletId: string) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+      include: {
+        owner: {
+          select: {
+            fullName: true,
+            email: true,
+            whatsappNumber: true,
+          },
+        },
+      },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    // Role check: Admin/Super Admin atau pemilik outlet
+    if (session.user.role === "USER" && outlet.ownerId !== session.user.id) {
+      return { success: false, message: "Akses ditolak." };
+    }
+
+    const siteSetting = await prisma.siteSetting.findUnique({
+      where: { id: "default" },
+    });
+
+    const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
+    const clientKey = siteSetting?.midtransClientKey || process.env.MIDTRANS_CLIENT_KEY || "";
+    const isProduction = siteSetting?.midtransIsProduction ?? (process.env.MIDTRANS_IS_PRODUCTION === "true");
+
+    if (!serverKey) {
+      return {
+        success: false,
+        message: "Payment Gateway Midtrans belum dikonfigurasi oleh Super Admin. Silakan hubungi pengelola.",
+      };
+    }
+
+    // Tentukan harga: Harga khusus outlet jika ada, fallback ke harga master
+    const amount = outlet.customVipPrice && outlet.customVipPrice > 0
+      ? outlet.customVipPrice
+      : (siteSetting?.membershipPrice || 45000);
+
+    const orderId = `VIP-${outlet.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+    const snapEndpoint = isProduction
+      ? "https://app.midtrans.com/snap/v1/transactions"
+      : "https://app.sandbox.midtrans.com/snap/v1/transactions";
+
+    const authHeader = "Basic " + Buffer.from(serverKey + ":").toString("base64");
+
+    const payload = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: amount,
+      },
+      customer_details: {
+        first_name: outlet.name,
+        email: outlet.owner?.email || "outlet@smartqr.id",
+        phone: outlet.owner?.whatsappNumber || "08123456789",
+      },
+      item_details: [
+        {
+          id: "VIP-1M",
+          price: amount,
+          quantity: 1,
+          name: `VIP 1 Bulan - ${outlet.name.slice(0, 25)}`,
+        },
+      ],
+      enabled_payments: ["qris", "gopay", "shopeepay"],
+    };
+
+    const midtransRes = await fetch(snapEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": authHeader,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const snapData = await midtransRes.json();
+
+    if (!midtransRes.ok || !snapData.token) {
+      console.error("[Midtrans Error]:", snapData);
+      return {
+        success: false,
+        message: snapData.error_messages?.[0] || "Gagal membuat invoice pembayaran Midtrans.",
+      };
+    }
+
+    // Catat record MembershipPayment di database dengan status PENDING
+    await prisma.membershipPayment.create({
+      data: {
+        outletId: outlet.id,
+        amount,
+        paymentType: "MIDTRANS_QRIS",
+        status: "PENDING",
+        midtransOrderId: orderId,
+        snapToken: snapData.token,
+        senderName: outlet.owner?.fullName || outlet.name,
+        senderNotes: `Perpanjangan VIP 1 Bulan via Midtrans QRIS`,
+      },
+    });
+
+    return {
+      success: true,
+      snapToken: snapData.token,
+      redirectUrl: snapData.redirect_url,
+      orderId,
+      amount,
+      clientKey,
+      isProduction,
+    };
+  } catch (error) {
+    console.error("Error createMidtransVipTransactionAction:", error);
+    return { success: false, message: "Terjadi kesalahan saat memproses pembayaran." };
+  }
+}
+
+/**
+ * Cek status transaksi Midtrans secara real-time dari browser outlet
+ */
+export async function checkMidtransTransactionStatusAction(orderId: string) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    const payment = await prisma.membershipPayment.findFirst({
+      where: { midtransOrderId: orderId },
+      include: { outlet: { include: { owner: true } } },
+    });
+
+    if (!payment) {
+      return { success: false, message: "Data transaksi tidak ditemukan." };
+    }
+
+    // Jika sudah approved di webhook, langsung return success
+    if (payment.status === "APPROVED") {
+      return {
+        success: true,
+        status: "APPROVED",
+        isPaid: true,
+        expiresAt: payment.outlet.membershipExpiresAt,
+      };
+    }
+
+    const siteSetting = await prisma.siteSetting.findUnique({
+      where: { id: "default" },
+    });
+
+    const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
+    const isProduction = siteSetting?.midtransIsProduction ?? (process.env.MIDTRANS_IS_PRODUCTION === "true");
+
+    if (!serverKey) {
+      return { success: false, message: "Kunci server Midtrans belum diisi." };
+    }
+
+    const statusEndpoint = isProduction
+      ? `https://api.midtrans.com/v2/${orderId}/status`
+      : `https://api.sandbox.midtrans.com/v2/${orderId}/status`;
+
+    const authHeader = "Basic " + Buffer.from(serverKey + ":").toString("base64");
+
+    const statusRes = await fetch(statusEndpoint, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Authorization": authHeader,
+      },
+    });
+
+    const statusData = await statusRes.json();
+
+    const isSuccess =
+      statusData.transaction_status === "settlement" ||
+      (statusData.transaction_status === "capture" && statusData.fraud_status === "accept");
+
+    if (isSuccess && payment.status !== "APPROVED") {
+      const now = new Date();
+      let newExpiresAt: Date;
+
+      if (payment.outlet.membershipExpiresAt && new Date(payment.outlet.membershipExpiresAt).getTime() > now.getTime()) {
+        newExpiresAt = new Date(new Date(payment.outlet.membershipExpiresAt).getTime() + 30 * 24 * 60 * 60 * 1000);
+      } else {
+        newExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      }
+
+      await prisma.$transaction([
+        prisma.membershipPayment.update({
+          where: { id: payment.id },
+          data: {
+            status: "APPROVED",
+            midtransTransactionId: statusData.transaction_id || undefined,
+            adminNotes: `Sukses via Midtrans QRIS pada ${now.toLocaleString("id-ID")}`,
+          },
+        }),
+        prisma.outlet.update({
+          where: { id: payment.outletId },
+          data: {
+            isMember: true,
+            membershipStartedAt: payment.outlet.membershipStartedAt || now,
+            membershipExpiresAt: newExpiresAt,
+          },
+        }),
+        prisma.activityLog.create({
+          data: {
+            outletId: payment.outletId,
+            userId: payment.outlet.ownerId,
+            userName: payment.outlet.owner?.fullName || payment.outlet.name,
+            userRole: "USER",
+            action: "VIP_RENEWAL_MIDTRANS",
+            title: "Perpanjangan Member VIP Berhasil (Midtrans QRIS) ⚡",
+            description: `Outlet "${payment.outlet.name}" sukses memperpanjang Member VIP via Midtrans QRIS sebesar Rp ${payment.amount.toLocaleString("id-ID")}. Masa aktif kini berlaku hingga ${formatMembershipExpiry(newExpiresAt)}.`,
+            targetId: payment.id,
+            targetName: "Midtrans QRIS",
+          },
+        }),
+      ]);
+
+      revalidatePath("/portal");
+      revalidatePath("/super-admin");
+
+      return {
+        success: true,
+        status: "APPROVED",
+        isPaid: true,
+        expiresAt: newExpiresAt,
+      };
+    }
+
+    return {
+      success: true,
+      status: statusData.transaction_status || payment.status,
+      isPaid: false,
+    };
+  } catch (error) {
+    console.error("Error checkMidtransTransactionStatusAction:", error);
+    return { success: false, message: "Gagal memeriksa status pembayaran." };
+  }
+}
+
+/**
+ * Super Admin: Ambil seluruh daftar outlet beserta status membership, expired, & harga khusus
+ */
+export async function getAllOutletsMembershipAction() {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, outlets: [], message: "Akses ditolak." };
+    }
+
+    const outlets = await prisma.outlet.findMany({
+      include: {
+        owner: {
+          select: {
+            fullName: true,
+            email: true,
+            whatsappNumber: true,
+          },
+        },
+        qrCards: {
+          select: {
+            code: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const now = Date.now();
+    const formatted = outlets.map((o) => {
+      const isExpired = o.membershipExpiresAt ? new Date(o.membershipExpiresAt).getTime() <= now : true;
+      const daysRemaining = o.membershipExpiresAt
+        ? Math.ceil((new Date(o.membershipExpiresAt).getTime() - now) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      return {
+        id: o.id,
+        name: o.name,
+        ownerName: o.owner?.fullName || "-",
+        ownerEmail: o.owner?.email || "-",
+        ownerWa: o.owner?.whatsappNumber || "-",
+        isMember: o.isMember,
+        isExpired,
+        daysRemaining,
+        membershipStartedAt: o.membershipStartedAt,
+        membershipExpiresAt: o.membershipExpiresAt,
+        customVipPrice: o.customVipPrice,
+        cardsCount: o.qrCards.length,
+        createdAt: o.createdAt,
+      };
+    });
+
+    return { success: true, outlets: formatted };
+  } catch (error) {
+    console.error("Error getAllOutletsMembershipAction:", error);
+    return { success: false, outlets: [], message: "Gagal memuat data member outlet." };
   }
 }
 
@@ -522,4 +904,50 @@ export async function resetStaffPairingTokenAction(outletId: string) {
     };
   }
 }
+
+/**
+ * Super Admin: Ambil notifikasi perpanjangan VIP terbaru (Midtrans QRIS) untuk real-time banner & dering di dashboard
+ */
+export async function getRecentVipRenewalsAction(sinceTimestamp?: number) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, renewals: [] };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const whereCondition: any = {
+      action: "VIP_RENEWAL_MIDTRANS",
+    };
+
+    if (sinceTimestamp && sinceTimestamp > 0) {
+      whereCondition.createdAt = {
+        gt: new Date(sinceTimestamp),
+      };
+    }
+
+    const renewals = await prisma.activityLog.findMany({
+      where: whereCondition,
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    });
+
+    return {
+      success: true,
+      renewals: renewals.map((r) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        outletId: r.outletId,
+        userName: r.userName,
+        createdAt: r.createdAt.toISOString(),
+        timestamp: new Date(r.createdAt).getTime(),
+      })),
+    };
+  } catch (err) {
+    console.error("Error getRecentVipRenewalsAction:", err);
+    return { success: false, renewals: [] };
+  }
+}
+
 

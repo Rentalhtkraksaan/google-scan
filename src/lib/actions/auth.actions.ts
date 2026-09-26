@@ -808,11 +808,18 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         },
       });
 
+      // Outlet baru otomatis mendapatkan Free Trial VIP 1 Bulan Penuh (30 Hari)
+      const trialDays = 30;
+      const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+
       const newOutlet = await tx.outlet.create({
         data: {
           ownerId: newUser.id,
           name: outletName.trim(),
           googleReviewUrl: finalReviewUrl,
+          isMember: true,
+          membershipStartedAt: new Date(),
+          membershipExpiresAt: trialExpiry,
         },
       });
 

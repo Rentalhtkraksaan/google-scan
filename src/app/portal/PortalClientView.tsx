@@ -37,6 +37,7 @@ import {
   Zap,
   Smartphone,
   RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { getCardScanUrl, generateQrDataUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert, showErrorAlert } from "@/lib/swal";
@@ -48,6 +49,8 @@ import {
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { UpgradeMemberModal } from "@/components/dashboard/UpgradeMemberModal";
+import { VipRenewalReminderModal } from "@/components/dashboard/VipRenewalReminderModal";
+import { getMembershipDaysRemaining, formatMembershipExpiry } from "@/lib/membership-utils";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { Interactive3DCard } from "@/components/dashboard/Interactive3DCard";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
@@ -81,6 +84,7 @@ interface PortalClientViewProps {
     isMember?: boolean;
     membershipStartedAt?: string | Date | null;
     membershipExpiresAt?: string | Date | null;
+    customVipPrice?: number | null;
     soundEffect?: string;
     customGreetingText?: string | null;
     staffPairingToken?: string | null;
@@ -136,6 +140,31 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         .catch((err) => console.error("Staff QR gen error:", err));
     }
   }, [activePairingToken]);
+
+  // VIP Renewal Reminder State (Maksimal 2x per hari saat mendekati H-7 atau habis)
+  const [isRenewalReminderOpen, setIsRenewalReminderOpen] = useState(false);
+
+  useEffect(() => {
+    if (!outlet?.id || !outlet?.membershipExpiresAt) return;
+    const daysRemaining = getMembershipDaysRemaining(outlet.membershipExpiresAt);
+    // Tampilkan jika mendekati masa habis (tersisa <= 7 hari) atau sudah expired
+    if (daysRemaining <= 7) {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const reminderKey = `vip_reminder_shown_${outlet.id}_${today}`;
+        const shownCount = parseInt(localStorage.getItem(reminderKey) || "0", 10);
+        if (shownCount < 2) {
+          const timer = setTimeout(() => {
+            setIsRenewalReminderOpen(true);
+            localStorage.setItem(reminderKey, (shownCount + 1).toString());
+          }, 1500);
+          return () => clearTimeout(timer);
+        }
+      } catch (err) {
+        console.error("Error reading vip_reminder localStorage:", err);
+      }
+    }
+  }, [outlet?.id, outlet?.membershipExpiresAt]);
 
   const handleTestSoundChime = (effectId: string) => {
     unlockAudioContext();
@@ -783,9 +812,72 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         {/* Scrollable Main Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto">
           {/* TAB 1: OVERVIEW (Ringkasan Outlet) */}
-          {activeTab === "OVERVIEW" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Welcome Hero Banner */}
+          {activeTab === "OVERVIEW" && (() => {
+            const overviewDaysRemaining = getMembershipDaysRemaining(outlet.membershipExpiresAt);
+            const isVipExpiringSoon = outlet.membershipExpiresAt && overviewDaysRemaining <= 7 && overviewDaysRemaining > 0;
+            const isVipExpired = outlet.membershipExpiresAt && overviewDaysRemaining <= 0;
+
+            return (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Approaching VIP Expiry Alert Banner (H-7 s/d Hari H) */}
+                {isVipExpiringSoon && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-900/50 border border-amber-500/40 shadow-xl shadow-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 font-bold">
+                        <Clock className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>Masa Aktif VIP Tersisa {overviewDaysRemaining} Hari Lagi</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Hingga {formatMembershipExpiry(outlet.membershipExpiresAt, true)}
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          Perpanjang sekarang via Midtrans QRIS instan agar layanan dering ulasan kasir & suara sambutan AI tidak terhenti.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsUpgradeModalOpen(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span>Perpanjang VIP (QRIS)</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Expired VIP Banner */}
+                {isVipExpired && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/70 via-slate-900 to-rose-900/50 border border-rose-500/40 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0 font-bold">
+                        <AlertTriangle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>Masa Aktif VIP Telah Berakhir</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                            Fitur Nonaktif
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          Fitur dering lonceng HP kasir dan suara sambutan AI saat ini dinonaktifkan. Perpanjang sekarang via Midtrans QRIS untuk langsung mengaktifkannya seketika.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsUpgradeModalOpen(true)}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span>Aktifkan VIP Sekarang</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Welcome Hero Banner */}
               <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/60 via-slate-900/80 to-sky-950/60 border border-indigo-500/20 rounded-2xl sm:rounded-3xl p-5 sm:p-8 card-glow">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
                   <div>
@@ -1102,7 +1194,8 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* TAB 2: CARDS (Kartu Smart QR) */}
           {activeTab === "CARDS" && (
@@ -1945,6 +2038,19 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         outlet={outlet}
         siteSetting={siteSetting}
         onSuccess={() => router.refresh()}
+      />
+
+      {/* Modal Pengingat Perpanjangan VIP (Maks 2x per hari saat mendekati H-7 atau habis) */}
+      <VipRenewalReminderModal
+        isOpen={isRenewalReminderOpen}
+        onClose={() => setIsRenewalReminderOpen(false)}
+        outletName={outlet.name}
+        daysRemaining={getMembershipDaysRemaining(outlet.membershipExpiresAt)}
+        membershipExpiresAt={outlet.membershipExpiresAt}
+        onRenewClick={() => {
+          setIsRenewalReminderOpen(false);
+          setIsUpgradeModalOpen(true);
+        }}
       />
 
       {/* Pop-Up Sambutan Tawarkan Pasang Aplikasi di HP Saat Login */}

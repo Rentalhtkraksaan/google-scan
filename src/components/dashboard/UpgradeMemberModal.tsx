@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   X,
   Sparkles,
@@ -16,9 +16,18 @@ import {
   Volume2,
   BellRing,
   Crown,
+  QrCode,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Zap,
 } from "lucide-react";
-import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
-import { submitPaymentProofAction } from "@/lib/actions/membership.actions";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
+import {
+  submitPaymentProofAction,
+  createMidtransVipTransactionAction,
+  checkMidtransTransactionStatusAction,
+} from "@/lib/actions/membership.actions";
 
 interface UpgradeMemberModalProps {
   isOpen: boolean;
@@ -27,6 +36,7 @@ interface UpgradeMemberModalProps {
     id: string;
     name: string;
     isMember?: boolean;
+    customVipPrice?: number | null;
   };
   siteSetting?: {
     membershipPrice?: number;
@@ -35,6 +45,8 @@ interface UpgradeMemberModalProps {
     membershipAccountName?: string;
     membershipNotes?: string | null;
     whatsappNumber?: string;
+    midtransClientKey?: string | null;
+    midtransIsProduction?: boolean;
   };
   onSuccess?: () => void;
 }
@@ -46,6 +58,8 @@ export function UpgradeMemberModal({
   siteSetting,
   onSuccess,
 }: UpgradeMemberModalProps) {
+  const [activeTab, setActiveTab] = useState<"QRIS" | "MANUAL">("QRIS");
+  const [isProcessingQris, setIsProcessingQris] = useState(false);
   const [senderName, setSenderName] = useState("");
   const [senderNotes, setSenderNotes] = useState("");
   const [proofImage, setProofImage] = useState<string | null>(null);
@@ -55,14 +69,119 @@ export function UpgradeMemberModal({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  if (!isOpen) return null;
+  // Tentukan harga: customVipPrice jika ada (harga khusus), jika tidak gunakan harga master
+  const isCustomPrice = !!(outlet.customVipPrice && outlet.customVipPrice > 0);
+  const price = isCustomPrice ? (outlet.customVipPrice as number) : (siteSetting?.membershipPrice || 45000);
+  const masterPrice = siteSetting?.membershipPrice || 45000;
 
-  const price = siteSetting?.membershipPrice || 45000;
   const bankName = siteSetting?.membershipBankName || "BCA";
   const accountNumber = siteSetting?.membershipAccountNumber || "0885172288";
   const accountName = siteSetting?.membershipAccountName || "Smart QR Review";
   const notes = siteSetting?.membershipNotes || "Harap transfer tepat sesuai nominal dan lampirkan bukti foto transfer.";
   const adminWa = siteSetting?.whatsappNumber || "6281234567890";
+
+  // Preload Midtrans Snap Script saat modal dibuka
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined") {
+      const isProduction = siteSetting?.midtransIsProduction ?? false;
+      const snapScriptUrl = isProduction
+        ? "https://app.midtrans.com/snap/snap.js"
+        : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+      const clientKey = siteSetting?.midtransClientKey || "";
+      const scriptId = "midtrans-snap-script";
+
+      let existingScript = document.getElementById(scriptId) as HTMLScriptElement;
+      if (!existingScript) {
+        existingScript = document.createElement("script");
+        existingScript.id = scriptId;
+        existingScript.src = snapScriptUrl;
+        if (clientKey) {
+          existingScript.setAttribute("data-client-key", clientKey);
+        }
+        document.body.appendChild(existingScript);
+      }
+    }
+  }, [isOpen, siteSetting?.midtransClientKey, siteSetting?.midtransIsProduction]);
+
+  if (!isOpen) return null;
+
+  // 1. Eksekusi Pembayaran Otomatis Midtrans QRIS
+  const handlePayMidtransQris = async () => {
+    setIsProcessingQris(true);
+    try {
+      const res = await createMidtransVipTransactionAction(outlet.id);
+
+      if (!res.success || !res.snapToken) {
+        showErrorAlert("Pemberitahuan", res.message || "Gagal membuat sesi pembayaran QRIS.");
+        setIsProcessingQris(false);
+        return;
+      }
+
+      // Pastikan Snap JS tersedia di window
+      const snapObj = (window as unknown as { snap?: { pay: (token: string, options: Record<string, unknown>) => void } }).snap;
+
+      if (!snapObj) {
+        // Fallback jika popup script diblokir browser: Buka link redirect Midtrans
+        if (res.redirectUrl) {
+          window.open(res.redirectUrl, "_blank");
+          showSuccessAlert("Halaman Pembayaran Dibuka", "Silakan selesaikan pembayaran QRIS pada tab yang terbuka.");
+        } else {
+          showErrorAlert("Error", "Gagal memuat modul Midtrans Snap. Silakan muat ulang halaman.");
+        }
+        setIsProcessingQris(false);
+        return;
+      }
+
+      // Buka Snap Popup Resmi Midtrans
+      snapObj.pay(res.snapToken, {
+        onSuccess: async function (result: Record<string, unknown>) {
+          console.log("[Midtrans Success]:", result);
+          setIsProcessingQris(true);
+          // Verifikasi ke server
+          if (res.orderId) {
+            await checkMidtransTransactionStatusAction(res.orderId);
+          }
+          setIsProcessingQris(false);
+          showSuccessAlert(
+            "Pembayaran Berhasil! 🎉",
+            "Selamat! Masa aktif Member VIP toko Anda telah otomatis diperpanjang seketika. Seluruh fitur eksklusif telah aktif!"
+          );
+          onClose();
+          if (onSuccess) onSuccess();
+        },
+        onPending: async function (result: Record<string, unknown>) {
+          console.log("[Midtrans Pending]:", result);
+          setIsProcessingQris(false);
+          showSuccessAlert(
+            "Menunggu Pembayaran",
+            "Silakan selesaikan scan QRIS di aplikasi mobile banking / e-wallet Anda. Sistem akan aktif otomatis begitu dana diterima!"
+          );
+        },
+        onError: function (result: Record<string, unknown>) {
+          console.error("[Midtrans Error]:", result);
+          setIsProcessingQris(false);
+          showErrorAlert("Pembayaran Gagal", "Transaksi dibatalkan atau terjadi gangguan. Silakan coba lagi.");
+        },
+        onClose: async function () {
+          setIsProcessingQris(false);
+          // Cek apakah sebenarnya sudah sukses dibayar saat modal ditutup
+          if (res.orderId) {
+            const check = await checkMidtransTransactionStatusAction(res.orderId);
+            if (check.isPaid) {
+              showSuccessAlert("Pembayaran Berhasil! 🎉", "Member VIP Anda telah aktif seketika!");
+              onClose();
+              if (onSuccess) onSuccess();
+            }
+          }
+        },
+      });
+    } catch (err) {
+      console.error("handlePayMidtransQris error:", err);
+      showErrorAlert("Error", "Terjadi kesalahan saat memproses QRIS.");
+      setIsProcessingQris(false);
+    }
+  };
 
   const handleCopy = (text: string, type: "bank" | "amount") => {
     navigator.clipboard.writeText(text);
@@ -91,7 +210,7 @@ export function UpgradeMemberModal({
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitManual = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!proofImage) {
@@ -116,7 +235,6 @@ export function UpgradeMemberModal({
           "Terima kasih! Bukti transfer Anda berhasil diunggah. Super Admin akan segera memverifikasi dan mengaktifkan Member Premium Anda."
         );
 
-        // Siapkan link WhatsApp konfirmasi cepat
         const cleanWa = adminWa.replace(/\D/g, "");
         const formattedWa = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : cleanWa;
         const waMsg = encodeURIComponent(
@@ -127,7 +245,6 @@ export function UpgradeMemberModal({
         onClose();
         if (onSuccess) onSuccess();
 
-        // Tanya apakah mau konfirmasi via WhatsApp
         setTimeout(() => {
           if (confirm("Ingin langsung mengabari Super Admin via WhatsApp agar verifikasi lebih cepat?")) {
             window.open(waUrl, "_blank");
@@ -136,7 +253,7 @@ export function UpgradeMemberModal({
       } else {
         showErrorAlert("Gagal Mengirim", res.message || "Terjadi kesalahan.");
       }
-    } catch (err) {
+    } catch {
       showErrorAlert("Error", "Gagal menghubungi server.");
     } finally {
       setIsSubmitting(false);
@@ -145,212 +262,241 @@ export function UpgradeMemberModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-amber-500/30 rounded-2xl sm:rounded-3xl shadow-2xl shadow-amber-500/10 overflow-hidden my-auto">
-        {/* Glow Header */}
-        <div className="relative p-5 sm:p-6 bg-gradient-to-br from-amber-950/60 via-slate-900 to-slate-900 border-b border-amber-500/20">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-amber-500/40 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto flex flex-col max-h-[92vh]">
+        {/* Glow ambient background */}
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Modal Header */}
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/20 via-slate-800 to-amber-950/20 border-b border-amber-500/20 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
+              <Crown className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm sm:text-base font-black text-white tracking-tight">
+                  Aktivasi / Perpanjang Member VIP
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded font-black bg-amber-500 text-slate-950 uppercase">
+                  PRO
+                </span>
+              </div>
+              <p className="text-xs text-amber-200/90 truncate max-w-xs">{outlet.name}</p>
+            </div>
+          </div>
+
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold mb-3">
-            <Crown className="w-3.5 h-3.5 text-amber-400" />
-            <span>AKSES MEMBER PREMIUM</span>
-          </div>
-
-          <h3 className="text-xl sm:text-2xl font-black text-white">
-            Tingkatkan ke Member Premium
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Buka fitur suara AI sebut nama toko, pilihan efek suara kasir, dan multi-pairing HP staf.
-          </p>
-
-          {/* Fitur yang Didapat */}
-          <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] sm:text-xs">
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Suara AI Sebut Nama Toko</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-              <Volume2 className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Pilihan Suara (Cha-ching!)</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-              <BellRing className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Multi-Kasir Pairing QR</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200">
-              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Dering & Getar HP Layar Mati</span>
-            </div>
-            <div className="col-span-2 flex items-center justify-center gap-2 p-2 rounded-xl bg-gradient-to-r from-amber-500/15 to-indigo-500/15 border border-amber-500/30 text-amber-200 font-semibold">
-              <span className="text-base">📢</span>
-              <span>Mode Speaker Bluetooth (Umumkan Bintang 5 ke Kafe)</span>
-            </div>
-          </div>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 sm:space-y-5">
-          {/* Card Info Rekening */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-850 border border-slate-700/80 shadow-inner">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-              <div>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Total Biaya Aktivasi
-                </span>
-                <span className="text-2xl font-black text-amber-400">
+        {/* Scrollable Content */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+          {/* Card Pricing Tag */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-950/90 to-amber-900/10 border border-amber-500/30 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                {isCustomPrice ? "Harga Khusus Toko Anda" : "Biaya Langganan VIP"}
+              </span>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-2xl sm:text-3xl font-black text-amber-300">
                   Rp {price.toLocaleString("id-ID")}
                 </span>
+                <span className="text-xs text-slate-400">/ bulan</span>
               </div>
-              <button
-                type="button"
-                onClick={() => handleCopy(price.toString(), "amount")}
-                className="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1 transition-all"
-              >
-                {copiedAmount ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedAmount ? "Tersalin!" : "Salin Nominal"}</span>
-              </button>
+              {isCustomPrice && (
+                <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
+                  ★ Diskon khusus dari Super Admin (Harga normal Rp {masterPrice.toLocaleString("id-ID")})
+                </span>
+              )}
             </div>
 
-            <div className="pt-3 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Bank Tujuan:</span>
-                <span className="font-bold text-white uppercase px-2 py-0.5 rounded bg-slate-700">
-                  {bankName}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Nomor Rekening:</span>
+            <div className="text-right">
+              <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase tracking-wider">
+                Aktif Instan
+              </span>
+            </div>
+          </div>
+
+          {/* Payment Method Selector */}
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setActiveTab("QRIS")}
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "QRIS"
+                  ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>QRIS Instan (Otomatis)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("MANUAL")}
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "MANUAL"
+                  ? "bg-slate-800 text-amber-300 border border-slate-700 shadow-md"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Transfer Bank Manual</span>
+            </button>
+          </div>
+
+          {/* TAB 1: METODE QRIS OTOMATIS MIDTRANS */}
+          {activeTab === "QRIS" && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">
-                    {accountNumber}
-                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Pembayaran QRIS Real-Time</h4>
+                    <p className="text-[11px] text-slate-400">
+                      Bisa scan pakai m-BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana, ShopeePay
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Tidak perlu upload bukti foto transfer</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Tidak perlu menunggu persetujuan admin</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Fitur VIP dan dering lonceng langsung aktif seketika!</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePayMidtransQris}
+                  disabled={isProcessingQris}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                >
+                  {isProcessingQris ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                      <span>Menyiapkan QRIS Midtrans...</span>
+                    </>
+                  ) : (
+                    <>
+                      <QrCode className="w-4 h-4" />
+                      <span>Bayar Rp {price.toLocaleString("id-ID")} dengan QRIS</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: METODE MANUAL TRANSFER BANK */}
+          {activeTab === "MANUAL" && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+                <span className="text-xs font-semibold text-slate-300 block">Rekening Tujuan Transfer:</span>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">{bankName} a.n. {accountName}</span>
+                    <strong className="text-sm font-mono text-white tracking-wider">{accountNumber}</strong>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleCopy(accountNumber, "bank")}
-                    className="p-1 rounded hover:bg-slate-700 text-slate-300 transition-colors"
-                    title="Salin Nomor Rekening"
+                    className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer text-xs flex items-center gap-1"
                   >
-                    {copiedBank ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copiedBank ? "Tersalin" : "Salin"}</span>
                   </button>
                 </div>
+                <p className="text-[10px] text-slate-400 italic">{notes}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Atas Nama (a/n):</span>
-                <span className="font-semibold text-slate-200">{accountName}</span>
-              </div>
-            </div>
 
-            {notes && (
-              <p className="mt-3 text-[11px] text-amber-300/80 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
-                💡 {notes}
-              </p>
-            )}
-          </div>
+              {/* Form Upload Bukti */}
+              <form onSubmit={handleSubmitManual} className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                    Nama Pengirim / Pemilik Rekening:
+                  </label>
+                  <input
+                    type="text"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    placeholder="Contoh: Danang (BCA)"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
+                  />
+                </div>
 
-          {/* Upload Bukti Struk */}
-          <div>
-            <label className="block text-xs font-bold text-slate-200 mb-1.5">
-              Unggah Foto / Tangkapan Layar Bukti Transfer <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            {proofImage ? (
-              <div className="relative rounded-xl overflow-hidden border border-emerald-500/50 bg-slate-950 p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={proofImage}
-                  alt="Bukti Transfer"
-                  className="max-h-48 w-full object-contain rounded-lg mx-auto"
-                />
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">
+                    Foto Bukti Transfer:
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full p-4 border-2 border-dashed border-slate-700 hover:border-amber-500/50 rounded-xl bg-slate-950/60 flex flex-col items-center justify-center cursor-pointer transition-colors"
+                  >
+                    {proofImage ? (
+                      <div className="flex flex-col items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={proofImage}
+                          alt="Preview Bukti"
+                          className="max-h-28 rounded-lg object-contain border border-slate-800"
+                        />
+                        <span className="text-[11px] text-amber-300 font-semibold">Klik untuk ganti foto</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-slate-400 mb-1" />
+                        <span className="text-xs text-slate-300 font-medium">Upload Screenshot Bukti Transfer</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">Format JPG / PNG (Maks 8MB)</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => {
-                    setProofImage(null);
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  className="absolute top-3 right-3 px-2 py-1 bg-rose-600/90 hover:bg-rose-600 text-white rounded-md text-[10px] font-bold shadow transition-colors"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  Ganti Foto
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengirim Bukti...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Kirim Bukti Transfer Manual</span>
+                    </>
+                  )}
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full py-6 px-4 border-2 border-dashed border-slate-700 hover:border-amber-500/60 rounded-2xl flex flex-col items-center justify-center gap-2 bg-slate-800/40 hover:bg-slate-800/80 transition-all cursor-pointer group"
-              >
-                <div className="w-10 h-10 rounded-full bg-slate-700/60 group-hover:bg-amber-500/20 flex items-center justify-center text-slate-300 group-hover:text-amber-400 transition-colors">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div className="text-center">
-                  <span className="text-xs font-bold text-slate-200 block group-hover:text-amber-300 transition-colors">
-                    Klik untuk Memilih Foto Bukti Struk
-                  </span>
-                  <span className="text-[10.5px] text-slate-400">
-                    JPG, PNG, atau Screenshot M-Banking (Maks 8MB)
-                  </span>
-                </div>
-              </button>
-            )}
-          </div>
-
-          {/* Form Pengirim (Opsional) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                Nama Pengirim di Rekening (Opsional)
-              </label>
-              <input
-                type="text"
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
-                placeholder="Contoh: Budi Santoso"
-                className="w-full px-3 py-2 rounded-xl bg-slate-850 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
-              />
+              </form>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                Catatan Tambahan (Opsional)
-              </label>
-              <input
-                type="text"
-                value={senderNotes}
-                onChange={(e) => setSenderNotes(e.target.value)}
-                placeholder="Contoh: Transfer via BCA Mobile jam 14:00"
-                className="w-full px-3 py-2 rounded-xl bg-slate-850 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
-              />
-            </div>
-          </div>
-
-          {/* Submit Action Buttons */}
-          <div className="pt-2 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !proofImage}
-              className="flex-[2] py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-              <span>{isSubmitting ? "Mengirimkan Bukti..." : "Kirim Bukti Pembayaran 📤"}</span>
-            </button>
-          </div>
-        </form>
+          )}
+        </div>
       </div>
     </div>
   );

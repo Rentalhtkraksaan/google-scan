@@ -43,6 +43,10 @@ export interface SiteSettingModel {
   membershipAccountName?: string;
   membershipNotes?: string | null;
   membershipTrialNotice?: string | null;
+  midtransServerKey?: string | null;
+  midtransClientKey?: string | null;
+  midtransIsProduction?: boolean;
+  trialDurationDays?: number;
   updatedAt?: string | Date;
 }
 
@@ -225,6 +229,10 @@ export interface OutletUserItem {
     id: string;
     name: string;
     googleReviewUrl: string;
+    isMember?: boolean;
+    membershipStartedAt?: string | Date | null;
+    membershipExpiresAt?: string | Date | null;
+    customVipPrice?: number | null;
     qrCards?: {
       code: string;
       status: string;
@@ -268,8 +276,13 @@ export interface MembershipPaymentItem {
     } | null;
   };
   amount: number;
-  proofImageUrl: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  paymentType?: string;
+  proofImageUrl?: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | string;
+  midtransOrderId?: string | null;
+  midtransTransactionId?: string | null;
+  qrisUrl?: string | null;
+  snapToken?: string | null;
   senderName?: string | null;
   senderNotes?: string | null;
   adminNotes?: string | null;

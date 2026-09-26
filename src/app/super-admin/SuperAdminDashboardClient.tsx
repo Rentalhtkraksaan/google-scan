@@ -80,7 +80,9 @@ import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from
 import {
   bulkActivateAllMembersAction,
   toggleOutletMembershipAction,
+  getRecentVipRenewalsAction,
 } from "@/lib/actions/membership.actions";
+import { playCashierDing, unlockAudioContext } from "@/lib/notification-sound";
 import {
   deleteAdminAction,
   deleteSuperAdminAction,
@@ -335,6 +337,42 @@ export function SuperAdminDashboardClient({
     isMember?: boolean;
     membershipExpiresAt?: string | Date | null;
   } | null>(null);
+
+  // Real-time VIP Renewal Alert State for Super Admin
+  const [vipRenewalAlert, setVipRenewalAlert] = useState<{
+    id: string;
+    title: string;
+    desc: string;
+  } | null>(null);
+  const lastVipPollTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    let isSubscribed = true;
+    const pollVipRenewals = async () => {
+      try {
+        const res = await getRecentVipRenewalsAction(lastVipPollTimeRef.current);
+        if (isSubscribed && res.success && res.renewals && res.renewals.length > 0) {
+          const latest = res.renewals[0];
+          lastVipPollTimeRef.current = Math.max(...res.renewals.map((r) => r.timestamp));
+          unlockAudioContext();
+          playCashierDing();
+          setVipRenewalAlert({
+            id: latest.id,
+            title: latest.title || "Perpanjangan VIP Berhasil! 👑",
+            desc: latest.description,
+          });
+        }
+      } catch (err) {
+        // Silently handle
+      }
+    };
+
+    const interval = setInterval(pollVipRenewals, 5000);
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Handler: Tombol Super Aktifkan Semua Outlet ke Member Premium
   const handleBulkActivateMembers = async () => {
@@ -1152,6 +1190,52 @@ Tim Layanan Smart QR`;
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex relative selection:bg-indigo-500 selection:text-white">
+      {/* Realtime Floating Notification Alert for VIP Renewal */}
+      {vipRenewalAlert && (
+        <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 z-[60] sm:max-w-md animate-in slide-in-from-top-4 duration-300">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/25 via-slate-900 to-amber-950/90 border-2 border-amber-400 shadow-2xl shadow-amber-500/30 flex items-start gap-3 backdrop-blur-xl">
+            <div className="p-2.5 rounded-xl bg-amber-500 text-slate-950 shrink-0 font-extrabold shadow-lg animate-bounce">
+              <Crown className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                <span>{vipRenewalAlert.title}</span>
+              </h4>
+              <p className="text-xs text-amber-200/90 mt-0.5 leading-relaxed">
+                {vipRenewalAlert.desc}
+              </p>
+              <div className="mt-2.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVipRenewalAlert(null);
+                    setIsMembershipModalOpen(true);
+                  }}
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-black shadow-md transition-all cursor-pointer inline-flex items-center gap-1"
+                >
+                  <Crown className="w-3 h-3" />
+                  <span>Kelola Member</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVipRenewalAlert(null)}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVipRenewalAlert(null)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Drawer Backdrop Overlay */}
       {isMobileSidebarOpen && (
         <div
