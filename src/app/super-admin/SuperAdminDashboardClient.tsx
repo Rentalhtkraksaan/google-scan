@@ -49,6 +49,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { EditMembershipDateModal } from "@/components/dashboard/EditMembershipDateModal";
+import { BulkActivateVipModal } from "@/components/dashboard/BulkActivateVipModal";
 import { formatMembershipExpiry, getDefaultSeptember30Expiry } from "@/lib/membership-utils";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import DatabaseBackupPanel from "@/components/dashboard/DatabaseBackupPanel";
@@ -331,6 +332,7 @@ export function SuperAdminDashboardClient({
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
+  const [isBulkActivateModalOpen, setIsBulkActivateModalOpen] = useState(false);
   const [editingMembershipOutlet, setEditingMembershipOutlet] = useState<{
     id: string;
     name: string;
@@ -374,36 +376,9 @@ export function SuperAdminDashboardClient({
     };
   }, []);
 
-  // Handler: Tombol Super Aktifkan Semua Outlet ke Member Premium
-  const handleBulkActivateMembers = async () => {
-    const resConfirm = await showConfirmAlert(
-      "⚡ Aktifkan Semua ke Member Premium?",
-      "Seluruh outlet di sistem akan otomatis mendapatkan status Member Premium aktif sampai 30 September 2026 secara serentak.",
-      "Ya, Aktifkan Semua (s/d 30 Sep)! ⚡",
-      "#eab308"
-    );
-
-    if (!resConfirm.isConfirmed) return;
-
-    try {
-      const res = await bulkActivateAllMembersAction();
-      if (res.success) {
-        showSuccessAlert("Luar Biasa! 🎉", res.message);
-        const defaultExpiry = getDefaultSeptember30Expiry();
-        setLocalOutlets((prev) =>
-          prev.map((o) => ({
-            ...o,
-            isMember: true,
-            membershipExpiresAt: defaultExpiry,
-          }))
-        );
-        router.refresh();
-      } else {
-        showErrorAlert("Gagal", res.message);
-      }
-    } catch {
-      showErrorAlert("Error", "Gagal mengaktifkan semua member.");
-    }
+  // Handler: Tombol Super Aktifkan Semua Outlet ke Member Premium (Bebas Atur Tanggal / Preset)
+  const handleBulkActivateMembers = () => {
+    setIsBulkActivateModalOpen(true);
   };
 
   // Handler: Toggle On/Off Member untuk 1 Outlet
@@ -2967,10 +2942,10 @@ Tim Layanan Smart QR`;
                 <button
                   onClick={handleBulkActivateMembers}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer border border-yellow-300/40"
-                  title="Aktifkan seluruh outlet menjadi Member Premium serentak hingga 30 September 2026"
+                  title="Atur tanggal dan aktifkan seluruh outlet menjadi Member Premium serentak"
                 >
                   <Zap className="w-3.5 h-3.5 text-slate-950 fill-slate-950 shrink-0" />
-                  <span>Aktifkan Semua Member (s/d 30 Sep) ⚡</span>
+                  <span>Aktifkan Semua Member VIP ⚡</span>
                 </button>
               </div>
               <div className="flex items-center gap-2">
@@ -3925,6 +3900,23 @@ Tim Layanan Smart QR`;
         onClose={() => setIsMembershipModalOpen(false)}
         siteSetting={localSiteSetting}
         onRefreshData={() => router.refresh()}
+      />
+
+      {/* Modal Bulk Aktifkan Semua Member VIP (Bebas Atur Tanggal / Presets) */}
+      <BulkActivateVipModal
+        isOpen={isBulkActivateModalOpen}
+        onClose={() => setIsBulkActivateModalOpen(false)}
+        totalOutlets={filteredOutlets.length || displayOutlets.length}
+        onSuccess={(expiryDate) => {
+          setLocalOutlets((prev) =>
+            prev.map((o) => ({
+              ...o,
+              isMember: true,
+              membershipExpiresAt: expiryDate,
+            }))
+          );
+          router.refresh();
+        }}
       />
 
       {/* User Guide / Buku Modul Panduan Sistem */}

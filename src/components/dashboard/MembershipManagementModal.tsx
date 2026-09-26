@@ -89,6 +89,7 @@ export function MembershipManagementModal({
   // Tab Settings State
   const [price, setPrice] = useState(siteSetting?.membershipPrice || 45000);
   const [trialDurationDays, setTrialDurationDays] = useState(siteSetting?.trialDurationDays ?? 30);
+  const [autoVipTrialOnActivation, setAutoVipTrialOnActivation] = useState(siteSetting?.autoVipTrialOnActivation ?? true);
   const [bankName, setBankName] = useState(siteSetting?.membershipBankName || "BCA");
   const [accountNumber, setAccountNumber] = useState(siteSetting?.membershipAccountNumber || "0885172288");
   const [accountName, setAccountName] = useState(siteSetting?.membershipAccountName || "Smart QR Review");
@@ -348,7 +349,8 @@ export function MembershipManagementModal({
         midtransServerKey.trim() || undefined,
         midtransClientKey.trim() || undefined,
         midtransIsProduction,
-        Number(trialDurationDays) || 30
+        Number(trialDurationDays) || 30,
+        autoVipTrialOnActivation
       );
 
       if (res.success) {
@@ -961,6 +963,40 @@ export function MembershipManagementModal({
                       Default: 30 hari. Outlet baru otomatis aktif VIP selama masa uji coba ini.
                     </span>
                   </div>
+                </div>
+
+                {/* Toggle Otomatis Hidup VIP Free saat Pertama Kali Diaktivasi */}
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs font-bold text-white">
+                        Otomatis Berikan VIP Free ({trialDurationDays} Hari) untuk Outlet Baru
+                      </span>
+                      {autoVipTrialOnActivation ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          AKTIF
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-700/50 text-slate-400 border border-slate-700">
+                          NONAKTIF
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Jika aktif, setiap kartu / outlet yang baru pertama kali diregistrasi langsung otomatis aktif status VIP gratis tanpa harus bayar duluan.
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={autoVipTrialOnActivation}
+                      onChange={(e) => setAutoVipTrialOnActivation(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
                 </div>
               </div>
 

@@ -353,7 +353,8 @@ export async function updateMembershipSettingsAction(
   midtransServerKey?: string,
   midtransClientKey?: string,
   midtransIsProduction?: boolean,
-  trialDurationDays?: number
+  trialDurationDays?: number,
+  autoVipTrialOnActivation?: boolean
 ) {
   try {
     const session = await auth();
@@ -374,6 +375,7 @@ export async function updateMembershipSettingsAction(
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : undefined,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
         trialDurationDays: trialDurationDays !== undefined ? trialDurationDays : 30,
+        autoVipTrialOnActivation: autoVipTrialOnActivation !== undefined ? autoVipTrialOnActivation : true,
       },
       create: {
         id: "default",
@@ -387,6 +389,7 @@ export async function updateMembershipSettingsAction(
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : null,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
         trialDurationDays: trialDurationDays !== undefined ? trialDurationDays : 30,
+        autoVipTrialOnActivation: autoVipTrialOnActivation !== undefined ? autoVipTrialOnActivation : true,
       },
     });
 

@@ -104,6 +104,7 @@ model SiteSetting {
   midtransClientKey        String?  @db.Text
   midtransIsProduction     Boolean  @default(false)
   trialDurationDays        Int      @default(30)
+  autoVipTrialOnActivation Boolean  @default(true)
 
   updatedAt          DateTime @updatedAt
 

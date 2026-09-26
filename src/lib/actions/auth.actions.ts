@@ -808,8 +808,10 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         },
       });
 
-      // Outlet baru otomatis mendapatkan Free Trial VIP 1 Bulan Penuh (30 Hari)
-      const trialDays = 30;
+      // Periksa pengaturan otomatis Free Trial VIP untuk outlet baru
+      const siteSetting = await tx.siteSetting.findUnique({ where: { id: "default" } });
+      const isAutoVip = siteSetting ? (siteSetting.autoVipTrialOnActivation ?? true) : true;
+      const trialDays = siteSetting?.trialDurationDays ?? 30;
       const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
       const newOutlet = await tx.outlet.create({
@@ -817,9 +819,9 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
           ownerId: newUser.id,
           name: outletName.trim(),
           googleReviewUrl: finalReviewUrl,
-          isMember: true,
-          membershipStartedAt: new Date(),
-          membershipExpiresAt: trialExpiry,
+          isMember: isAutoVip,
+          membershipStartedAt: isAutoVip ? new Date() : null,
+          membershipExpiresAt: isAutoVip ? trialExpiry : null,
         },
       });
 

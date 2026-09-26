@@ -47,6 +47,7 @@ export interface SiteSettingModel {
   midtransClientKey?: string | null;
   midtransIsProduction?: boolean;
   trialDurationDays?: number;
+  autoVipTrialOnActivation?: boolean;
   updatedAt?: string | Date;
 }
 
