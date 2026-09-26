@@ -131,6 +131,9 @@ export function RegisterOutletModal({
 
 Terima kasih telah bergabung dengan kami! Kartu Smart QR Google Review toko Anda telah *BERHASIL DIAKTIFKAN* dan siap digunakan.
 
+👑 *Bonus Spesial Outlet Baru*:
+Status *VIP Member Premium* toko Anda telah *AKTIF GRATIS 1 BULAN* penuh! Semua fitur analitik ulasan bintang 5, suara kasir, dan tools promosi sudah terbuka.
+
 Berikut detail akun Portal Mitra Anda untuk melihat analitik & kelola review:
 🌐 *Link Login*: ${portalUrl}
 📧 *Email*: ${successData.email}
@@ -156,6 +159,8 @@ Tim Layanan Smart QR`;
 `Halo Kak ${successData.fullName} dari ${successData.outletName}! 👋✨
 
 Kartu Smart QR Google Review Anda telah BERHASIL DIAKTIFKAN.
+👑 Bonus Spesial: Status VIP Member Premium AKTIF GRATIS 1 BULAN!
+
 Detail Akses Portal Mitra:
 - Link Login: ${portalUrl}
 - Email: ${successData.email}

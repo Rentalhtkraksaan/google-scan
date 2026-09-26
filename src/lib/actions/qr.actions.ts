@@ -535,6 +535,23 @@ export async function assignCardToOutletAction(
       data: updateData,
     });
 
+    // Jika outlet belum pernah menjadi member dan opsi auto VIP aktif, berikan VIP Free 1 Bulan (30 Hari)
+    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    const isAutoVip = siteSetting ? (siteSetting.autoVipTrialOnActivation ?? true) : true;
+    const trialDays = siteSetting?.trialDurationDays ?? 30;
+
+    if (isAutoVip && !outlet.isMember && !outlet.membershipStartedAt) {
+      const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+      await prisma.outlet.update({
+        where: { id: outletId },
+        data: {
+          isMember: true,
+          membershipStartedAt: new Date(),
+          membershipExpiresAt: trialExpiry,
+        },
+      });
+    }
+
     await recordActivityLog({
       userId: session.user.id,
       userName: session.user.name || session.user.fullName,
