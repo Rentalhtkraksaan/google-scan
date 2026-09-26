@@ -104,6 +104,9 @@ interface PortalClientViewProps {
     fullName: string;
     whatsappNumber: string | null;
     email: string;
+    avatarUrl?: string | null;
+    role?: string;
+    isSuperAdminMaster?: boolean;
   } | null;
   siteSetting?: SiteSettingModel;
 }
@@ -1165,17 +1168,48 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 </button>
               </div>
 
-              {/* Admin Lapangan Contact Card */}
+              {/* Admin Lapangan / Super Admin Contact Card */}
               {adminContact && (
                 <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                      <Store className="w-5 h-5" />
-                    </div>
+                    {adminContact.role === "SUPER_ADMIN" ? (
+                      adminContact.avatarUrl ? (
+                        <div className="relative shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={adminContact.avatarUrl}
+                            alt={adminContact.fullName}
+                            className="w-11 h-11 rounded-xl object-cover border-2 border-indigo-500/50 shadow-md shadow-indigo-500/20"
+                          />
+                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-[10px] font-black shadow-sm">
+                            👑
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0 font-bold">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                      )
+                    ) : (
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                        <Store className="w-5 h-5" />
+                      </div>
+                    )}
                     <div>
-                      <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold block">
-                        Mitra Lapangan Pendamping Toko
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold block">
+                          {adminContact.role === "SUPER_ADMIN" ? "Super Admin Pendamping Toko" : "Mitra Lapangan Pendamping Toko"}
+                        </span>
+                        {adminContact.role === "SUPER_ADMIN" && (
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            adminContact.isSuperAdminMaster 
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" 
+                              : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                          }`}>
+                            {adminContact.isSuperAdminMaster ? "Super Admin 1 (Master)" : "Super Admin 2"}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-sm font-bold text-white">{adminContact.fullName}</span>
                     </div>
                   </div>
@@ -1188,7 +1222,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
                     >
                       <MessageCircle className="w-4 h-4" />
-                      <span>Chat WhatsApp Mitra Lapangan</span>
+                      <span>{adminContact.role === "SUPER_ADMIN" ? "Chat WhatsApp Super Admin" : "Chat WhatsApp Mitra Lapangan"}</span>
                     </a>
                   )}
                 </div>

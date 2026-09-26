@@ -81,17 +81,20 @@ export interface OutletModel {
     fullName: string;
     email: string;
     whatsappNumber: string | null;
+    avatarUrl?: string | null;
     isActive?: boolean;
     createdById?: string | null;
     createdBy?: {
       id?: string;
       fullName: string;
       role?: string;
+      avatarUrl?: string | null;
       isSuperAdminMaster?: boolean;
       createdById?: string | null;
       createdBy?: {
         id?: string;
         fullName?: string;
+        avatarUrl?: string | null;
         isSuperAdminMaster?: boolean;
       } | null;
     } | null;
@@ -107,11 +110,13 @@ export interface OutletModel {
       fullName: string;
       email: string;
       role?: string;
+      avatarUrl?: string | null;
       isSuperAdminMaster?: boolean;
       createdById?: string | null;
       createdBy?: {
         id?: string;
         fullName?: string;
+        avatarUrl?: string | null;
         isSuperAdminMaster?: boolean;
       } | null;
     } | null;
@@ -128,11 +133,13 @@ export interface OutletModel {
       fullName: string;
       email: string;
       role?: string;
+      avatarUrl?: string | null;
       isSuperAdminMaster?: boolean;
       createdById?: string | null;
       createdBy?: {
         id?: string;
         fullName?: string;
+        avatarUrl?: string | null;
         isSuperAdminMaster?: boolean;
       } | null;
     } | null;
@@ -154,11 +161,13 @@ export interface QrCardModel {
     email: string;
     isActive?: boolean;
     role?: string;
+    avatarUrl?: string | null;
     isSuperAdminMaster?: boolean;
     createdById?: string | null;
     createdBy?: {
       id?: string;
       fullName?: string;
+      avatarUrl?: string | null;
       isSuperAdminMaster?: boolean;
     } | null;
   } | null;
@@ -171,17 +180,20 @@ export interface QrCardModel {
       fullName: string;
       email: string;
       whatsappNumber: string | null;
+      avatarUrl?: string | null;
       isActive?: boolean;
       createdById?: string | null;
       createdBy?: {
         id?: string;
         fullName?: string;
         role?: string;
+        avatarUrl?: string | null;
         isSuperAdminMaster?: boolean;
         createdById?: string | null;
         createdBy?: {
           id?: string;
           fullName?: string;
+          avatarUrl?: string | null;
           isSuperAdminMaster?: boolean;
         } | null;
       } | null;
@@ -194,11 +206,13 @@ export interface AdminWithRelations {
   fullName: string;
   email: string;
   whatsappNumber: string | null;
+  avatarUrl?: string | null;
   isActive: boolean;
   createdById?: string | null;
   createdBy?: {
     id?: string;
     fullName?: string;
+    avatarUrl?: string | null;
     isSuperAdminMaster?: boolean;
   } | null;
   createdAt: string | Date;
@@ -223,8 +237,16 @@ export interface OutletUserItem {
   fullName: string;
   email: string;
   whatsappNumber: string | null;
+  avatarUrl?: string | null;
   isActive: boolean;
   createdById?: string | null;
+  createdBy?: {
+    id?: string;
+    fullName?: string;
+    role?: string;
+    avatarUrl?: string | null;
+    isSuperAdminMaster?: boolean;
+  } | null;
   createdAt: string | Date;
   outlet: {
     id: string;

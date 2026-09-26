@@ -2754,12 +2754,30 @@ Tim Layanan Smart QR`;
                                 <div className="text-[11px] text-slate-400 font-normal mt-0.5 flex items-center gap-1.5 flex-wrap">
                                   <span className="text-slate-500">Didaftarkan oleh:</span>
                                   {isCreatedByMaster ? (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                                      🛡️ Super Admin 1 (Master)
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                                      {admin.createdBy?.avatarUrl ? (
+                                        <img
+                                          src={admin.createdBy.avatarUrl}
+                                          alt="Super Admin 1"
+                                          className="w-4 h-4 rounded-full object-cover shrink-0 border border-indigo-400/40"
+                                        />
+                                      ) : (
+                                        <span>🛡️</span>
+                                      )}
+                                      <span>Super Admin 1 (Master)</span>
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                                      👤 Super Admin 2 ({admin.createdBy?.fullName || "Staff"})
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                      {admin.createdBy?.avatarUrl ? (
+                                        <img
+                                          src={admin.createdBy.avatarUrl}
+                                          alt={admin.createdBy.fullName || "Super Admin 2"}
+                                          className="w-4 h-4 rounded-full object-cover shrink-0 border border-purple-400/40"
+                                        />
+                                      ) : (
+                                        <span>👤</span>
+                                      )}
+                                      <span>Super Admin 2 ({admin.createdBy?.fullName || "Staff"})</span>
                                     </span>
                                   )}
                                 </div>
@@ -3105,13 +3123,51 @@ Tim Layanan Smart QR`;
 
                           <td className="py-3.5 px-4 text-slate-300">
                             {(() => {
-                              const adm = outletCards.find((c) => c.assignedAdmin)?.assignedAdmin || outlet.qrCard?.assignedAdmin;
-                              return adm ? (
-                                <div className="flex items-center gap-1.5">
-                                  <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                  <span className="font-medium text-amber-200">{adm.fullName}</span>
-                                </div>
-                              ) : (
+                              const ownerCreator = outlet.owner?.createdBy;
+                              const assignedAdmin = outletCards.find((c) => c.assignedAdmin)?.assignedAdmin || outlet.qrCard?.assignedAdmin;
+
+                              // Kasus 1: Didaftarkan langsung oleh Super Admin (Super Admin 1 atau Super Admin 2)
+                              if (ownerCreator?.role === "SUPER_ADMIN" || (!ownerCreator && isOutletProtectedFromSA2(outlet))) {
+                                const isMasterCreator = ownerCreator ? !!ownerCreator.isSuperAdminMaster : true;
+                                const creatorAvatar = ownerCreator?.avatarUrl;
+                                const creatorName = ownerCreator?.fullName || "Super Admin";
+
+                                return (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                        isMasterCreator
+                                          ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                          : "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                                      }`}
+                                    >
+                                      {creatorAvatar ? (
+                                        <img
+                                          src={creatorAvatar}
+                                          alt={creatorName}
+                                          className="w-4 h-4 rounded-full object-cover shrink-0 border border-indigo-400/40"
+                                        />
+                                      ) : (
+                                        <Crown className="w-3 h-3 text-amber-400 shrink-0" />
+                                      )}
+                                      <span>{isMasterCreator ? "Super Admin 1 (Master)" : `Super Admin 2 (${creatorName})`}</span>
+                                    </span>
+                                  </div>
+                                );
+                              }
+
+                              // Kasus 2: Didaftarkan oleh Admin Lapangan (cukup tulisan nama admin saja)
+                              const fieldAdmin = (ownerCreator?.role === "ADMIN" ? ownerCreator : null) || assignedAdmin;
+                              if (fieldAdmin) {
+                                return (
+                                  <div className="flex items-center gap-1.5">
+                                    <UserCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                    <span className="font-medium text-xs text-slate-200">{fieldAdmin.fullName}</span>
+                                  </div>
+                                );
+                              }
+
+                              return (
                                 <span className="text-slate-500 italic text-[11px]">Belum dialokasikan</span>
                               );
                             })()}

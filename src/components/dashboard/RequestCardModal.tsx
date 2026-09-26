@@ -18,6 +18,9 @@ interface RequestCardModalProps {
     fullName: string;
     whatsappNumber: string | null;
     email?: string;
+    avatarUrl?: string | null;
+    role?: string;
+    isSuperAdminMaster?: boolean;
   } | null;
   onClose: () => void;
 }
@@ -124,23 +127,31 @@ export function RequestCardModal({
               {isAdminMode ? "Super Admin Penanggung Jawab" : "Mitra Lapangan Penanggung Jawab"}
             </span>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold ${
-                    isAdminMode
-                      ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                      : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                  }`}
-                >
-                  {isAdminMode ? (
-                    <Crown className="w-4 h-4 text-amber-400" />
-                  ) : (
-                    <Briefcase className="w-4 h-4 text-emerald-400" />
-                  )}
-                </div>
+              <div className="flex items-center gap-2.5">
+                {targetContact?.avatarUrl ? (
+                  <img
+                    src={targetContact.avatarUrl}
+                    alt={targetContact.fullName}
+                    className="w-9 h-9 rounded-full object-cover border border-amber-500/40 shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div
+                    className={`w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${
+                      isAdminMode
+                        ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                        : "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                    }`}
+                  >
+                    {isAdminMode ? (
+                      <Crown className="w-4 h-4 text-amber-400" />
+                    ) : (
+                      <Briefcase className="w-4 h-4 text-emerald-400" />
+                    )}
+                  </div>
+                )}
                 <div>
-                  <div className="text-xs font-bold text-white">
-                    {targetContact?.fullName || (isAdminMode ? "Super Admin Pusat" : "Mitra Lapangan")}
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>{targetContact?.fullName || (isAdminMode ? "Super Admin Pusat" : "Mitra Lapangan")}</span>
                   </div>
                   <div className="text-[11px] text-slate-400">
                     {targetContact?.whatsappNumber || "Terhubung via WhatsApp"}
@@ -154,7 +165,11 @@ export function RequestCardModal({
                     : "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
                 }`}
               >
-                {isAdminMode ? "Super Admin" : "Mitra Lapangan"}
+                {isAdminMode
+                  ? targetContact?.isSuperAdminMaster
+                    ? "Super Admin 1 (Master)"
+                    : "Super Admin 2"
+                  : "Mitra Lapangan"}
               </span>
             </div>
           </div>

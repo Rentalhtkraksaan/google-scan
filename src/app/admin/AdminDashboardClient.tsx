@@ -22,6 +22,7 @@ import {
   UserCheck,
   Send,
   BookOpen,
+  Crown,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
@@ -56,6 +57,9 @@ interface AdminDashboardClientProps {
     fullName: string;
     whatsappNumber: string | null;
     email?: string;
+    avatarUrl?: string | null;
+    isSuperAdminMaster?: boolean;
+    role?: string;
   } | null;
   assignedCards: QrCardModel[];
   createdUsers: OutletUserItem[];
@@ -577,6 +581,36 @@ Tim Layanan Smart QR`;
                             <span className="text-[11px] font-mono text-slate-400 block truncate">
                               {user.whatsappNumber || "-"}
                             </span>
+                            {/* Pendaftar Outlet */}
+                            {user.createdBy && (
+                              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] text-slate-500">Didaftarkan oleh:</span>
+                                {user.createdBy.role === "SUPER_ADMIN" ? (
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                      user.createdBy.isSuperAdminMaster
+                                        ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+                                        : "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                                    }`}
+                                  >
+                                    {user.createdBy.avatarUrl ? (
+                                      <img
+                                        src={user.createdBy.avatarUrl}
+                                        alt="Super Admin"
+                                        className="w-3.5 h-3.5 rounded-full object-cover shrink-0 border border-indigo-400/40"
+                                      />
+                                    ) : (
+                                      <Crown className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                                    )}
+                                    <span>{user.createdBy.isSuperAdminMaster ? "Super Admin 1 (Master)" : `Super Admin 2 (${user.createdBy.fullName})`}</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-medium text-slate-300">
+                                    {user.createdBy.fullName}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {user.whatsappNumber && (

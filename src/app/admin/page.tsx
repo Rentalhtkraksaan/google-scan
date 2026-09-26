@@ -70,6 +70,15 @@ export default async function AdminPage() {
         ],
       },
       include: {
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            role: true,
+            avatarUrl: true,
+            isSuperAdminMaster: true,
+          },
+        },
         outlet: {
           include: {
             qrCards: true,
@@ -93,6 +102,7 @@ export default async function AdminPage() {
             fullName: true,
             whatsappNumber: true,
             email: true,
+            avatarUrl: true,
             isSuperAdminMaster: true,
           },
         },
@@ -107,6 +117,7 @@ export default async function AdminPage() {
         fullName: true,
         whatsappNumber: true,
         email: true,
+        avatarUrl: true,
       },
     }),
 
