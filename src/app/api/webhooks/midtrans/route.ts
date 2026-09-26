@@ -32,17 +32,25 @@ export async function POST(req: NextRequest) {
 
     const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
 
-    // Jika server key ada, validasi SHA512 signature
-    if (serverKey && signature_key) {
-      const hash = crypto
-        .createHash("sha512")
-        .update(`${order_id}${status_code}${gross_amount}${serverKey}`)
-        .digest("hex");
+    if (!serverKey) {
+      console.error("[Midtrans Webhook] Midtrans Server Key is not configured on server.");
+      return NextResponse.json({ error: "Midtrans Server Key not configured" }, { status: 500 });
+    }
 
-      if (hash !== signature_key) {
-        console.warn("[Midtrans Webhook] Invalid signature key for order_id:", order_id);
-        return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
-      }
+    if (!signature_key) {
+      console.warn("[Midtrans Webhook] Missing signature_key for order_id:", order_id);
+      return NextResponse.json({ error: "Missing signature key" }, { status: 401 });
+    }
+
+    // Validasi SHA512 signature secara ketat
+    const hash = crypto
+      .createHash("sha512")
+      .update(`${order_id}${status_code}${gross_amount}${serverKey}`)
+      .digest("hex");
+
+    if (hash !== signature_key) {
+      console.warn("[Midtrans Webhook] Invalid signature key for order_id:", order_id);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
     }
 
     // Cari payment record
@@ -74,6 +82,20 @@ export async function POST(req: NextRequest) {
     const isSuccess =
       transaction_status === "settlement" ||
       (transaction_status === "capture" && fraud_status === "accept");
+
+    // Idempotency: Jika pembayaran sudah disetujui sebelumnya, cegah penambahan masa aktif berulang kali akibat webhook retry
+    if (payment.status === "APPROVED" && isSuccess) {
+      return NextResponse.json({ status: "OK", message: "Transaksi sudah pernah diproses sebelumnya." });
+    }
+
+    // Validasi nominal pembayaran tidak boleh kurang dari tagihan payment
+    if (isSuccess && gross_amount) {
+      const paidAmount = Math.round(parseFloat(gross_amount));
+      if (paidAmount < payment.amount) {
+        console.warn(`[Midtrans Webhook] Amount mismatch for order ${order_id}: paid ${paidAmount}, expected ${payment.amount}`);
+        return NextResponse.json({ error: "Nominal pembayaran tidak sesuai tagihan." }, { status: 400 });
+      }
+    }
 
     const isPending = transaction_status === "pending";
     const isFailed =

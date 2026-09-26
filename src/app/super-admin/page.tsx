@@ -232,6 +232,13 @@ export default async function SuperAdminPage() {
     avatarUrl: sa.avatarUrl ? `/api/user/${sa.id}/avatar` : null,
   }));
 
+  const safeSiteSetting = siteSetting
+    ? {
+        ...siteSetting,
+        midtransServerKey: freshCurrentUser?.isSuperAdminMaster ? siteSetting.midtransServerKey : null,
+      }
+    : null;
+
   return (
     <SuperAdminDashboardClient
       currentUser={authUser}
@@ -239,7 +246,7 @@ export default async function SuperAdminPage() {
       admins={admins as unknown as AdminWithRelations[]}
       allCards={allCards as unknown as QrCardModel[]}
       allOutlets={allOutlets as unknown as OutletModel[]}
-      siteSetting={siteSetting}
+      siteSetting={safeSiteSetting as unknown as typeof siteSetting}
     />
   );
 }

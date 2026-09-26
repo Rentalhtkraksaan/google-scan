@@ -124,10 +124,15 @@ export default async function SmartReviewPage({
       }
     });
 
-    const targetFallback =
+    const rawFallback =
       card.fallbackUrl && card.fallbackUrl !== "http://localhost:3000"
-        ? card.fallbackUrl
-        : masterFallback;
+        ? card.fallbackUrl.trim()
+        : masterFallback.trim();
+
+    const targetFallback =
+      rawFallback.startsWith("http://") || rawFallback.startsWith("https://") || rawFallback.startsWith("/")
+        ? rawFallback
+        : "/";
 
     redirect(targetFallback);
   }

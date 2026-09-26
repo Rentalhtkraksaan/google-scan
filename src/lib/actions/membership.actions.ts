@@ -24,6 +24,21 @@ export async function submitPaymentProofAction(
       return { success: false, message: "Data bukti transfer dan outlet wajib diisi." };
     }
 
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+      select: { ownerId: true },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    const isOwner = outlet.ownerId === session.user.id;
+    const isAdmin = session.user.role === "SUPER_ADMIN" || session.user.role === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      return { success: false, message: "Akses ditolak: Anda bukan pemilik outlet ini." };
+    }
+
     const payment = await prisma.membershipPayment.create({
       data: {
         outletId,
@@ -362,6 +377,19 @@ export async function updateMembershipSettingsAction(
       return { success: false, message: "Akses ditolak. Khusus Super Admin." };
     }
 
+    // Hanya Super Admin 1 (Master) yang berhak mengubah tarif dan konfigurasi rekening / payment gateway
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdminMaster: true },
+    });
+
+    if (!user?.isSuperAdminMaster) {
+      return {
+        success: false,
+        message: "Akses ditolak: Hanya Super Admin 1 (Master) yang berhak mengubah tarif dan konfigurasi Payment Gateway.",
+      };
+    }
+
     await prisma.siteSetting.upsert({
       where: { id: "default" },
       update: {
@@ -609,6 +637,13 @@ export async function checkMidtransTransactionStatusAction(orderId: string) {
 
     if (!payment) {
       return { success: false, message: "Data transaksi tidak ditemukan." };
+    }
+
+    // Otorisasi IDOR: Hanya pemilik outlet atau Admin/Super Admin yang berhak mengecek status transaksi
+    const isOwner = payment.outlet?.ownerId === session.user.id;
+    const isAdmin = session.user.role === "SUPER_ADMIN" || session.user.role === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      return { success: false, message: "Akses ditolak: Anda tidak memiliki akses ke transaksi ini." };
     }
 
     // Jika sudah approved di webhook, langsung return success

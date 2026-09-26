@@ -7,6 +7,13 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { success: false, message: "Akses ditolak: Silakan login terlebih dahulu." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { subscription, outletId } = body;
 
@@ -15,6 +22,20 @@ export async function POST(req: NextRequest) {
         { success: false, message: "Subscription data tidak lengkap." },
         { status: 400 }
       );
+    }
+
+    // Otorisasi: jika mendaftarkan notifikasi untuk outlet, pastikan user berhak
+    if (outletId && session.user.role === "USER") {
+      const outlet = await prisma.outlet.findUnique({
+        where: { id: outletId },
+        select: { ownerId: true },
+      });
+      if (!outlet || outlet.ownerId !== session.user.id) {
+        return NextResponse.json(
+          { success: false, message: "Akses ditolak: Anda tidak memiliki akses ke outlet ini." },
+          { status: 403 }
+        );
+      }
     }
 
     const { endpoint, keys } = subscription;
@@ -28,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userAgent = req.headers.get("user-agent") || null;
-    const userId = session?.user?.id || null;
+    const userId = session.user.id;
 
     // Simpan atau perbarui subscription perangkat ini di database
     const saved = await prisma.pushSubscription.upsert({

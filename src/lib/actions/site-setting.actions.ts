@@ -48,6 +48,11 @@ export async function getSiteSettingAction() {
       setting = freshRows?.[0] || null;
     }
 
+    if (setting && typeof setting === "object") {
+      const { midtransServerKey: _omitted, ...safeSetting } = setting as Record<string, unknown>;
+      return { success: true, data: safeSetting };
+    }
+
     return { success: true, data: setting };
   } catch (error) {
     console.error("getSiteSettingAction error:", error);

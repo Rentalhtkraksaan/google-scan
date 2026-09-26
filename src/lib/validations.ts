@@ -127,7 +127,14 @@ export const generateCardsSchema = z.object({
   count: z.coerce.number().min(1, "Minimal 1 kartu").max(500, "Maksimal 500 kartu sekaligus"),
   prefix: z.string().default("c-"),
   assignedAdminId: z.string().optional().nullable(),
-  fallbackUrl: z.string().default("http://localhost:3000"),
+  fallbackUrl: z
+    .string()
+    .transform((val) => val.trim())
+    .refine(
+      (val) => !val || val.startsWith("http://") || val.startsWith("https://") || val.startsWith("/"),
+      { message: "URL fallback harus berupa URL yang valid (http:// atau https://)" }
+    )
+    .default("http://localhost:3000"),
 });
 
 export type GenerateCardsInput = z.infer<typeof generateCardsSchema>;

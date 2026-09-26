@@ -3,14 +3,37 @@ import { prisma } from "@/lib/prisma";
 import { sendWebPushToOutlet } from "@/lib/web-push";
 import { isOutletMemberActive } from "@/lib/membership-utils";
 import { broadcastRealtimeReviewEvent } from "@/lib/realtime-events";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown_ip";
+    const rateCheck = checkRateLimit(`review_event_${ip}`, 45, 60 * 1000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, message: "Terlalu banyak permintaan event. Silakan tunggu sebentar." },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { cardCode, outletId, eventType, rating } = body;
 
     if (!cardCode && !outletId) {
       return NextResponse.json({ success: false, message: "Parameter tidak lengkap." }, { status: 400 });
+    }
+
+    if (cardCode && (typeof cardCode !== "string" || cardCode.length > 50)) {
+      return NextResponse.json({ success: false, message: "Format kode kartu tidak valid." }, { status: 400 });
+    }
+
+    if (outletId && (typeof outletId !== "string" || outletId.length > 50)) {
+      return NextResponse.json({ success: false, message: "Format ID outlet tidak valid." }, { status: 400 });
+    }
+
+    const validEventTypes = ["SCAN", "FIVE_STAR", "FOUR_STAR"];
+    if (eventType && !validEventTypes.includes(eventType)) {
+      return NextResponse.json({ success: false, message: "Jenis event tidak valid." }, { status: 400 });
     }
 
     let targetOutletId = outletId;

@@ -1,6 +1,7 @@
 "use server";
 
 import { formatGoogleReviewUrl, resolveAndFormatGoogleUrl } from "@/lib/google-url";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export interface PlaceSearchResult {
   name: string;
@@ -38,11 +39,16 @@ export async function resolveReviewUrlAction(rawInput: string): Promise<{ succes
  * with direct 5-star review URLs.
  */
 export async function searchPlacesAction(query: string): Promise<{ success: boolean; data: PlaceSearchResult[] }> {
-  if (!query || query.trim().length < 2) {
+  if (!query || query.trim().length < 2 || query.trim().length > 150) {
     return { success: true, data: [] };
   }
 
   const cleanQuery = query.trim();
+  const rate = checkRateLimit(`places_search_${cleanQuery.slice(0, 20)}`, 30, 60 * 1000);
+  if (!rate.allowed) {
+    return { success: true, data: [] };
+  }
+
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   // 1. If Google API Key is provided in .env, use official Google Places Text Search
