@@ -80,27 +80,53 @@ export function UpgradeMemberModal({
   const notes = siteSetting?.membershipNotes || "Harap transfer tepat sesuai nominal dan lampirkan bukti foto transfer.";
   const adminWa = siteSetting?.whatsappNumber || "6281234567890";
 
-  // Preload Midtrans Snap Script saat modal dibuka
-  useEffect(() => {
-    if (isOpen && typeof window !== "undefined") {
-      const isProduction = siteSetting?.midtransIsProduction ?? false;
-      const snapScriptUrl = isProduction
+  // Helper untuk memastikan script Snap JS yang dimuat sesuai dengan environment (Production / Sandbox)
+  const ensureSnapScript = (isProd: boolean, cKey: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (typeof window === "undefined") return reject(new Error("No window"));
+
+      const scriptId = "midtrans-snap-script";
+      const targetUrl = isProd
         ? "https://app.midtrans.com/snap/snap.js"
         : "https://app.sandbox.midtrans.com/snap/snap.js";
 
-      const clientKey = siteSetting?.midtransClientKey || "";
-      const scriptId = "midtrans-snap-script";
+      const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
 
-      let existingScript = document.getElementById(scriptId) as HTMLScriptElement;
-      if (!existingScript) {
-        existingScript = document.createElement("script");
-        existingScript.id = scriptId;
-        existingScript.src = snapScriptUrl;
-        if (clientKey) {
-          existingScript.setAttribute("data-client-key", clientKey);
-        }
-        document.body.appendChild(existingScript);
+      // Jika script sudah ada dan URL-nya sama persis serta window.snap siap
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (existingScript && existingScript.src === targetUrl && (window as any).snap) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return resolve((window as any).snap);
       }
+
+      // Jika URL berbeda (misal sebelumnya sandbox, sekarang production), copot script lama
+      if (existingScript) {
+        existingScript.remove();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (window as any).snap;
+      }
+
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = targetUrl;
+      if (cKey) {
+        script.setAttribute("data-client-key", cKey);
+      }
+      script.onload = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolve((window as any).snap);
+      };
+      script.onerror = (err) => reject(err);
+      document.body.appendChild(script);
+    });
+  };
+
+  // Preload Midtrans Snap Script saat modal dibuka
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined") {
+      const isProduction = siteSetting?.midtransIsProduction ?? true;
+      const clientKey = siteSetting?.midtransClientKey || "";
+      ensureSnapScript(isProduction, clientKey).catch(() => {});
     }
   }, [isOpen, siteSetting?.midtransClientKey, siteSetting?.midtransIsProduction]);
 
@@ -118,8 +144,16 @@ export function UpgradeMemberModal({
         return;
       }
 
-      // Pastikan Snap JS tersedia di window
-      const snapObj = (window as unknown as { snap?: { pay: (token: string, options: Record<string, unknown>) => void } }).snap;
+      // Pastikan Snap JS yang aktif 100% cocok dengan environment token transaksi (Production vs Sandbox)
+      const targetIsProd = res.isProduction ?? (siteSetting?.midtransIsProduction ?? true);
+      const targetClientKey = res.clientKey || siteSetting?.midtransClientKey || "";
+
+      let snapObj = await ensureSnapScript(targetIsProd, targetClientKey).catch(() => null);
+
+      if (!snapObj) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        snapObj = (window as any).snap;
+      }
 
       if (!snapObj) {
         // Fallback jika popup script diblokir browser: Buka link redirect Midtrans

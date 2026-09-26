@@ -538,7 +538,6 @@ export async function createMidtransVipTransactionAction(outletId: string) {
           name: `VIP 1 Bulan - ${outlet.name.slice(0, 25)}`,
         },
       ],
-      enabled_payments: ["qris", "gopay", "shopeepay"],
     };
 
     const midtransRes = await fetch(snapEndpoint, {
