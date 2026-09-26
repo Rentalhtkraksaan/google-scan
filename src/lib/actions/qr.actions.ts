@@ -755,18 +755,7 @@ async function internalLookupSingleCard(
 
   if (existingCard) {
     // Validasi Hak Akses Kartu yang Ada di Sistem
-    if (currentUserRole === Role.SUPER_ADMIN) {
-      if (!isMaster) {
-        if (existingCard.assignedAdmin && existingCard.assignedAdmin.createdById !== currentUserId) {
-          return {
-            status: "ACCESS_DENIED",
-            code: cleanCode,
-            message: "Akses Ditolak: Kartu fisik ini berada di bawah wewenang Super Admin 1.",
-            canRestore: false,
-          };
-        }
-      }
-    } else if (currentUserRole === Role.ADMIN) {
+    if (currentUserRole === Role.ADMIN) {
       if (existingCard.assignedAdminId !== currentUserId) {
         return {
           status: "ACCESS_DENIED",
@@ -826,18 +815,7 @@ async function internalLookupSingleCard(
   });
 
   if (lastLog) {
-    if (currentUserRole === Role.SUPER_ADMIN) {
-      if (!isMaster) {
-        if (lastLog.superAdminId && lastLog.superAdminId !== currentUserId) {
-          return {
-            status: "ACCESS_DENIED",
-            code: cleanCode,
-            message: "Akses Ditolak: Kartu fisik ini sebelumnya didaftarkan oleh Super Admin 1. Anda tidak memiliki wewenang untuk memulihkannya.",
-            canRestore: false,
-          };
-        }
-      }
-    } else if (currentUserRole === Role.ADMIN) {
+    if (currentUserRole === Role.ADMIN) {
       if (!lastLog.adminId || lastLog.adminId !== currentUserId) {
         return {
           status: "ACCESS_DENIED",

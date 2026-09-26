@@ -3680,8 +3680,8 @@ Tim Layanan Smart QR`;
               title="Log Aktivitas Seluruh Sistem"
               subtitle={
                 isMaster
-                  ? "Super Admin 1 (Master): Memiliki akses penuh audit trail seluruh Super Admin, Admin Lapangan, dan Outlet."
-                  : "Super Admin 2: Memantau aktivitas operasional diri sendiri serta Admin Lapangan & Outlet binaan Anda."
+                  ? "Super Admin 1 (Master): Memiliki akses penuh audit trail dan hak kelola/penghapusan log seluruh sistem."
+                  : "Super Admin 2: Memantau seluruh rekaman log aktivitas sistem secara real-time (Akses hapus khusus Super Admin 1)."
               }
               canDelete={isMaster}
               isMaster={isMaster}

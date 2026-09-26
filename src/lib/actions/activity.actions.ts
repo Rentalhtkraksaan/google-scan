@@ -166,38 +166,9 @@ export async function getActivityLogsAction(
     // ─── Build Role-based Filter ───────────────────────────────────────────
     let roleWhereClause: Prisma.ActivityLogWhereInput = {};
 
-    if (currentUser.role === Role.SUPER_ADMIN && currentUser.isSuperAdminMaster) {
-      // 👑 Super Admin 1 (Master): Full global access
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      // 👑 Super Admin 1 (Master) & Super Admin 2: Full global audit trail access
       roleWhereClause = {};
-    } else if (currentUser.role === Role.SUPER_ADMIN && !currentUser.isSuperAdminMaster) {
-      // 🛡️ Super Admin 2:
-      // Memantau seluruh aktivitas operasional sistem (outlet, kartu, review, transaksi),
-      // serta aktivitas admin & outlet yang berada di bawah pengawasannya.
-      roleWhereClause = {
-        OR: [
-          { userId: currentUser.id },
-          { superAdminId: currentUser.id },
-          { userRole: { in: [Role.ADMIN, Role.USER] } },
-          {
-            action: {
-              in: [
-                "SCAN_CARD",
-                "FIVE_STAR_REVIEW",
-                "FOUR_STAR_REVIEW",
-                "FEEDBACK_RECEIVED",
-                "VIP_RENEWAL_MIDTRANS",
-                "UPDATE_STATUS",
-                "REGISTER_OUTLET",
-                "ASSIGN_CARD",
-                "TOGGLE_CARD_STATUS",
-                "UPDATE_CARD_CONFIG",
-                "UPDATE_OUTLET",
-                "SAVE_INVOICE",
-              ],
-            },
-          },
-        ],
-      };
     } else if (currentUser.role === Role.ADMIN) {
       // 🧑‍💼 Field Admin:
       // Dapat memantau seluruh aktivitas outlet dan kartu yang menjadi binaan atau jatah kartu miliknya
