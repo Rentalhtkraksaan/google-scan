@@ -584,10 +584,10 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
               }`}
             >
               <div className="flex items-center gap-3 truncate">
-                <History className="w-4 h-4 shrink-0" />
-                <span className="truncate">Riwayat Sesi Akun</span>
+                <History className="w-4 h-4 shrink-0 text-sky-400" />
+                <span className="truncate">Log Aktivitas Toko</span>
               </div>
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-slate-800 text-slate-400">
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">
                 Log
               </span>
             </button>
@@ -1345,21 +1345,24 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             </div>
           )}
 
-          {/* TAB 3: REVIEWS (Riwayat & Sesi Akun) */}
+          {/* TAB 3: REVIEWS (Riwayat & Log Aktivitas Outlet) */}
           {activeTab === "REVIEWS" && (
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="pb-3 border-b border-slate-800">
-                <h2 className="text-lg sm:text-xl font-bold text-white">Riwayat Sesi & Log Akun</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-sky-400" />
+                  <span>Log Aktivitas & Riwayat Sesi Toko</span>
+                </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Catatan riwayat aktivitas masuk (login), keluar (logout), dan keamanan akses akun outlet Anda.
+                  Catatan riwayat scan kartu meja pengunjung, ulasan bintang 5, kritik pelanggan, dan keamanan sesi akun outlet Anda.
                 </p>
               </div>
 
               <ActivityLogTable
-                title="Riwayat Aktivitas & Sesi Akun"
-                subtitle="Catatan riwayat sesi login, logout, dan status keamanan akun outlet Anda."
+                title="Log Aktivitas & Riwayat Sesi"
+                subtitle="Pantau rekaman interaksi pengunjung meja scan, ulasan Google, dan sesi login outlet Anda."
                 isOutletView={true}
-                isMember={false}
+                isMember={outlet?.isMember}
               />
             </div>
           )}

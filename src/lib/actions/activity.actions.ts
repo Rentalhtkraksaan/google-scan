@@ -171,72 +171,48 @@ export async function getActivityLogsAction(
       roleWhereClause = {};
     } else if (currentUser.role === Role.SUPER_ADMIN && !currentUser.isSuperAdminMaster) {
       // 🛡️ Super Admin 2:
-      // Can only see:
-      // 1. Actions performed by this SA2
-      // 2. Actions tagged with superAdminId == this SA2
-      // 3. Actions from Field Admins created by this SA2
-      // 4. Actions from Outlets created by those Admins (or directly by this SA2)
-      // STRICT FILTER: Strictly exclude any log created by Super Admin 1 or other Super Admins.
-      const managedAdmins = await prisma.user.findMany({
-        where: { createdById: currentUser.id, role: Role.ADMIN },
-        select: { id: true },
-      });
-      const managedAdminIds = managedAdmins.map((a) => a.id);
-
-      const managedOutlets = await prisma.outlet.findMany({
-        where: {
-          owner: {
-            OR: [
-              { createdById: currentUser.id },
-              ...(managedAdminIds.length > 0 ? [{ createdById: { in: managedAdminIds } }] : []),
-            ],
-          },
-        },
-        select: { id: true, ownerId: true },
-      });
-      const managedOutletIds = managedOutlets.map((o) => o.id);
-      const managedOutletOwnerIds = managedOutlets.map((o) => o.ownerId);
-
+      // Memantau seluruh aktivitas operasional sistem (outlet, kartu, review, transaksi),
+      // serta aktivitas admin & outlet yang berada di bawah pengawasannya.
       roleWhereClause = {
-        AND: [
-          // Never see other Super Admins' logs (SA1 or other SA2)
+        OR: [
+          { userId: currentUser.id },
+          { superAdminId: currentUser.id },
+          { userRole: { in: [Role.ADMIN, Role.USER] } },
           {
-            OR: [
-              { userId: currentUser.id },
-              { userRole: { not: Role.SUPER_ADMIN } },
-            ],
-          },
-          // Must belong to this SA2's realm
-          {
-            OR: [
-              { userId: currentUser.id },
-              { superAdminId: currentUser.id },
-              ...(managedAdminIds.length > 0
-                ? [
-                    { adminId: { in: managedAdminIds } },
-                    { userId: { in: managedAdminIds } },
-                  ]
-                : []),
-              ...(managedOutletIds.length > 0
-                ? [
-                    { outletId: { in: managedOutletIds } },
-                    { userId: { in: managedOutletOwnerIds } },
-                  ]
-                : []),
-            ],
+            action: {
+              in: [
+                "SCAN_CARD",
+                "FIVE_STAR_REVIEW",
+                "FOUR_STAR_REVIEW",
+                "FEEDBACK_RECEIVED",
+                "VIP_RENEWAL_MIDTRANS",
+                "UPDATE_STATUS",
+                "REGISTER_OUTLET",
+                "ASSIGN_CARD",
+                "TOGGLE_CARD_STATUS",
+                "UPDATE_CARD_CONFIG",
+                "UPDATE_OUTLET",
+                "SAVE_INVOICE",
+              ],
+            },
           },
         ],
       };
     } else if (currentUser.role === Role.ADMIN) {
       // 🧑‍💼 Field Admin:
-      // Can only see:
-      // 1. Actions performed by this Admin
-      // 2. Actions tagged with adminId == this Admin
-      // 3. Actions from Outlets created by this Admin
-      // STRICT FILTER: Strictly exclude ALL Super Admin logs.
+      // Dapat memantau seluruh aktivitas outlet dan kartu yang menjadi binaan atau jatah kartu miliknya
+      const managedCards = await prisma.qrCard.findMany({
+        where: { assignedAdminId: currentUser.id },
+        select: { outletId: true },
+      });
+      const cardOutletIds = managedCards.map((c) => c.outletId).filter(Boolean) as string[];
+
       const managedOutlets = await prisma.outlet.findMany({
         where: {
-          owner: { createdById: currentUser.id },
+          OR: [
+            { owner: { createdById: currentUser.id } },
+            ...(cardOutletIds.length > 0 ? [{ id: { in: cardOutletIds } }] : []),
+          ],
         },
         select: { id: true, ownerId: true },
       });
@@ -245,9 +221,8 @@ export async function getActivityLogsAction(
 
       roleWhereClause = {
         AND: [
-          // Strictly exclude any Super Admin log
+          // Strictly exclude any Super Admin private log
           { userRole: { not: Role.SUPER_ADMIN } },
-          // Must belong to this Admin's realm
           {
             OR: [
               { userId: currentUser.id },
@@ -256,6 +231,7 @@ export async function getActivityLogsAction(
                 ? [
                     { outletId: { in: managedOutletIds } },
                     { userId: { in: managedOutletOwnerIds } },
+                    { targetId: { in: managedOutletIds } },
                   ]
                 : []),
             ],
@@ -264,48 +240,19 @@ export async function getActivityLogsAction(
       };
     } else {
       // 🏪 USER (Outlet Owner):
+      // Pemilik outlet dapat melihat seluruh rekaman log yang terkait dengan outlet dan akunnya sendiri
       const outlet = currentUser.outlet;
-      const isMember = isOutletMemberActive(outlet);
-
-      if (outlet && isMember) {
-        // 👑 Outlet A adalah Member Premium:
-        // Dapat melihat:
-        // 1. Log scan kartu meja pengunjung di outlet ini (SCAN_CARD)
-        // 2. Log ulasan bintang 5 pengunjung di outlet ini (FIVE_STAR_REVIEW)
-        // 3. Log login & logout akun outlet ini
+      if (outlet) {
         roleWhereClause = {
           OR: [
             { outletId: outlet.id },
             { userId: currentUser.id },
-          ],
-          AND: [
-            {
-              action: {
-                in: [
-                  "AUTH_LOGIN",
-                  "AUTH_LOGOUT",
-                  "LOGIN",
-                  "LOGOUT",
-                  "SCAN_CARD",
-                  "FIVE_STAR_REVIEW",
-                  "FOUR_STAR_REVIEW",
-                ],
-              },
-            },
+            { targetId: outlet.id },
           ],
         };
       } else {
-        // Outlet B yang BUKAN Member:
-        // "kalau outlet b yg tidak member maka yauda biarin" -> Hanya log autentikasi login/logout sendiri
         roleWhereClause = {
-          AND: [
-            { userId: currentUser.id },
-            {
-              action: {
-                in: ["AUTH_LOGIN", "AUTH_LOGOUT", "LOGIN", "LOGOUT"],
-              },
-            },
-          ],
+          userId: currentUser.id,
         };
       }
     }
@@ -335,6 +282,17 @@ export async function getActivityLogsAction(
             { action: { startsWith: "AUTH" } },
             { action: { in: ["LOGIN", "LOGOUT"] } },
           ],
+        });
+      } else if (actionCategory === "VIP") {
+        andFilters.push({
+          OR: [
+            { action: { startsWith: "VIP" } },
+            { action: "UPDATE_STATUS" },
+          ],
+        });
+      } else if (actionCategory === "FEEDBACK") {
+        andFilters.push({
+          action: { startsWith: "FEEDBACK" },
         });
       } else {
         andFilters.push({
