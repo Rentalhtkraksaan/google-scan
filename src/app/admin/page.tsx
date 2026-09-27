@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { AdminDashboardClient } from "./AdminDashboardClient";
-import { AuthenticatedUser, OutletUserItem, QrCardModel } from "@/types/models";
+import { ResellerActivationLockView } from "@/components/dashboard/ResellerActivationLockView";
+import { AuthenticatedUser, OutletUserItem, QrCardModel, SiteSettingModel } from "@/types/models";
 import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 
 export const dynamic = "force-dynamic";
@@ -96,6 +97,8 @@ export default async function AdminPage() {
         fullName: true,
         email: true,
         whatsappNumber: true,
+        isResellerUnlocked: true,
+        resellerVipRewardsClaimed: true,
         createdBy: {
           select: {
             id: true,
@@ -147,11 +150,33 @@ export default async function AdminPage() {
     fullName: session.user.fullName || "Admin Lapangan",
     email: session.user.email || "",
     role: session.user.role || "ADMIN",
+    isResellerUnlocked: currentAdminUser?.isResellerUnlocked ?? true,
+    resellerVipRewardsClaimed: currentAdminUser?.resellerVipRewardsClaimed ?? 0,
   };
+
+  // Jika akun Admin Lapangan masih terkunci (belum bayar modul & belum dibuka oleh Super Admin)
+  if (session.user.role === "ADMIN" && currentAdminUser?.isResellerUnlocked === false) {
+    return (
+      <ResellerActivationLockView
+        user={authUser}
+        siteSetting={siteSetting as unknown as SiteSettingModel}
+        superAdminContact={superAdminContact}
+      />
+    );
+  }
+
+  // Hitung jumlah outlet binaan yang aktif VIP
+  const now = Date.now();
+  const vipOutletsCount = rawUsers.filter(
+    (u) =>
+      u.outlet?.isMember &&
+      u.outlet?.membershipExpiresAt &&
+      new Date(u.outlet.membershipExpiresAt).getTime() > now
+  ).length;
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
-      <Navbar user={authUser} siteSetting={siteSetting as unknown as import("@/types/models").SiteSettingModel} />
+      <Navbar user={authUser} siteSetting={siteSetting as unknown as SiteSettingModel} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <AdminDashboardClient
@@ -160,10 +185,14 @@ export default async function AdminPage() {
             fullName: session.user.fullName || "Admin Lapangan",
             email: session.user.email || "",
             whatsappNumber: currentAdminUser?.whatsappNumber,
+            isResellerUnlocked: currentAdminUser?.isResellerUnlocked ?? true,
+            resellerVipRewardsClaimed: currentAdminUser?.resellerVipRewardsClaimed ?? 0,
           }}
           superAdminContact={superAdminContact}
           assignedCards={assignedCards as unknown as QrCardModel[]}
           createdUsers={createdUsers as unknown as OutletUserItem[]}
+          siteSetting={siteSetting as unknown as SiteSettingModel}
+          vipOutletsCount={vipOutletsCount}
         />
       </main>
 

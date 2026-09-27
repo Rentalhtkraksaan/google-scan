@@ -53,7 +53,84 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
     }
 
-    // Cari payment record
+    const isSuccess =
+      transaction_status === "settlement" ||
+      (transaction_status === "capture" && fraud_status === "accept");
+    const isPending = transaction_status === "pending";
+    const isFailed =
+      transaction_status === "deny" ||
+      transaction_status === "cancel" ||
+      transaction_status === "expire";
+
+    // 1. Cek jika transaksi adalah Pembelian Modul Reseller
+    if (order_id.startsWith("MODUL-")) {
+      const resellerPayment = await prisma.resellerModulePayment.findFirst({
+        where: {
+          OR: [
+            { midtransOrderId: order_id },
+            { id: order_id },
+          ],
+        },
+        include: { user: true },
+      });
+
+      if (!resellerPayment || !resellerPayment.user) {
+        console.warn("[Midtrans Webhook] Reseller payment/User not found for order_id:", order_id);
+        return NextResponse.json({ error: "Reseller payment record not found" }, { status: 404 });
+      }
+
+      if (resellerPayment.status === "APPROVED" && isSuccess) {
+        return NextResponse.json({ status: "OK", message: "Transaksi modul sudah pernah diproses sebelumnya." });
+      }
+
+      if (isSuccess) {
+        const now = new Date();
+        await prisma.$transaction([
+          prisma.resellerModulePayment.update({
+            where: { id: resellerPayment.id },
+            data: {
+              status: "APPROVED",
+              midtransTransactionId: transaction_id || undefined,
+              adminNotes: `Sukses via Midtrans ${payment_type || "QRIS"} pada ${now.toLocaleString("id-ID")}`,
+            },
+          }),
+          prisma.user.update({
+            where: { id: resellerPayment.userId },
+            data: {
+              isResellerUnlocked: true,
+            },
+          }),
+          prisma.activityLog.create({
+            data: {
+              userId: resellerPayment.userId,
+              userName: resellerPayment.user.fullName,
+              userRole: "ADMIN",
+              action: "UPDATE_STATUS",
+              title: "Aktivasi Modul Reseller Otomatis (Midtrans QRIS) ⚡",
+              description: `Mitra Lapangan "${resellerPayment.user.fullName}" berhasil membayar Modul Reseller via ${payment_type?.toUpperCase() || "QRIS"} Midtrans sebesar Rp ${resellerPayment.amount.toLocaleString("id-ID")}. Akun resmi terbuka & aktif.`,
+              targetId: resellerPayment.id,
+              targetName: "Modul Reseller Midtrans",
+            },
+          }),
+        ]);
+
+        console.log(`[Midtrans Webhook] SUCCESS: Reseller "${resellerPayment.user.fullName}" unlocked`);
+        return NextResponse.json({ status: "OK", transaction_status });
+      } else if (isFailed) {
+        await prisma.resellerModulePayment.update({
+          where: { id: resellerPayment.id },
+          data: {
+            status: "REJECTED",
+            adminNotes: `Transaksi dibatalkan / kadaluarsa oleh Midtrans (${transaction_status})`,
+          },
+        });
+        return NextResponse.json({ status: "OK", transaction_status });
+      }
+
+      return NextResponse.json({ status: "OK", transaction_status });
+    }
+
+    // 2. Transaksi Outlet Membership VIP
     const payment = await prisma.membershipPayment.findFirst({
       where: {
         OR: [
@@ -77,12 +154,6 @@ export async function POST(req: NextRequest) {
 
     const outlet = payment.outlet;
 
-    // Evaluasi status pembayaran Midtrans
-    // settlement / capture = Sukses dibayar
-    const isSuccess =
-      transaction_status === "settlement" ||
-      (transaction_status === "capture" && fraud_status === "accept");
-
     // Idempotency: Jika pembayaran sudah disetujui sebelumnya, cegah penambahan masa aktif berulang kali akibat webhook retry
     if (payment.status === "APPROVED" && isSuccess) {
       return NextResponse.json({ status: "OK", message: "Transaksi sudah pernah diproses sebelumnya." });
@@ -96,12 +167,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Nominal pembayaran tidak sesuai tagihan." }, { status: 400 });
       }
     }
-
-    const isPending = transaction_status === "pending";
-    const isFailed =
-      transaction_status === "deny" ||
-      transaction_status === "cancel" ||
-      transaction_status === "expire";
 
     if (isSuccess) {
       // Hitung perpanjangan masa aktif (+30 hari)

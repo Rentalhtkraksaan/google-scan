@@ -47,14 +47,19 @@ model User {
   canDeleteCards          Boolean @default(false) // Izin khusus Super Admin 2 untuk menghapus kartu
   canViewAnalytics        Boolean @default(false) // Izin khusus Super Admin 2 untuk melihat data pengunjung & analitik web
 
+  // Pengaturan & Status Modul Reseller
+  isResellerUnlocked      Boolean @default(true) // True jika akun sudah dibuka/bayar modul
+  resellerVipRewardsClaimed Int   @default(0)    // Total reward diskon kartu dari outlet VIP yang sudah terpakai
+
   outlet Outlet?
 
   // Kartu QR yang dialokasikan ke Admin ini
   assignedCards QrCard[] @relation("AssignedCards")
 
-  activityLogs      ActivityLog[]
-  invoices          Invoice[]
-  pushSubscriptions PushSubscription[]
+  activityLogs           ActivityLog[]
+  invoices               Invoice[]
+  pushSubscriptions      PushSubscription[]
+  resellerModulePayments ResellerModulePayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -105,6 +110,14 @@ model SiteSetting {
   midtransIsProduction     Boolean  @default(false)
   trialDurationDays        Int      @default(30)
   autoVipTrialOnActivation Boolean  @default(true)
+
+  // Reseller Module & Pricing Settings
+  resellerModulePrice        Int      @default(150000)
+  resellerVipDiscountPerCard Int      @default(5000)
+  resellerCardBasePrice      Int      @default(25000)
+  resellerModuleTitle        String   @default("Starter Kit & Modul Resmi Kemitraan Smart QR")
+  resellerModuleDesc         String?  @db.Text
+  resellerModulePdfUrl       String?  @db.LongText
 
   updatedAt          DateTime @updatedAt
 
@@ -327,5 +340,30 @@ model MembershipPayment {
   @@index([midtransOrderId])
   @@index([createdAt])
   @@map("membership_payments")
+}
+
+model ResellerModulePayment {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount                Int
+  paymentType           String    @default("MIDTRANS_QRIS") // "MIDTRANS_QRIS" | "MANUAL"
+  proofImageUrl         String?   @db.LongText
+  status                String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  midtransOrderId       String?   @unique
+  midtransTransactionId String?
+  qrisUrl               String?   @db.Text
+  snapToken             String?   @db.Text
+  senderName            String?
+  senderNotes           String?   @db.Text
+  adminNotes            String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([midtransOrderId])
+  @@index([createdAt])
+  @@map("reseller_module_payments")
 }
 

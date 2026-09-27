@@ -83,6 +83,7 @@ import {
   toggleOutletMembershipAction,
   getRecentVipRenewalsAction,
 } from "@/lib/actions/membership.actions";
+import { toggleAdminResellerUnlockAction } from "@/lib/actions/reseller.actions";
 import { playCashierDing, unlockAudioContext } from "@/lib/notification-sound";
 import {
   deleteAdminAction,
@@ -2698,6 +2699,7 @@ Tim Layanan Smart QR`;
                       <th className="py-3 px-4">Nama Admin Lapangan</th>
                       <th className="py-3 px-4">Email & WhatsApp</th>
                       <th className="py-3 px-4 text-center">Status Akun</th>
+                      <th className="py-3 px-4 text-center">Modul Reseller</th>
                       <th className="py-3 px-4 text-center">Jatah Kartu</th>
                       <th className="py-3 px-4 text-center">Outlet Binaan</th>
                       <th className="py-3 px-4 text-center">Total Scan</th>
@@ -2810,6 +2812,67 @@ Tim Layanan Smart QR`;
                                 </span>
                               )}
                             </button>
+                          </td>
+
+                          {/* Status Modul Reseller & VIP Rewards */}
+                          <td className="py-3.5 px-4 text-center">
+                            {(() => {
+                              const isUnlocked = admin.isResellerUnlocked !== false;
+                              const now = Date.now();
+                              const vipOutlets = (admin.createdUsers || []).filter(
+                                (u) =>
+                                  u.outlet?.isMember &&
+                                  u.outlet?.membershipExpiresAt &&
+                                  new Date(u.outlet.membershipExpiresAt).getTime() > now
+                              ).length;
+                              const claimed = admin.resellerVipRewardsClaimed || 0;
+                              const remainingDiscount = Math.max(0, vipOutlets - claimed);
+
+                              return (
+                                <div className="space-y-1">
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const confirmMsg = isUnlocked
+                                        ? `Kunci akses dashboard untuk "${admin.fullName}"? Dashboard admin akan terkunci sampai dibuka kembali.`
+                                        : `Buka kunci akses dashboard untuk "${admin.fullName}" secara gratis tanpa harus bayar modul?`;
+                                      const confirmRes = await showConfirmAlert(
+                                        isUnlocked ? "Kunci Akun Reseller?" : "Buka Kunci Reseller (Gratis)?",
+                                        confirmMsg,
+                                        isUnlocked ? "Ya, Kunci" : "Ya, Buka Kunci (Gratis)",
+                                        isUnlocked ? "#ef4444" : "#10b981"
+                                      );
+                                      if (!confirmRes.isConfirmed) return;
+                                      const res = await toggleAdminResellerUnlockAction(admin.id, !isUnlocked);
+                                      if (res.success) {
+                                        showSuccessAlert("Berhasil!", res.message);
+                                        router.refresh();
+                                      } else {
+                                        showErrorAlert("Gagal", res.message);
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 focus:outline-none cursor-pointer"
+                                    title={isUnlocked ? "Klik untuk mengunci akun" : "Klik untuk membuka kunci akses secara gratis"}
+                                  >
+                                    {isUnlocked ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/20">
+                                        🔓 Terbuka
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 animate-pulse">
+                                        🔒 Buka Kunci
+                                      </span>
+                                    )}
+                                  </button>
+
+                                  {vipOutlets > 0 && (
+                                    <div className="text-[10px] font-mono text-amber-300/90 block">
+                                      👑 {vipOutlets} VIP (Diskon: {remainingDiscount})
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
 
                           <td className="py-3.5 px-4 text-center">

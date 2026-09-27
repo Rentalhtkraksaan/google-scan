@@ -10,6 +10,8 @@ export interface AuthenticatedUser {
   canManagePrintTemplates?: boolean;
   canDeleteCards?: boolean;
   canViewAnalytics?: boolean;
+  isResellerUnlocked?: boolean;
+  resellerVipRewardsClaimed?: number;
 }
 
 export interface SiteSettingModel {
@@ -48,6 +50,12 @@ export interface SiteSettingModel {
   midtransIsProduction?: boolean;
   trialDurationDays?: number;
   autoVipTrialOnActivation?: boolean;
+  resellerModulePrice?: number;
+  resellerVipDiscountPerCard?: number;
+  resellerCardBasePrice?: number;
+  resellerModuleTitle?: string;
+  resellerModuleDesc?: string | null;
+  resellerModulePdfUrl?: string | null;
   updatedAt?: string | Date;
 }
 
@@ -208,6 +216,8 @@ export interface AdminWithRelations {
   whatsappNumber: string | null;
   avatarUrl?: string | null;
   isActive: boolean;
+  isResellerUnlocked?: boolean;
+  resellerVipRewardsClaimed?: number;
   createdById?: string | null;
   createdBy?: {
     id?: string;
@@ -228,6 +238,8 @@ export interface AdminWithRelations {
     outlet?: {
       id: string;
       name: string;
+      isMember?: boolean;
+      membershipExpiresAt?: string | Date | null;
     } | null;
   }[];
 }
@@ -312,4 +324,29 @@ export interface MembershipPaymentItem {
   createdAt: string | Date;
   updatedAt: string | Date;
 }
+
+export interface ResellerModulePaymentItem {
+  id: string;
+  userId: string;
+  user?: {
+    id: string;
+    fullName: string;
+    email: string;
+    whatsappNumber: string | null;
+  };
+  amount: number;
+  paymentType?: string;
+  proofImageUrl?: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | string;
+  midtransOrderId?: string | null;
+  midtransTransactionId?: string | null;
+  qrisUrl?: string | null;
+  snapToken?: string | null;
+  senderName?: string | null;
+  senderNotes?: string | null;
+  adminNotes?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 

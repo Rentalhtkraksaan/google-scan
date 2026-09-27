@@ -30,6 +30,8 @@ import {
   ChevronRight,
   Sliders,
   Trash2,
+  Briefcase,
+  BookOpen,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 import {
@@ -43,6 +45,7 @@ import {
   updateOutletMembershipExpiryAction,
   updateOutletCustomVipPriceAction,
 } from "@/lib/actions/membership.actions";
+import { updateResellerModuleSettingsAction } from "@/lib/actions/reseller.actions";
 import { formatMembershipExpiry, getMembershipDaysRemaining, formatToJakartaDateInput, parseJakartaEndOfDay } from "@/lib/membership-utils";
 import { MembershipPaymentItem, SiteSettingModel } from "@/types/models";
 
@@ -111,6 +114,14 @@ export function MembershipManagementModal({
   const [showServerKey, setShowServerKey] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  // Tab Settings: Reseller Module & VIP Rewards
+  const [resellerModulePrice, setResellerModulePrice] = useState(siteSetting?.resellerModulePrice ?? 150000);
+  const [resellerCardBasePrice, setResellerCardBasePrice] = useState(siteSetting?.resellerCardBasePrice ?? 25000);
+  const [resellerVipDiscountPerCard, setResellerVipDiscountPerCard] = useState(siteSetting?.resellerVipDiscountPerCard ?? 5000);
+  const [resellerModuleTitle, setResellerModuleTitle] = useState(siteSetting?.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR");
+  const [resellerModuleDesc, setResellerModuleDesc] = useState(siteSetting?.resellerModuleDesc || "");
+  const [resellerModulePdfUrl, setResellerModulePdfUrl] = useState(siteSetting?.resellerModulePdfUrl || "");
 
   // Sub-modal: Atur Harga Khusus Outlet
   const [editingPriceOutlet, setEditingPriceOutlet] = useState<{
@@ -374,25 +385,35 @@ export function MembershipManagementModal({
     e.preventDefault();
     setIsSavingSettings(true);
     try {
-      const res = await updateMembershipSettingsAction(
-        Number(price) || 45000,
-        bankName.trim() || "BCA",
-        accountNumber.trim(),
-        accountName.trim(),
-        notes.trim() || undefined,
-        trialNotice.trim() || undefined,
-        midtransServerKey.trim() || undefined,
-        midtransClientKey.trim() || undefined,
-        midtransIsProduction,
-        Number(trialDurationDays) || 30,
-        autoVipTrialOnActivation
-      );
+      const [resMembership, resReseller] = await Promise.all([
+        updateMembershipSettingsAction(
+          Number(price) || 45000,
+          bankName.trim() || "BCA",
+          accountNumber.trim(),
+          accountName.trim(),
+          notes.trim() || undefined,
+          trialNotice.trim() || undefined,
+          midtransServerKey.trim() || undefined,
+          midtransClientKey.trim() || undefined,
+          midtransIsProduction,
+          Number(trialDurationDays) || 30,
+          autoVipTrialOnActivation
+        ),
+        updateResellerModuleSettingsAction({
+          resellerModulePrice: Number(resellerModulePrice) || 150000,
+          resellerCardBasePrice: Number(resellerCardBasePrice) || 25000,
+          resellerVipDiscountPerCard: Number(resellerVipDiscountPerCard) || 5000,
+          resellerModuleTitle: resellerModuleTitle.trim() || undefined,
+          resellerModuleDesc: resellerModuleDesc.trim() || undefined,
+          resellerModulePdfUrl: resellerModulePdfUrl.trim() || undefined,
+        }),
+      ]);
 
-      if (res.success) {
-        showSuccessAlert("Berhasil Disimpan", res.message);
+      if (resMembership.success && resReseller.success) {
+        showSuccessAlert("Berhasil Disimpan", "Pengaturan Member VIP, Tarif Kartu & Modul Kemitraan Reseller berhasil diperbarui!");
         if (onRefreshData) onRefreshData();
       } else {
-        showErrorAlert("Gagal", res.message);
+        showErrorAlert("Peringatan", resMembership.message || resReseller.message);
       }
     } catch {
       showErrorAlert("Error", "Gagal menyimpan pengaturan.");
@@ -1155,6 +1176,137 @@ export function MembershipManagementModal({
                   <p className="text-[10px] text-slate-400 leading-relaxed">
                     Tempelkan URL ini di <strong>Midtrans Dashboard &gt; Settings &gt; Configuration &gt; Payment Notification URL</strong>.
                   </p>
+                </div>
+              </div>
+
+              {/* Section: Tarif & Modul Kemitraan Reseller (Admin Lapangan) */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-amber-950/25 via-slate-850 to-slate-850 border border-amber-500/30 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-500/20">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white">Tarif Kartu & Modul Kemitraan Reseller (Admin)</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-black">
+                    PAKET RESELLER
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
+                  💼 <strong>Sistem Kemitraan & Diskon VIP</strong>: Super Admin mendaftarkan akun Admin Lapangan (Reseller). Reseller wajib membeli Modul Aktivasi Akun (atau dibuka manual oleh Super Admin). Setiap outlet yang didaftarkan reseller menjadi <strong>VIP Aktif</strong>, reseller mendapatkan reward diskon pembelian kartu berikutnya (1x klaim per outlet VIP).
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Harga Modul Reseller (Rp) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Rp</span>
+                      <input
+                        type="number"
+                        value={resellerModulePrice}
+                        onChange={(e) => setResellerModulePrice(Number(e.target.value))}
+                        required
+                        min={0}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-xs focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Biaya aktivasi akun reseller</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Harga Dasar Kartu (Rp/Pcs) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Rp</span>
+                      <input
+                        type="number"
+                        value={resellerCardBasePrice}
+                        onChange={(e) => setResellerCardBasePrice(Number(e.target.value))}
+                        required
+                        min={0}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-xs focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Tarif order kartu normal</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Diskon per Outlet VIP (Rp/Kartu) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-400 font-bold text-xs">-Rp</span>
+                      <input
+                        type="number"
+                        value={resellerVipDiscountPerCard}
+                        onChange={(e) => setResellerVipDiscountPerCard(Number(e.target.value))}
+                        required
+                        min={0}
+                        className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-900 border border-emerald-500/50 text-emerald-300 font-bold text-xs focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Potongan per kartu dari 1 outlet VIP</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Judul Materi / Starter Kit Modul
+                    </label>
+                    <input
+                      type="text"
+                      value={resellerModuleTitle}
+                      onChange={(e) => setResellerModuleTitle(e.target.value)}
+                      placeholder="Starter Kit & Modul Resmi Kemitraan Smart QR"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Link Download PDF Modul Materi (URL)
+                    </label>
+                    <input
+                      type="url"
+                      value={resellerModulePdfUrl}
+                      onChange={(e) => setResellerModulePdfUrl(e.target.value)}
+                      placeholder="https://drive.google.com/... atau URL file PDF"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">
+                    Deskripsi / Benefit Modul Kemitraan
+                  </label>
+                  <textarea
+                    value={resellerModuleDesc}
+                    onChange={(e) => setResellerModuleDesc(e.target.value)}
+                    rows={2}
+                    placeholder="Materi training penjualan kartu Google Review, skrip presentasi outlet, file promosi digital..."
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {/* Simulasi Diskon Box */}
+                <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-start gap-3">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-slate-300 space-y-1">
+                    <span className="font-bold text-white block">💡 Simulasi Perhitungan Diskon VIP:</span>
+                    <p className="text-slate-400">
+                      Jika Reseller memiliki <strong>2 Outlet Aktif VIP</strong> dan memesan <strong>10 Kartu</strong>:
+                      <br />
+                      • 2 Kartu didiskon Rp {resellerVipDiscountPerCard.toLocaleString("id-ID")} = 2 × Rp {(resellerCardBasePrice - resellerVipDiscountPerCard).toLocaleString("id-ID")} = <span className="text-emerald-400 font-semibold">Rp {(2 * (resellerCardBasePrice - resellerVipDiscountPerCard)).toLocaleString("id-ID")}</span>
+                      <br />
+                      • 8 Kartu harga normal = 8 × Rp {resellerCardBasePrice.toLocaleString("id-ID")} = <span className="text-slate-200 font-semibold">Rp {(8 * resellerCardBasePrice).toLocaleString("id-ID")}</span>
+                      <br />
+                      👉 Total bayar: <strong className="text-amber-400">Rp {((2 * (resellerCardBasePrice - resellerVipDiscountPerCard)) + (8 * resellerCardBasePrice)).toLocaleString("id-ID")}</strong> (Hemat Rp {(2 * resellerVipDiscountPerCard).toLocaleString("id-ID")}!)
+                    </p>
+                  </div>
                 </div>
               </div>
 

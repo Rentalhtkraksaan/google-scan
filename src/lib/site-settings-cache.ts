@@ -48,6 +48,12 @@ export const getCachedSiteSetting = unstable_cache(
         midtransIsProduction: true,
         trialDurationDays: true,
         autoVipTrialOnActivation: true,
+        resellerModulePrice: true,
+        resellerVipDiscountPerCard: true,
+        resellerCardBasePrice: true,
+        resellerModuleTitle: true,
+        resellerModuleDesc: true,
+        resellerModulePdfUrl: true,
         updatedAt: true,
       },
     });

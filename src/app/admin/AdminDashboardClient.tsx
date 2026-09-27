@@ -32,6 +32,7 @@ import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
+import { ResellerModuleModal } from "@/components/dashboard/ResellerModuleModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 import { useRouter } from "next/navigation";
 import { deleteOutletUserAction, toggleUserActiveStatusAction } from "@/lib/actions/auth.actions";
@@ -44,7 +45,7 @@ import {
   showTwoStepDeleteConfirmAlert,
   showWelcomeAlert,
 } from "@/lib/swal";
-import { OutletUserItem, QrCardModel } from "@/types/models";
+import { OutletUserItem, QrCardModel, SiteSettingModel } from "@/types/models";
 
 interface AdminDashboardClientProps {
   currentAdmin: {
@@ -52,6 +53,8 @@ interface AdminDashboardClientProps {
     fullName: string;
     email: string;
     whatsappNumber?: string | null;
+    isResellerUnlocked?: boolean;
+    resellerVipRewardsClaimed?: number;
   };
   superAdminContact?: {
     fullName: string;
@@ -63,6 +66,8 @@ interface AdminDashboardClientProps {
   } | null;
   assignedCards: QrCardModel[];
   createdUsers: OutletUserItem[];
+  siteSetting?: SiteSettingModel;
+  vipOutletsCount?: number;
 }
 
 interface EditingOutletType {
@@ -81,6 +86,8 @@ export function AdminDashboardClient({
   superAdminContact = null,
   assignedCards,
   createdUsers,
+  siteSetting,
+  vipOutletsCount = 0,
 }: AdminDashboardClientProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -103,6 +110,7 @@ export function AdminDashboardClient({
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isResellerModuleModalOpen, setIsResellerModuleModalOpen] = useState(false);
   const [assigningOutlet, setAssigningOutlet] = useState<{
     id: string;
     name: string;
@@ -288,6 +296,15 @@ Tim Layanan Smart QR`;
           {/* 4 Secondary Action Buttons: 2x2 on Mobile, Flex on Tablet/Desktop */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
             <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
+
+            <button
+              onClick={() => setIsResellerModuleModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm"
+              title="Buka Modul & Materi Kemitraan Reseller"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span>Modul Reseller</span>
+            </button>
 
             <button
               onClick={() => setIsGuideModalOpen(true)}
@@ -1202,9 +1219,22 @@ Tim Layanan Smart QR`;
             whatsappNumber: currentAdmin.whatsappNumber,
           }}
           targetContact={superAdminContact}
+          vipOutletsCount={vipOutletsCount}
+          claimedVipRewards={currentAdmin.resellerVipRewardsClaimed || 0}
+          resellerCardBasePrice={siteSetting?.resellerCardBasePrice || 25000}
+          resellerVipDiscountPerCard={siteSetting?.resellerVipDiscountPerCard || 5000}
           onClose={() => setIsRequestCardModalOpen(false)}
         />
       )}
+
+      {/* Reseller Module & SOP Modal */}
+      <ResellerModuleModal
+        isOpen={isResellerModuleModalOpen}
+        onClose={() => setIsResellerModuleModalOpen(false)}
+        siteSetting={siteSetting}
+        adminVipOutletsCount={vipOutletsCount}
+        adminClaimedRewards={currentAdmin.resellerVipRewardsClaimed || 0}
+      />
 
       {assigningOutlet && (
         <AssignCardToOutletModal

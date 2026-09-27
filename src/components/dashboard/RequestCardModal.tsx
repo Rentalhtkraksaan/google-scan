@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Layers, MessageCircle, Crown, Briefcase } from "lucide-react";
+import { X, Layers, MessageCircle, Crown, Briefcase, Sparkles, Tag } from "lucide-react";
 import { showErrorAlert } from "@/lib/swal";
 
 interface RequestCardModalProps {
@@ -14,6 +14,10 @@ interface RequestCardModalProps {
     name: string;
   };
   currentCardCount?: number;
+  vipOutletsCount?: number;
+  claimedVipRewards?: number;
+  resellerCardBasePrice?: number;
+  resellerVipDiscountPerCard?: number;
   targetContact: {
     fullName: string;
     whatsappNumber: string | null;
@@ -30,11 +34,15 @@ export function RequestCardModal({
   user,
   outlet,
   currentCardCount,
+  vipOutletsCount = 0,
+  claimedVipRewards = 0,
+  resellerCardBasePrice = 25000,
+  resellerVipDiscountPerCard = 5000,
   targetContact,
   onClose,
 }: RequestCardModalProps) {
   const isAdminMode = mode === "ADMIN";
-  const [count, setCount] = useState<number>(isAdminMode ? 25 : 5);
+  const [count, setCount] = useState<number>(isAdminMode ? 10 : 5);
   const [notes, setNotes] = useState<string>("");
 
   useEffect(() => {
@@ -44,7 +52,20 @@ export function RequestCardModal({
     };
   }, []);
 
-  const presets = isAdminMode ? [10, 25, 50, 100, 200] : [1, 2, 3, 5, 10, 20];
+  const presets = isAdminMode ? [5, 10, 20, 25, 50, 100] : [1, 2, 3, 5, 10, 20];
+
+  // Hitung Reward Diskon Outlet VIP
+  const availableVipDiscounts = Math.max(0, vipOutletsCount - claimedVipRewards);
+  const discountCards = isAdminMode ? Math.min(count, availableVipDiscounts) : 0;
+  const normalCards = Math.max(0, count - discountCards);
+  const basePrice = resellerCardBasePrice || 25000;
+  const discountPerCard = resellerVipDiscountPerCard || 5000;
+  const discountedPrice = Math.max(0, basePrice - discountPerCard);
+
+  const normalTotal = normalCards * basePrice;
+  const discountTotal = discountCards * discountedPrice;
+  const grandTotal = normalTotal + discountTotal;
+  const totalSaved = discountCards * discountPerCard;
 
   const handleSendWhatsApp = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +84,16 @@ export function RequestCardModal({
     let message = "";
     if (isAdminMode) {
       message = `Halo ${targetContact.fullName}, saya *${user.fullName}* Mitra Lapangan.\n\n`;
-      message += `Saya ingin mengajukan permohonan penambahan jatah *${count} Kartu QR Google Review* untuk didistribusikan ke outlet binaan kami di lapangan.\n`;
+      message += `Saya ingin mengajukan permohonan penambahan jatah *${count} Kartu QR Google Review* untuk didistribusikan ke outlet binaan kami di lapangan.\n\n`;
+      message += `💰 *Rincian Estimasi Pembayaran*:\n`;
+      if (discountCards > 0) {
+        message += `• Harga Normal: ${normalCards} kartu × Rp ${basePrice.toLocaleString("id-ID")} = Rp ${normalTotal.toLocaleString("id-ID")}\n`;
+        message += `• Reward Diskon (${discountCards} Outlet VIP Binaan): ${discountCards} kartu × Rp ${discountedPrice.toLocaleString("id-ID")} = Rp ${discountTotal.toLocaleString("id-ID")} (Hemat Rp ${totalSaved.toLocaleString("id-ID")} 🎉)\n`;
+      } else {
+        message += `• Tarif Kartu: ${count} kartu × Rp ${basePrice.toLocaleString("id-ID")} = Rp ${grandTotal.toLocaleString("id-ID")}\n`;
+      }
+      message += `👉 *Total Estimasi*: *Rp ${grandTotal.toLocaleString("id-ID")}*\n`;
+
       if (notes.trim()) {
         message += `\n*Catatan:* ${notes.trim()}\n`;
       }
@@ -174,6 +204,24 @@ export function RequestCardModal({
             </div>
           </div>
 
+          {/* Status Reward Outlet VIP (Khusus Admin Mode) */}
+          {isAdminMode && (
+            <div className="p-3 bg-gradient-to-r from-amber-500/10 via-slate-950 to-indigo-950/20 border border-amber-500/30 rounded-2xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Reward Outlet VIP Binaan</span>
+                </span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                  {availableVipDiscounts} Kuota Diskon Aktif
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Anda memiliki <strong className="text-white">{vipOutletsCount} outlet VIP</strong> ({claimedVipRewards} sudah diklaim). Setiap outlet VIP memberi potongan <strong className="text-emerald-400">Rp {discountPerCard.toLocaleString("id-ID")}</strong> untuk 1 kartu jatah!
+              </p>
+            </div>
+          )}
+
           {/* Jumlah Kartu yang Diminta */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -216,6 +264,49 @@ export function RequestCardModal({
             </div>
           </div>
 
+          {/* Rincian Harga & Estimasi Pembayaran (Khusus Admin Mode) */}
+          {isAdminMode && (
+            <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-sky-400" />
+                <span>Rincian Estimasi Biaya Kartu</span>
+              </span>
+
+              <div className="space-y-1 text-xs text-slate-300">
+                {discountCards > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span>Harga Normal ({normalCards} kartu × Rp {basePrice.toLocaleString("id-ID")}):</span>
+                      <span className="font-mono text-slate-200">Rp {normalTotal.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-emerald-400">
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Diskon VIP ({discountCards} kartu × Rp {discountedPrice.toLocaleString("id-ID")}):
+                      </span>
+                      <span className="font-mono font-bold">Rp {discountTotal.toLocaleString("id-ID")}</span>
+                    </div>
+                    <div className="text-[10px] text-emerald-300/80 italic">
+                      *Hemat Rp {totalSaved.toLocaleString("id-ID")} berkat {discountCards} outlet binaan VIP Anda!
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span>Tarif Dasar ({count} kartu × Rp {basePrice.toLocaleString("id-ID")}):</span>
+                    <span className="font-mono text-slate-200">Rp {grandTotal.toLocaleString("id-ID")}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm font-bold">
+                  <span className="text-white">Total Estimasi Bayar:</span>
+                  <span className="text-amber-400 font-mono text-base">
+                    Rp {grandTotal.toLocaleString("id-ID")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Catatan Tambahan (Opsional) */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -227,28 +318,11 @@ export function RequestCardModal({
               onChange={(e) => setNotes(e.target.value)}
               placeholder={
                 isAdminMode
-                  ? "Contoh: Untuk target 25 outlet baru di wilayah Jakarta Selatan"
-                  : "Contoh: Untuk meja kasir lantai 2 & area meja makan outdoor"
+                  ? "Contoh: Untuk target 10 outlet baru di wilayah Surabaya Timur"
+                  : "Contoh: Untuk meja kasir lantai 2 & area outdoor"
               }
               className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 resize-none"
             />
-          </div>
-
-          {/* Info Banner */}
-          <div
-            className={`p-3 rounded-xl border text-[11px] leading-relaxed space-y-1 ${
-              isAdminMode
-                ? "bg-amber-500/5 border-amber-500/15 text-amber-300/90"
-                : "bg-emerald-500/5 border-emerald-500/15 text-emerald-300/90"
-            }`}
-          >
-            <p>
-              Pesan permohonan alokasi kartu akan otomatis disiapkan dan dibuka langsung di WhatsApp ke{" "}
-              {isAdminMode ? "Super Admin" : "Mitra Lapangan"}.
-            </p>
-            <p className="text-[10px] text-slate-400 font-medium">
-              🔒 <strong>Jaminan Keaslian:</strong> Seluruh kartu resmi diproduksi dengan chip NFC terenkripsi dan standee berhak cipta (HAKI). Dilarang keras menggandakan desain secara mandiri.
-            </p>
           </div>
 
           {/* Submit Action */}
@@ -262,7 +336,7 @@ export function RequestCardModal({
             </button>
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 fill-white" />
               <span>Kirim Permintaan ke WhatsApp</span>
