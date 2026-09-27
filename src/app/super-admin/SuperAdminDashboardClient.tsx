@@ -9,6 +9,7 @@ import {
   Layers,
   Store,
   UserCheck,
+  UserPlus,
   Plus,
   Download,
   Search,
@@ -1430,6 +1431,24 @@ Tim Layanan Smart QR`;
               Alat & Manajemen
             </div>
 
+            {/* Tambah Admin Lapangan Baru */}
+            <button
+              onClick={() => {
+                setIsCreateAdminOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              title="Daftarkan akun admin lapangan baru & generate kuota kartu"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <UserPlus className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">+ Tambah Admin Baru</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                MITRA
+              </span>
+            </button>
+
             {/* Kelola Member & Pembayaran (Super Admin) */}
             <button
               onClick={() => {
@@ -1655,7 +1674,7 @@ Tim Layanan Smart QR`;
             </div>
           </div>
 
-          {/* Top-Right Quick Action CTA Buttons (Clean Minimalist 2-Button Design) */}
+          {/* Top-Right Quick Action CTA Buttons */}
           <div className="flex items-center gap-2 shrink-0">
             {/* 1. Kelola Member & Bukti Transfer */}
             <button
@@ -1668,15 +1687,35 @@ Tim Layanan Smart QR`;
               <span className="sm:hidden text-xs">Member</span>
             </button>
 
-            {/* 2. Input Kartu Baru (CTA Utama) */}
-            <button
-              onClick={() => setIsBatchGenerateOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <span className="hidden sm:inline">Input Kartu Baru</span>
-              <span className="sm:hidden text-xs">Kartu</span>
-            </button>
+            {/* 2. Dynamic Primary Action Button */}
+            {activeTab === "ADMINS" ? (
+              <button
+                onClick={() => setIsCreateAdminOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+              >
+                <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="hidden sm:inline">+ Tambah Admin Baru</span>
+                <span className="sm:hidden text-xs">+ Admin</span>
+              </button>
+            ) : activeTab === "SUPER_ADMINS" && isMaster ? (
+              <button
+                onClick={() => setIsCreateSuperAdminOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="hidden sm:inline">+ Super Admin 2</span>
+                <span className="sm:hidden text-xs">+ SA 2</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsBatchGenerateOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="hidden sm:inline">Input Kartu Baru</span>
+                <span className="sm:hidden text-xs">Kartu</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -2622,6 +2661,27 @@ Tim Layanan Smart QR`;
         {/* TAB 2: MANAGE ADMINS (LAPANGAN) */}
         {activeTab === "ADMINS" && (
           <div className="mt-5 space-y-4">
+            {/* Header Action Card: Tambah Admin Baru */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 border border-amber-500/25 shadow-lg">
+              <div className="space-y-0.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-amber-400" />
+                  Daftar Tim Mitra Admin Lapangan (Reseller)
+                </h3>
+                <p className="text-[11px] text-slate-300">
+                  Kelola akun mitra reseller, alokasi jatah kuota kartu perdana, status aktivasi modul, serta pantau outlet binaan.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsCreateAdminOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center gap-2 shrink-0 cursor-pointer transition-all hover:scale-105 active:scale-95"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>+ Tambah Admin Lapangan Baru</span>
+              </button>
+            </div>
+
             {/* Leaderboard Quick Banner in ADMINS Tab */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-slate-900 border border-amber-500/20 rounded-2xl">
               <div className="flex items-center gap-3">
