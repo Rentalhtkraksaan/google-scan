@@ -45,9 +45,15 @@ import {
   updateOutletMembershipExpiryAction,
   updateOutletCustomVipPriceAction,
 } from "@/lib/actions/membership.actions";
-import { updateResellerModuleSettingsAction } from "@/lib/actions/reseller.actions";
+import {
+  updateResellerModuleSettingsAction,
+  getResellerPaymentRequestsAction,
+  approveResellerPaymentAction,
+  rejectResellerPaymentAction,
+  deleteResellerPaymentRecordAction,
+} from "@/lib/actions/reseller.actions";
 import { formatMembershipExpiry, getMembershipDaysRemaining, formatToJakartaDateInput, parseJakartaEndOfDay } from "@/lib/membership-utils";
-import { MembershipPaymentItem, SiteSettingModel } from "@/types/models";
+import { MembershipPaymentItem, ResellerModulePaymentItem, SiteSettingModel } from "@/types/models";
 
 interface OutletMembershipRow {
   id: string;
@@ -96,6 +102,8 @@ export function MembershipManagementModal({
 
   // Tab Requests State
   const [requests, setRequests] = useState<MembershipPaymentItem[]>([]);
+  const [resellerRequests, setResellerRequests] = useState<ResellerModulePaymentItem[]>([]);
+  const [paymentCategoryFilter, setPaymentCategoryFilter] = useState<"ALL" | "OUTLET" | "RESELLER">("ALL");
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
 
@@ -158,9 +166,16 @@ export function MembershipManagementModal({
   const fetchRequests = async () => {
     setIsLoadingRequests(true);
     try {
-      const res = await getMembershipRequestsAction();
-      if (res.success && res.requests) {
-        setRequests(res.requests as unknown as MembershipPaymentItem[]);
+      const [resOutletPayments, resResellerPayments] = await Promise.all([
+        getMembershipRequestsAction(),
+        getResellerPaymentRequestsAction(),
+      ]);
+
+      if (resOutletPayments.success && resOutletPayments.requests) {
+        setRequests(resOutletPayments.requests as unknown as MembershipPaymentItem[]);
+      }
+      if (resResellerPayments.success && resResellerPayments.requests) {
+        setResellerRequests(resResellerPayments.requests as unknown as ResellerModulePaymentItem[]);
       }
     } catch (err) {
       console.error("Error fetchRequests:", err);
@@ -178,7 +193,9 @@ export function MembershipManagementModal({
 
   if (!isOpen) return null;
 
-  const pendingRequests = requests.filter((r) => r.status === "PENDING");
+  const pendingOutletRequests = requests.filter((r) => r.status === "PENDING");
+  const pendingResellerRequests = resellerRequests.filter((r) => r.status === "PENDING");
+  const totalPendingCount = pendingOutletRequests.length + pendingResellerRequests.length;
 
   // Summary Metrics
   const totalOutlets = outlets.length;
@@ -380,6 +397,75 @@ export function MembershipManagementModal({
     }
   };
 
+  // Handle Approve Reseller Payment Request
+  const handleApproveResellerRequest = async (id: string, resellerName: string) => {
+    const resConfirm = await showConfirmAlert(
+      `Setujui Aktivasi Modul ${resellerName}?`,
+      "Akun Admin Lapangan / Reseller akan otomatis terbuka (aktif) seketika dan dapat mengakses seluruh dashboard.",
+      "Ya, Setujui & Buka Akun ✅",
+      "#10b981"
+    );
+
+    if (!resConfirm.isConfirmed) return;
+
+    try {
+      const res = await approveResellerPaymentAction(id);
+      if (res.success) {
+        showSuccessAlert("Disetujui!", res.message);
+        fetchRequests();
+        if (onRefreshData) onRefreshData();
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal memproses persetujuan modul reseller.");
+    }
+  };
+
+  // Handle Reject Reseller Payment Request
+  const handleRejectResellerRequest = async (id: string, resellerName: string) => {
+    const reason = prompt(`Masukkan alasan penolakan untuk ${resellerName}:`, "Bukti transfer tidak valid atau dana belum masuk rekening.");
+    if (reason === null) return;
+
+    try {
+      const res = await rejectResellerPaymentAction(id, reason.trim() || "Bukti transfer tidak valid.");
+      if (res.success) {
+        showSuccessAlert("Ditolak", res.message);
+        fetchRequests();
+        if (onRefreshData) onRefreshData();
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal memproses penolakan.");
+    }
+  };
+
+  // Handle Delete Reseller Payment Request
+  const handleDeleteResellerRequest = async (id: string, resellerName: string) => {
+    const resConfirm = await showConfirmAlert(
+      `Hapus Riwayat ${resellerName}?`,
+      "Data riwayat pembayaran modul reseller ini akan dihapus permanen dari sistem.",
+      "Ya, Hapus 🗑️",
+      "#ef4444"
+    );
+
+    if (!resConfirm.isConfirmed) return;
+
+    try {
+      const res = await deleteResellerPaymentRecordAction(id);
+      if (res.success) {
+        showSuccessAlert("Terhapus!", res.message);
+        fetchRequests();
+        if (onRefreshData) onRefreshData();
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghapus riwayat pembayaran.");
+    }
+  };
+
   // Handle Save Settings
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -448,9 +534,9 @@ export function MembershipManagementModal({
                 <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
                   Manajemen Member Premium VIP & Midtrans QRIS
                 </h3>
-                {pendingRequests.length > 0 && (
+                {totalPendingCount > 0 && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs animate-pulse">
-                    {pendingRequests.length} Verifikasi
+                    {totalPendingCount} Verifikasi
                   </span>
                 )}
               </div>
@@ -495,9 +581,11 @@ export function MembershipManagementModal({
               }`}
             >
               <CreditCard className="w-4 h-4" />
-              <span>Riwayat Pembayaran & Struk ({requests.length})</span>
-              {pendingRequests.length > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              <span>Riwayat Pembayaran & Struk ({requests.length + resellerRequests.length})</span>
+              {totalPendingCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] animate-pulse">
+                  {totalPendingCount}
+                </span>
               )}
             </button>
           )}
@@ -831,22 +919,65 @@ export function MembershipManagementModal({
           {/* TAB 2: RIWAYAT PEMBAYARAN & STRUK (Khusus Super Admin 1) */}
           {activeTab === "REQUESTS" && isMaster && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400">
-                  Daftar seluruh riwayat pembayaran QRIS Midtrans dan pengajuan bukti transfer manual.
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentCategoryFilter("ALL")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      paymentCategoryFilter === "ALL"
+                        ? "bg-slate-700 text-white shadow-sm"
+                        : "bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Semua ({requests.length + resellerRequests.length})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentCategoryFilter("OUTLETS" as unknown as typeof paymentCategoryFilter)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      paymentCategoryFilter === ("OUTLETS" as unknown as typeof paymentCategoryFilter)
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                        : "bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <span>👑 Member VIP Toko ({requests.length})</span>
+                    {pendingOutletRequests.length > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentCategoryFilter("RESELLER")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      paymentCategoryFilter === "RESELLER"
+                        ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40"
+                        : "bg-slate-900 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>💼 Modul Reseller / Lisensi ({resellerRequests.length})</span>
+                    {pendingResellerRequests.length > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+                    )}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={fetchRequests}
                   disabled={isLoadingRequests}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto shrink-0"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoadingRequests ? "animate-spin" : ""}`} />
-                  <span>Segarkan</span>
+                  <span>Segarkan Data</span>
                 </button>
               </div>
 
-              {requests.length === 0 ? (
+              {requests.length === 0 && resellerRequests.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-slate-800 rounded-2xl">
                   <Clock className="w-10 h-10 text-slate-600 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-slate-300">Belum Ada Riwayat Pembayaran</p>
@@ -855,125 +986,270 @@ export function MembershipManagementModal({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {requests.map((item) => {
-                    const isPending = item.status === "PENDING";
-                    const isApproved = item.status === "APPROVED";
-                    const isQris = item.paymentType === "MIDTRANS_QRIS";
+                <div className="space-y-4">
+                  {/* 1. SEKSI PEMBAYARAN MODUL RESELLER / LISENSI MITRA */}
+                  {(paymentCategoryFilter === "ALL" || paymentCategoryFilter === "RESELLER") && resellerRequests.length > 0 && (
+                    <div className="space-y-3">
+                      {paymentCategoryFilter === "ALL" && (
+                        <div className="flex items-center gap-2 pt-2">
+                          <Briefcase className="w-4 h-4 text-indigo-400" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300">
+                            Pengajuan Aktivasi Modul Reseller ({resellerRequests.length})
+                          </h4>
+                        </div>
+                      )}
 
-                    return (
-                      <div
-                        key={item.id}
-                        className={`p-4 rounded-2xl border transition-all ${
-                          isPending
-                            ? "bg-slate-850/80 border-amber-500/40 shadow-lg shadow-amber-500/5"
-                            : "bg-slate-900 border-slate-800 opacity-80"
-                        }`}
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-white text-sm">
-                                {item.outlet?.name || "Outlet"}
-                              </span>
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                  isPending
-                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                    : isApproved
-                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                                    : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                                }`}
-                              >
-                                {item.status}
-                              </span>
+                      {resellerRequests.map((item) => {
+                        const isPending = item.status === "PENDING";
+                        const isApproved = item.status === "APPROVED";
+                        const isQris = item.paymentType === "MIDTRANS_QRIS";
 
-                              {isQris && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                  MIDTRANS QRIS ⚡
+                        return (
+                          <div
+                            key={item.id}
+                            className={`p-4 rounded-2xl border transition-all ${
+                              isPending
+                                ? "bg-gradient-to-r from-indigo-950/40 via-slate-850 to-slate-850 border-indigo-500/50 shadow-lg shadow-indigo-500/10"
+                                : "bg-slate-900 border-slate-800 opacity-85"
+                            }`}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-sm">
+                                    {item.senderName || item.user?.fullName || "Mitra Reseller"}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                                    💼 LISENSI RESELLER
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                      isPending
+                                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse"
+                                        : isApproved
+                                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                        : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                    }`}
+                                  >
+                                    {item.status}
+                                  </span>
+                                  {isQris && (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                      MIDTRANS QRIS ⚡
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  Email: {item.user?.email || "—"} • WhatsApp: {item.user?.whatsappNumber || "Tanpa WA"}
+                                </p>
+                              </div>
+
+                              <div className="text-left sm:text-right">
+                                <span className="text-sm font-black text-indigo-300 block">
+                                  Rp {item.amount.toLocaleString("id-ID")}
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                  {new Date(item.createdAt).toLocaleString("id-ID")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {item.senderNotes && (
+                              <div className="mt-2 text-xs text-slate-300 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800">
+                                <span className="text-slate-400 font-semibold">Catatan Pengirim: </span>
+                                {item.senderNotes}
+                              </div>
+                            )}
+
+                            <div className="mt-3 flex items-center justify-between gap-2 pt-1">
+                              {item.proofImageUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedProof(item.proofImageUrl || null)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 text-xs font-bold transition-colors cursor-pointer border border-slate-700"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-sky-400" />
+                                  <span>Lihat Foto Struk Reseller</span>
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-slate-500 italic">
+                                  {isQris ? "Otomatis via QRIS (Tanpa Lampiran Foto)" : "Tanpa lampiran foto"}
                                 </span>
                               )}
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteResellerRequest(item.id, item.senderName || item.user?.fullName || "Reseller")}
+                                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                                  title="Hapus riwayat transaksi ini"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>Hapus</span>
+                                </button>
+
+                                {isPending && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRejectResellerRequest(item.id, item.senderName || item.user?.fullName || "Reseller")}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+                                    >
+                                      Tolak ❌
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveResellerRequest(item.id, item.senderName || item.user?.fullName || "Reseller")}
+                                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/20 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Setujui & Buka Akun Reseller ✅</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              Pemesan: {item.senderName || item.outlet?.owner?.fullName || "—"} •{" "}
-                              {item.outlet?.owner?.whatsappNumber || "Tanpa WA"}
-                            </p>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                          <div className="text-left sm:text-right">
-                            <span className="text-sm font-black text-amber-400 block">
-                              Rp {item.amount.toLocaleString("id-ID")}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              {new Date(item.createdAt).toLocaleString("id-ID")}
-                            </span>
-                          </div>
+                  {/* 2. SEKSI PEMBAYARAN OUTLET VIP */}
+                  {(paymentCategoryFilter === "ALL" || paymentCategoryFilter !== "RESELLER") && requests.length > 0 && (
+                    <div className="space-y-3">
+                      {paymentCategoryFilter === "ALL" && (
+                        <div className="flex items-center gap-2 pt-2">
+                          <Crown className="w-4 h-4 text-amber-400" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                            Pembayaran Member VIP Outlet ({requests.length})
+                          </h4>
                         </div>
+                      )}
 
-                        {item.senderNotes && (
-                          <div className="mt-2 text-xs text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
-                            <span className="text-slate-400 font-semibold">Keterangan: </span>
-                            {item.senderNotes}
-                            {item.midtransOrderId && (
-                              <span className="block font-mono text-[10px] text-slate-500 mt-0.5">
-                                Order ID: {item.midtransOrderId}
-                              </span>
+                      {requests.map((item) => {
+                        const isPending = item.status === "PENDING";
+                        const isApproved = item.status === "APPROVED";
+                        const isQris = item.paymentType === "MIDTRANS_QRIS";
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`p-4 rounded-2xl border transition-all ${
+                              isPending
+                                ? "bg-slate-850/80 border-amber-500/40 shadow-lg shadow-amber-500/5"
+                                : "bg-slate-900 border-slate-800 opacity-80"
+                            }`}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-white text-sm">
+                                    {item.outlet?.name || "Outlet"}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                    👑 VIP OUTLET
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                      isPending
+                                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                        : isApproved
+                                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                        : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                    }`}
+                                  >
+                                    {item.status}
+                                  </span>
+
+                                  {isQris && (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                      MIDTRANS QRIS ⚡
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  Pemesan: {item.senderName || item.outlet?.owner?.fullName || "—"} •{" "}
+                                  {item.outlet?.owner?.whatsappNumber || "Tanpa WA"}
+                                </p>
+                              </div>
+
+                              <div className="text-left sm:text-right">
+                                <span className="text-sm font-black text-amber-400 block">
+                                  Rp {item.amount.toLocaleString("id-ID")}
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                  {new Date(item.createdAt).toLocaleString("id-ID")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {item.senderNotes && (
+                              <div className="mt-2 text-xs text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-slate-800">
+                                <span className="text-slate-400 font-semibold">Keterangan: </span>
+                                {item.senderNotes}
+                                {item.midtransOrderId && (
+                                  <span className="block font-mono text-[10px] text-slate-500 mt-0.5">
+                                    Order ID: {item.midtransOrderId}
+                                  </span>
+                                )}
+                              </div>
                             )}
-                          </div>
-                        )}
 
-                        <div className="mt-3 flex items-center justify-between gap-2 pt-1">
-                          {item.proofImageUrl ? (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedProof(item.proofImageUrl || null)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-sky-400" />
-                              <span>Lihat Foto Struk</span>
-                            </button>
-                          ) : (
-                            <span className="text-[11px] text-slate-500 italic">
-                              {isQris ? "Otomatis via QRIS (Tanpa Struk Foto)" : "Tanpa lampiran foto"}
-                            </span>
-                          )}
-
-                          <div className="flex items-center gap-2">
-                            {/* Tombol Hapus Riwayat Transaksi */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRequest(item.id, item.outlet?.name || "Outlet")}
-                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-                              title="Hapus riwayat transaksi ini"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                              <span>Hapus</span>
-                            </button>
-
-                            {isPending && (
-                              <>
+                            <div className="mt-3 flex items-center justify-between gap-2 pt-1">
+                              {item.proofImageUrl ? (
                                 <button
                                   type="button"
-                                  onClick={() => handleRejectRequest(item.id, item.outlet?.name || "Outlet")}
-                                  className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+                                  onClick={() => setSelectedProof(item.proofImageUrl || null)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
                                 >
-                                  Tolak ❌
+                                  <Eye className="w-3.5 h-3.5 text-sky-400" />
+                                  <span>Lihat Foto Struk</span>
                                 </button>
+                              ) : (
+                                <span className="text-[11px] text-slate-500 italic">
+                                  {isQris ? "Otomatis via QRIS (Tanpa Struk Foto)" : "Tanpa lampiran foto"}
+                                </span>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                {/* Tombol Hapus Riwayat Transaksi */}
                                 <button
                                   type="button"
-                                  onClick={() => handleApproveRequest(item.id, item.outlet?.name || "Outlet")}
-                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                  onClick={() => handleDeleteRequest(item.id, item.outlet?.name || "Outlet")}
+                                  className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                                  title="Hapus riwayat transaksi ini"
                                 >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Setujui & Aktifkan Member ✅</span>
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>Hapus</span>
                                 </button>
-                              </>
-                            )}
+
+                                {isPending && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRejectRequest(item.id, item.outlet?.name || "Outlet")}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+                                    >
+                                      Tolak ❌
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveRequest(item.id, item.outlet?.name || "Outlet")}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                      <span>Setujui & Aktifkan Member ✅</span>
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

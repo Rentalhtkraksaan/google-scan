@@ -395,3 +395,62 @@ export async function rejectResellerPaymentAction(paymentId: string, reason?: st
     return { success: false, message: "Gagal menolak pembayaran." };
   }
 }
+
+/**
+ * Super Admin: Ambil semua riwayat pengajuan pembayaran Modul Reseller (Transfer Manual & QRIS)
+ */
+export async function getResellerPaymentRequestsAction() {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak. Khusus Super Admin." };
+    }
+
+    const requests = await prisma.resellerModulePayment.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            whatsappNumber: true,
+            role: true,
+            avatarUrl: true,
+            isResellerUnlocked: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      success: true,
+      requests,
+    };
+  } catch (error) {
+    console.error("getResellerPaymentRequestsAction error:", error);
+    return { success: false, message: "Gagal mengambil data pengajuan pembayaran reseller." };
+  }
+}
+
+/**
+ * Super Admin: Hapus catatan riwayat pembayaran modul reseller
+ */
+export async function deleteResellerPaymentRecordAction(paymentId: string) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak. Khusus Super Admin." };
+    }
+
+    await prisma.resellerModulePayment.delete({
+      where: { id: paymentId },
+    });
+
+    revalidatePath("/super-admin");
+    return { success: true, message: "Riwayat pembayaran berhasil dihapus." };
+  } catch (error) {
+    console.error("deleteResellerPaymentRecordAction error:", error);
+    return { success: false, message: "Gagal menghapus riwayat pembayaran." };
+  }
+}
