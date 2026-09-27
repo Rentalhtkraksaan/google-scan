@@ -838,19 +838,23 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       return { user: newUser, outlet: newOutlet, card: updatedCard };
     });
 
-    await recordActivityLog({
-      userId: session.user.id,
-      userName: session.user.name || session.user.fullName,
-      userRole: session.user.role,
-      action: "REGISTER_OUTLET",
-      title: "Mendaftarkan Outlet Baru",
-      description: `${session.user.role === Role.ADMIN ? 'Admin Lapangan' : 'Super Admin'} "${session.user.name || session.user.fullName}" mendaftarkan outlet baru "${result.outlet.name}" dan menghubungkannya ke kartu "${code}".`,
-      targetId: result.outlet.id,
-      targetName: result.outlet.name,
-      outletId: result.outlet.id,
-      adminId: session.user.role === Role.ADMIN ? session.user.id : (card.assignedAdminId || undefined),
-      superAdminId: session.user.role === Role.SUPER_ADMIN ? session.user.id : undefined,
-    });
+    try {
+      await recordActivityLog({
+        userId: session.user.id,
+        userName: session.user.name || session.user.fullName,
+        userRole: session.user.role,
+        action: "REGISTER_OUTLET",
+        title: "Mendaftarkan Outlet Baru",
+        description: `${session.user.role === Role.ADMIN ? 'Admin Lapangan' : 'Super Admin'} "${session.user.name || session.user.fullName}" mendaftarkan outlet baru "${result.outlet.name}" dan menghubungkannya ke kartu "${code}".`,
+        targetId: result.outlet.id,
+        targetName: result.outlet.name,
+        outletId: result.outlet.id,
+        adminId: session.user.role === Role.ADMIN ? session.user.id : (card.assignedAdminId || undefined),
+        superAdminId: session.user.role === Role.SUPER_ADMIN ? session.user.id : undefined,
+      });
+    } catch (logErr) {
+      console.error("Gagal mencatat log pendaftaran outlet:", logErr);
+    }
 
     revalidatePath("/admin");
     revalidatePath("/super-admin");
@@ -864,10 +868,30 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         cardCode: result.card.code,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("registerOutletAndClaimCardAction error:", error);
-    const msg = error instanceof Error ? error.message : "Terjadi kesalahan server saat mendaftarkan outlet.";
-    return { success: false, message: msg };
+    
+    // Tangani error Prisma secara spesifik dan human-readable
+    if (error && typeof error === "object" && "code" in error) {
+      const prismaCode = (error as { code: string }).code;
+      if (prismaCode === "P2002") {
+        return { success: false, message: "Email atau data outlet sudah terdaftar dalam sistem. Gunakan email berbeda." };
+      }
+      if (prismaCode === "P2003") {
+        return { success: false, message: "Akun admin pembuat tidak valid atau kartu tidak terhubung." };
+      }
+      if (prismaCode === "P2025") {
+        return { success: false, message: "Data kartu atau referensi akun tidak ditemukan di database." };
+      }
+    }
+
+    const msg = error instanceof Error ? error.message : "Terjadi kesalahan sistem saat mendaftarkan outlet.";
+    // Bersihkan jika ada trace Prisma teknis
+    const cleanMsg = msg.includes("invocation") || msg.includes("PrismaClient") 
+      ? "Gagal mendaftarkan outlet. Pastikan data kartu dan email valid serta belum pernah digunakan."
+      : msg;
+
+    return { success: false, message: cleanMsg };
   }
 }
 

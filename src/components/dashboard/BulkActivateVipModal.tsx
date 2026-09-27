@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { bulkActivateAllMembersAction } from "@/lib/actions/membership.actions";
-import { formatMembershipExpiry, getDefaultSeptember30Expiry } from "@/lib/membership-utils";
+import { formatMembershipExpiry, getDefaultSeptember30Expiry, formatToJakartaDateInput, parseJakartaEndOfDay } from "@/lib/membership-utils";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 
 interface BulkActivateVipModalProps {
@@ -31,14 +31,7 @@ export function BulkActivateVipModal({
 }: BulkActivateVipModalProps) {
   // Default to 30 September 2026 or 1 month ahead
   const defaultSept30 = getDefaultSeptember30Expiry();
-  const formatInputDate = (d: Date) => {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const [dateInput, setDateInput] = useState<string>(formatInputDate(defaultSept30));
+  const [dateInput, setDateInput] = useState<string>(formatToJakartaDateInput(defaultSept30));
   const [activePreset, setActivePreset] = useState<string>("SEPT_30");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -69,7 +62,7 @@ export function BulkActivateVipModal({
         break;
     }
 
-    setDateInput(formatInputDate(targetDate));
+    setDateInput(formatToJakartaDateInput(targetDate));
   };
 
   // Compute preview date
@@ -86,8 +79,7 @@ export function BulkActivateVipModal({
       return;
     }
 
-    const combinedIso = `${dateInput}T23:59:59.999+07:00`;
-    const targetDate = new Date(combinedIso);
+    const targetDate = parseJakartaEndOfDay(dateInput);
 
     if (isNaN(targetDate.getTime())) {
       showErrorAlert("Error", "Format tanggal tidak valid.");

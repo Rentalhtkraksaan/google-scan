@@ -43,7 +43,7 @@ import {
   updateOutletMembershipExpiryAction,
   updateOutletCustomVipPriceAction,
 } from "@/lib/actions/membership.actions";
-import { formatMembershipExpiry, getMembershipDaysRemaining } from "@/lib/membership-utils";
+import { formatMembershipExpiry, getMembershipDaysRemaining, formatToJakartaDateInput, parseJakartaEndOfDay } from "@/lib/membership-utils";
 import { MembershipPaymentItem, SiteSettingModel } from "@/types/models";
 
 interface OutletMembershipRow {
@@ -282,7 +282,7 @@ export function MembershipManagementModal({
     if (!editingExpiryOutlet || !inputExpiryDate) return;
     setIsSavingExpiry(true);
     try {
-      const chosenDate = new Date(inputExpiryDate + "T23:59:59.999Z");
+      const chosenDate = parseJakartaEndOfDay(inputExpiryDate);
       const res = await updateOutletMembershipExpiryAction(editingExpiryOutlet.id, chosenDate, true);
       if (res.success) {
         showSuccessAlert("Tersimpan!", res.message);
@@ -718,11 +718,7 @@ export function MembershipManagementModal({
                                   name: item.name,
                                   currentExpiry: item.membershipExpiresAt || null,
                                 });
-                                setInputExpiryDate(
-                                  item.membershipExpiresAt
-                                    ? new Date(item.membershipExpiresAt).toISOString().split("T")[0]
-                                    : new Date().toISOString().split("T")[0]
-                                );
+                                setInputExpiryDate(formatToJakartaDateInput(item.membershipExpiresAt));
                               }}
                               className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                               title="Pilih tanggal kadaluarsa khusus"

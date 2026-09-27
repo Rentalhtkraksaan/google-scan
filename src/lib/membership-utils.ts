@@ -66,3 +66,26 @@ export function getMembershipDaysRemaining(
   const diffMs = d.getTime() - Date.now();
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
+
+/**
+ * Formats a Date/string to YYYY-MM-DD for HTML <input type="date"> in Asia/Jakarta timezone
+ */
+export function formatToJakartaDateInput(dateInput: Date | string | null | undefined): string {
+  if (!dateInput) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  }
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  }
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(d);
+}
+
+/**
+ * Parses a YYYY-MM-DD string from <input type="date"> to an exact End of Day Date (23:59:59.999 WIB / UTC+7)
+ */
+export function parseJakartaEndOfDay(dateString: string): Date {
+  const trimmed = dateString.trim().split("T")[0];
+  return new Date(`${trimmed}T23:59:59.999+07:00`);
+}
+

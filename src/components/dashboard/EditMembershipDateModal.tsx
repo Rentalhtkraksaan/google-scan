@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { updateOutletMembershipExpiryAction } from "@/lib/actions/membership.actions";
-import { formatMembershipExpiry, getDefaultSeptember30Expiry, isOutletMemberActive } from "@/lib/membership-utils";
+import { formatMembershipExpiry, getDefaultSeptember30Expiry, isOutletMemberActive, formatToJakartaDateInput, parseJakartaEndOfDay } from "@/lib/membership-utils";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 
 interface EditMembershipDateModalProps {
@@ -35,9 +35,7 @@ export function EditMembershipDateModal({
   const isCurrentlyActive = isOutletMemberActive(outlet);
 
   // Default date in input (YYYY-MM-DD)
-  const initialDateStr = currentExpiry && !isNaN(currentExpiry.getTime())
-    ? currentExpiry.toISOString().split("T")[0]
-    : "2026-09-30";
+  const initialDateStr = formatToJakartaDateInput(outlet?.membershipExpiresAt || "2026-09-30");
 
   const [dateInput, setDateInput] = useState<string>(initialDateStr);
   const [isActiveStatus, setIsActiveStatus] = useState<boolean>(
@@ -72,11 +70,7 @@ export function EditMembershipDateModal({
         targetDate = getDefaultSeptember30Expiry();
     }
 
-    // Set to local YYYY-MM-DD
-    const yyyy = targetDate.getFullYear();
-    const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const dd = String(targetDate.getDate()).padStart(2, "0");
-    setDateInput(`${yyyy}-${mm}-${dd}`);
+    setDateInput(formatToJakartaDateInput(targetDate));
     setIsActiveStatus(true);
   };
 
@@ -88,8 +82,7 @@ export function EditMembershipDateModal({
     }
 
     // Combine dateInput with end of day: 23:59:59.999 WIB (+07:00)
-    const combinedIso = `${dateInput}T23:59:59.999+07:00`;
-    const targetDate = new Date(combinedIso);
+    const targetDate = parseJakartaEndOfDay(dateInput);
 
     if (isNaN(targetDate.getTime())) {
       showErrorAlert("Error", "Format tanggal tidak valid.");
