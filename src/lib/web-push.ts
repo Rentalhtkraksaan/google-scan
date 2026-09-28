@@ -21,8 +21,96 @@ export interface PushNotificationPayload {
   icon?: string;
   badge?: string;
   url?: string;
-  action?: "FIVE_STAR_REVIEW" | "SCAN_CARD" | "TEST_NOTIFICATION";
+  action?: "FIVE_STAR_REVIEW" | "SCAN_CARD" | "TEST_NOTIFICATION" | "NEW_ORDER" | "NEW_PAYMENT" | "REQUEST_CARD" | string;
   tag?: string;
+}
+
+/**
+ * Kirim notifikasi Web Push ke seluruh smartphone/perangkat Super Admin yang terdaftar.
+ * Bekerja langsung secara realtime meskipun HP dikunci / layar mati / background.
+ */
+export async function sendWebPushToSuperAdmins(
+  payload: PushNotificationPayload
+) {
+  try {
+    const superAdmins = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: "SUPER_ADMIN" },
+          { isSuperAdminMaster: true },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!superAdmins || superAdmins.length === 0) {
+      return { success: true, sentCount: 0 };
+    }
+
+    const superAdminIds = superAdmins.map((u) => u.id);
+
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: {
+        userId: { in: superAdminIds },
+      },
+    });
+
+    if (!subscriptions || subscriptions.length === 0) {
+      return { success: true, sentCount: 0 };
+    }
+
+    const notificationString = JSON.stringify({
+      title: payload.title,
+      body: payload.body,
+      icon: payload.icon || "/api/logo/landing",
+      badge: payload.badge || "/api/logo/badge",
+      url: payload.url || "/super-admin",
+      tag: payload.tag || `superadmin-alert-${Date.now()}`,
+      action: payload.action,
+    });
+
+    let sentCount = 0;
+    const expiredIds: string[] = [];
+
+    await Promise.all(
+      subscriptions.map(async (sub) => {
+        try {
+          const pushSubscription = {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            },
+          };
+
+          await webpush.sendNotification(pushSubscription, notificationString, {
+            urgency: "high", // Pastikan HP segera bangun, berdering & bergetar
+            TTL: 60 * 60 * 24, // 24 jam
+          });
+          sentCount++;
+        } catch (err: unknown) {
+          const errorWithStatus = err as { statusCode?: number; message?: string };
+          if (errorWithStatus.statusCode === 410 || errorWithStatus.statusCode === 404) {
+            expiredIds.push(sub.id);
+          } else {
+            console.error("Gagal mengirim web push ke device Super Admin:", errorWithStatus?.message || err);
+          }
+        }
+      })
+    );
+
+    // Bersihkan device subscription yang sudah mati
+    if (expiredIds.length > 0) {
+      await prisma.pushSubscription.deleteMany({
+        where: { id: { in: expiredIds } },
+      }).catch(() => {});
+    }
+
+    return { success: true, sentCount };
+  } catch (error) {
+    console.error("Error in sendWebPushToSuperAdmins:", error);
+    return { success: false, error };
+  }
 }
 
 /**
@@ -110,7 +198,7 @@ export async function sendWebPushDirect(
       body: payload.body,
       icon: payload.icon || "/api/logo/landing",
       badge: payload.badge || "/api/logo/badge",
-      url: payload.url || "/portal",
+      url: payload.url || "/super-admin",
       tag: payload.tag || `direct-alert-${Date.now()}`,
       action: payload.action,
     });

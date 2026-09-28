@@ -1,5 +1,5 @@
 // Smart QR Review - Lightweight Service Worker
-const CACHE_NAME = "smartqr-cache-v1";
+const CACHE_NAME = "smartqr-cache-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -15,9 +15,10 @@ self.addEventListener("push", (event) => {
 
   try {
     const data = event.data.json();
-    const title = data.title || "Smart QR Review";
+    const title = data.title || "Smart QR System";
+    const targetUrl = data.url || "/portal";
     const options = {
-      body: data.body || "Ada pembaruan ulasan di outlet Anda.",
+      body: data.body || "Ada pembaruan penting di sistem.",
       icon: data.icon || "/api/logo/landing",
       badge: data.badge || "/api/logo/badge",
       vibrate: [500, 200, 500, 200, 500, 200, 800],
@@ -28,10 +29,10 @@ self.addEventListener("push", (event) => {
       silent: false,
       timestamp: Date.now(),
       data: {
-        url: data.url || "/portal",
+        url: targetUrl,
       },
       actions: [
-        { action: "open", title: "Buka Portal Outlet 📱" },
+        { action: "open", title: "Buka Sekarang 📱" },
       ],
     };
 
@@ -39,7 +40,7 @@ self.addEventListener("push", (event) => {
   } catch (err) {
     const text = event.data.text();
     event.waitUntil(
-      self.registration.showNotification("Smart QR Review", {
+      self.registration.showNotification("Smart QR System", {
         body: text,
         icon: "/api/logo/landing",
         badge: "/api/logo/badge",
@@ -48,23 +49,23 @@ self.addEventListener("push", (event) => {
         silent: false,
         renotify: true,
         data: {
-          url: "/portal",
+          url: "/super-admin",
         },
       })
     );
   }
 });
 
-// Notification Click Event -> Open or focus portal
+// Notification Click Event -> Open or focus appropriate dashboard / portal
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || "/portal";
+  const targetUrl = event.notification.data?.url || "/super-admin";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes("/portal") && "focus" in client) {
+        if (client.url && client.url.includes(targetUrl) && "focus" in client) {
           return client.focus();
         }
       }
@@ -78,15 +79,16 @@ self.addEventListener("notificationclick", (event) => {
 // Client PostMessage Handler -> Show Native Notification
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SHOW_NOTIFICATION") {
-    const title = event.data.title || "Smart QR Review";
+    const title = event.data.title || "Smart QR System";
+    const targetUrl = event.data.url || "/portal";
     const options = {
-      body: event.data.body || "Aktivitas ulasan baru terdeteksi.",
+      body: event.data.body || "Aktivitas baru terdeteksi.",
       icon: event.data.icon || "/api/logo/landing",
       badge: event.data.badge || "/api/logo/badge",
       vibrate: [250, 100, 250, 100, 450],
-      tag: `review-alert-${Date.now()}`,
+      tag: `system-alert-${Date.now()}`,
       data: {
-        url: event.data.url || "/portal",
+        url: targetUrl,
       },
     };
     self.registration.showNotification(title, options);

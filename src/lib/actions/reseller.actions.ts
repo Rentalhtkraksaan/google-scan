@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { sendWebPushToSuperAdmins } from "@/lib/web-push";
 
 /**
  * Super Admin: Buka kunci atau Kunci akses dashboard reseller secara manual (Gratis / Bypass)
@@ -298,6 +299,15 @@ export async function submitResellerPaymentProofAction(
         targetName: session.user.name || "Mitra Reseller",
       },
     }).catch(() => {});
+
+    // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+    await sendWebPushToSuperAdmins({
+      title: "💳 Bukti Transfer Modul Reseller Masuk!",
+      body: `Mitra Lapangan "${session.user.name}" mengunggah bukti transfer Rp ${(amount || expectedAmount).toLocaleString("id-ID")} untuk aktivasi Modul Reseller.`,
+      url: "/super-admin",
+      tag: `tf-reseller-${session.user.id}-${Date.now()}`,
+      action: "NEW_PAYMENT",
+    }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
 
     revalidatePath("/admin");
     revalidatePath("/super-admin");

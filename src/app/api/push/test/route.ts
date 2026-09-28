@@ -20,17 +20,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { outletId, subscription, outletName } = body;
 
+    const session = await auth();
+    const isSuperAdmin = session?.user?.role === "SUPER_ADMIN" || (session?.user as any)?.isSuperAdminMaster;
+
     const payload = {
-      title: "🛎️ Tes Dering & Getar Smart QR!",
-      body: `Notifikasi latar belakang ${outletName || "Outlet"} aktif sempurna! HP akan berdering dan bergetar saat ulasan masuk.`,
+      title: isSuperAdmin ? "👑 Tes Dering Notifikasi Super Admin!" : "🛎️ Tes Dering & Getar Smart QR!",
+      body: isSuperAdmin
+        ? "Notifikasi HP Super Admin aktif! Anda akan menerima pemberitahuan instan setiap ada Pesanan Masuk, Bukti Transfer, dan Permintaan Kartu."
+        : `Notifikasi latar belakang ${outletName || "Outlet"} aktif sempurna! HP akan berdering dan bergetar saat ulasan masuk.`,
       icon: "/api/logo/landing",
       badge: "/api/logo/landing",
-      url: "/portal",
+      url: isSuperAdmin ? "/super-admin" : "/portal",
       action: "TEST_NOTIFICATION" as const,
     };
 
     if (outletId) {
-      const session = await auth();
       if (!session?.user) {
         return NextResponse.json({ success: false, message: "Akses ditolak: Silakan login terlebih dahulu." }, { status: 401 });
       }

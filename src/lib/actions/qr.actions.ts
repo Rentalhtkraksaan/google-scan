@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { generateCardsSchema } from "@/lib/validations";
 import { recordActivityLog } from "@/lib/actions/activity.actions";
 import { cleanCardCode, parseMultipleCardCodes } from "@/lib/card-code";
+import { sendWebPushToSuperAdmins } from "@/lib/web-push";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
@@ -1187,6 +1188,61 @@ export async function batchRestoreOrRegisterCardsAction(data: {
     console.error("batchRestoreOrRegisterCardsAction error:", error);
     const msg = error instanceof Error ? error.message : "Gagal memulihkan batch kartu fisik.";
     return { success: false, message: msg };
+  }
+}
+
+/**
+ * Catat permintaan penambahan kartu fisik & kirim Web Push Notification ke Super Admin
+ */
+export async function notifyCardQuotaRequestAction(data: {
+  count: number;
+  notes?: string;
+  mode?: "OUTLET" | "ADMIN";
+  outletName?: string;
+}): Promise<ActionResult> {
+  try {
+    const session = await auth();
+    const count = Number(data.count) || 1;
+    const notes = data.notes?.trim() || "";
+    const mode = data.mode || "OUTLET";
+    const isAdminMode = mode === "ADMIN";
+
+    const requesterName = session?.user?.name || (session?.user as any)?.fullName || (isAdminMode ? "Mitra Lapangan" : data.outletName || "Outlet");
+    const userRole = (session?.user?.role as Role) || Role.USER;
+
+    const description = `${requesterName} (${isAdminMode ? "Mitra Lapangan" : `Outlet "${data.outletName || "Outlet"}"`}) mengajukan ${count} unit Kartu QR Google Review.${notes ? ` Catatan: "${notes}"` : ""}`;
+
+    await recordActivityLog({
+      userId: session?.user?.id || null,
+      userName: requesterName,
+      userRole,
+      action: "REQUEST_CARDS",
+      title: "Permintaan Tambahan Kartu Fisik 🃏",
+      description,
+      targetName: `${count} Unit Kartu QR`,
+    });
+
+    // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+    await sendWebPushToSuperAdmins({
+      title: "🃏 Permintaan Tambah Kartu Masuk!",
+      body: `${requesterName} (${isAdminMode ? "Mitra Lapangan" : data.outletName || "Outlet"}) mengajukan ${count} Kartu QR baru.${notes ? ` Catatan: ${notes}` : ""}`,
+      url: "/super-admin",
+      tag: `card-request-${Date.now()}`,
+      action: "REQUEST_CARD",
+    }).catch((pushErr) => console.error("Push notification to super admin error (card request):", pushErr));
+
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: "Permintaan berhasil diteruskan ke Super Admin.",
+    };
+  } catch (error) {
+    console.error("notifyCardQuotaRequestAction error:", error);
+    return {
+      success: false,
+      message: "Gagal mencatat permintaan kartu.",
+    };
   }
 }
 

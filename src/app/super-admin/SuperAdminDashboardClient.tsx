@@ -82,6 +82,7 @@ import { InvoiceGeneratorModal } from "@/components/dashboard/InvoiceGeneratorMo
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { MembershipManagementModal } from "@/components/dashboard/MembershipManagementModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
+import { NotificationPrompt } from "@/components/pwa/NotificationPrompt";
 import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from "@/lib/actions/qr.actions";
 import {
   bulkActivateAllMembersAction,
@@ -89,7 +90,12 @@ import {
   getRecentVipRenewalsAction,
 } from "@/lib/actions/membership.actions";
 import { toggleAdminResellerUnlockAction } from "@/lib/actions/reseller.actions";
-import { playCashierDing, unlockAudioContext } from "@/lib/notification-sound";
+import {
+  playCashierDing,
+  unlockAudioContext,
+  triggerSmartphoneVibration,
+  speakVoiceAnnouncement,
+} from "@/lib/notification-sound";
 import {
   deleteAdminAction,
   deleteSuperAdminAction,
@@ -302,6 +308,142 @@ export function SuperAdminDashboardClient({
       showWelcomeAlert(currentUser.fullName || "Super Admin", roleLabel);
     }
   }, [isMaster, currentUser.fullName]);
+
+  // Realtime Polling for Super Admin Notifications (Pesanan Masuk, Transfer Masuk, Permintaan Kartu)
+  const [realtimeAlert, setRealtimeAlert] = useState<{
+    id: string;
+    title: string;
+    description: string;
+    type: "ORDER" | "PAYMENT" | "CARD";
+    timestamp: number;
+  } | null>(null);
+
+  const prevCountsRef = useRef<{
+    orders: number;
+    vipPayments: number;
+    resellerPayments: number;
+    lastServerTime: number;
+  }>({
+    orders: -1,
+    vipPayments: -1,
+    resellerPayments: -1,
+    lastServerTime: Date.now(),
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const pollRealtime = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+
+      try {
+        const since = prevCountsRef.current.lastServerTime;
+        const res = await fetch(`/api/super-admin/realtime?since=${since}`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.success && isMounted) {
+          const prev = prevCountsRef.current;
+          const {
+            pendingOrdersCount,
+            pendingVipPaymentsCount,
+            pendingResellerPaymentsCount,
+            recentActivities,
+            serverTime,
+          } = data;
+
+          // First run: establish baseline
+          if (prev.orders === -1) {
+            prevCountsRef.current = {
+              orders: pendingOrdersCount,
+              vipPayments: pendingVipPaymentsCount,
+              resellerPayments: pendingResellerPaymentsCount,
+              lastServerTime: serverTime,
+            };
+            return;
+          }
+
+          // Check if new pending orders arrived
+          if (pendingOrdersCount > prev.orders) {
+            playCashierDing();
+            triggerSmartphoneVibration();
+            speakVoiceAnnouncement("Pesanan reseller baru masuk.");
+            setRealtimeAlert({
+              id: `order-${Date.now()}`,
+              title: "🛍️ Pesanan Reseller Baru Masuk!",
+              description: `Terdapat ${pendingOrdersCount} pesanan reseller yang menunggu proses di dashboard.`,
+              type: "ORDER",
+              timestamp: Date.now(),
+            });
+          }
+          // Check if new VIP payment proofs arrived
+          else if (pendingVipPaymentsCount > prev.vipPayments) {
+            playCashierDing();
+            triggerSmartphoneVibration();
+            speakVoiceAnnouncement("Bukti transfer member baru masuk.");
+            setRealtimeAlert({
+              id: `vip-${Date.now()}`,
+              title: "💳 Bukti Transfer Member Masuk!",
+              description: `Terdapat ${pendingVipPaymentsCount} bukti transfer VIP yang menunggu konfirmasi.`,
+              type: "PAYMENT",
+              timestamp: Date.now(),
+            });
+          }
+          // Check if new Reseller Module payments arrived
+          else if (pendingResellerPaymentsCount > prev.resellerPayments) {
+            playCashierDing();
+            triggerSmartphoneVibration();
+            speakVoiceAnnouncement("Bukti transfer modul reseller masuk.");
+            setRealtimeAlert({
+              id: `reseller-mod-${Date.now()}`,
+              title: "💳 Bukti Transfer Modul Reseller Masuk!",
+              description: `Terdapat ${pendingResellerPaymentsCount} pengajuan aktivasi modul reseller yang menunggu verifikasi.`,
+              type: "PAYMENT",
+              timestamp: Date.now(),
+            });
+          }
+          // Check if new card requests arrived from activity log
+          else if (recentActivities && recentActivities.length > 0) {
+            const cardReq = recentActivities.find((a: any) => a.action === "REQUEST_CARDS");
+            if (cardReq) {
+              playCashierDing();
+              triggerSmartphoneVibration();
+              speakVoiceAnnouncement("Permintaan tambahan kartu baru masuk.");
+              setRealtimeAlert({
+                id: `card-${cardReq.id}`,
+                title: "🃏 Permintaan Tambah Kartu Masuk!",
+                description: cardReq.description || `${cardReq.userName} mengajukan tambahan kartu fisik.`,
+                type: "CARD",
+                timestamp: Date.now(),
+              });
+            }
+          }
+
+          prevCountsRef.current = {
+            orders: pendingOrdersCount,
+            vipPayments: pendingVipPaymentsCount,
+            resellerPayments: pendingResellerPaymentsCount,
+            lastServerTime: serverTime,
+          };
+        }
+      } catch {
+        // Silent error on background polling
+      }
+    };
+
+    const interval = setInterval(pollRealtime, 10000);
+    pollRealtime();
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const canEditLanding = isMaster || currentUser?.canEditLandingPage === true;
   const canManageTemplates = isMaster || currentUser?.canManagePrintTemplates === true;
@@ -1761,7 +1903,10 @@ Tim Layanan Smart QR`;
               <span>Kelola Member</span>
             </button>
 
-            {/* 2. Dynamic Primary Action Button */}
+            {/* 3. Notifikasi & Dering HP Super Admin */}
+            <NotificationPrompt className="shrink-0" />
+
+            {/* 4. Dynamic Primary Action Button */}
             {activeTab === "ADMINS" ? (
               <button
                 onClick={() => setIsCreateAdminOpen(true)}
@@ -1795,6 +1940,72 @@ Tim Layanan Smart QR`;
 
         {/* Viewport Body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+          {/* Realtime Alert Banner for Super Admin (Orders, Transfers, Card Requests) */}
+          {realtimeAlert && (
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-slate-900 to-indigo-950/40 border border-amber-500/40 shadow-xl shadow-amber-500/10 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                  <Zap className="w-5 h-5 animate-pulse" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs sm:text-sm font-black text-white truncate">
+                      {realtimeAlert.title}
+                    </h4>
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                      LIVE BARU
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 truncate mt-0.5">
+                    {realtimeAlert.description}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {realtimeAlert.type === "ORDER" && (
+                  <button
+                    onClick={() => {
+                      setIsResellerOrdersModalOpen(true);
+                      setRealtimeAlert(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    Buka Pesanan
+                  </button>
+                )}
+                {realtimeAlert.type === "PAYMENT" && (
+                  <button
+                    onClick={() => {
+                      setIsMembershipModalOpen(true);
+                      setRealtimeAlert(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    Periksa Bukti
+                  </button>
+                )}
+                {realtimeAlert.type === "CARD" && (
+                  <button
+                    onClick={() => {
+                      setActiveTab("CARDS");
+                      setRealtimeAlert(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  >
+                    Lihat Kartu
+                  </button>
+                )}
+                <button
+                  onClick={() => setRealtimeAlert(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Tutup Notifikasi"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Realtime Live Activity Ticker Bar */}
           <LiveActivityTicker />
 

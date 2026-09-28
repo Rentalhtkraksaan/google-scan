@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Layers, MessageCircle, Crown, Briefcase, Sparkles, Tag } from "lucide-react";
 import { showErrorAlert } from "@/lib/swal";
+import { notifyCardQuotaRequestAction } from "@/lib/actions/qr.actions";
 
 interface RequestCardModalProps {
   mode?: "OUTLET" | "ADMIN";
@@ -110,6 +111,14 @@ export function RequestCardModal({
       }
       message += `\nMohon informasi ketersediaan kartu & proses aktivasinya ya. Terima kasih!`;
     }
+
+    // Kirim notifikasi realtime & log aktivitas ke Super Admin
+    notifyCardQuotaRequestAction({
+      count,
+      notes,
+      mode,
+      outletName: outlet?.name,
+    }).catch((err) => console.error("notifyCardQuotaRequestAction error:", err));
 
     const waUrl = `https://wa.me/${formattedWa}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, "_blank");

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { sendWebPushToSuperAdmins } from "@/lib/web-push";
 
 /**
  * Auto-seeds default products if database has none
@@ -442,6 +443,15 @@ export async function createResellerOrderAction(data: {
         targetName: order.orderNumber,
       },
     }).catch(() => {});
+
+    // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+    await sendWebPushToSuperAdmins({
+      title: "🛍️ Pesanan Baru Masuk!",
+      body: `Pesanan #${order.orderNumber} dari "${data.customerName}" (${totalQuantity} pcs • Rp ${finalTotalAmount.toLocaleString("id-ID")}) via ${data.paymentMethod === "MIDTRANS_QRIS" ? "Midtrans QRIS" : "Transfer Bank BNI"}.`,
+      url: "/super-admin",
+      tag: `order-${order.id}`,
+      action: "NEW_ORDER",
+    }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
 
     revalidatePath("/admin");
     revalidatePath("/super-admin");

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { sendWebPushToSuperAdmins } from "@/lib/web-push";
 
 /**
  * Outlet mengunggah bukti transfer pembayaran membership
@@ -26,7 +27,7 @@ export async function submitPaymentProofAction(
 
     const outlet = await prisma.outlet.findUnique({
       where: { id: outletId },
-      select: { ownerId: true },
+      select: { name: true, ownerId: true },
     });
 
     if (!outlet) {
@@ -59,11 +60,20 @@ export async function submitPaymentProofAction(
         userRole: (session.user.role as "USER" | "ADMIN" | "SUPER_ADMIN") || "USER",
         action: "UPDATE_STATUS",
         title: "Kirim Bukti Pembayaran Member 💳",
-        description: `Outlet mengirim bukti transfer sebesar Rp ${(amount || 45000).toLocaleString("id-ID")} untuk verifikasi member premium.`,
+        description: `Outlet "${outlet.name}" mengirim bukti transfer sebesar Rp ${(amount || 45000).toLocaleString("id-ID")} untuk verifikasi member premium.`,
         targetId: payment.id,
         targetName: "Pembayaran Member",
       },
     }).catch(() => {});
+
+    // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+    await sendWebPushToSuperAdmins({
+      title: "💳 Bukti Transfer Member Masuk!",
+      body: `Outlet "${outlet.name}" (${senderName || session.user.name || "Pemilik"}) mengirim bukti transfer Rp ${(amount || 45000).toLocaleString("id-ID")} untuk verifikasi VIP Member.`,
+      url: "/super-admin",
+      tag: `payment-proof-${payment.id}`,
+      action: "NEW_PAYMENT",
+    }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
 
     revalidatePath("/portal");
     revalidatePath("/super-admin");

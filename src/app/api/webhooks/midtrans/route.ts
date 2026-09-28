@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { formatMembershipExpiry } from "@/lib/membership-utils";
+import { sendWebPushToSuperAdmins } from "@/lib/web-push";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,15 @@ export async function POST(req: NextRequest) {
           }),
         ]);
 
+        // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+        await sendWebPushToSuperAdmins({
+          title: "💰 Pembayaran Modul Reseller Berhasil (QRIS)! ⚡",
+          body: `Mitra "${resellerPayment.user.fullName}" berhasil membayar Modul Reseller Rp ${resellerPayment.amount.toLocaleString("id-ID")} via ${payment_type?.toUpperCase() || "QRIS"} Midtrans. Akun langsung aktif!`,
+          url: "/super-admin",
+          tag: `qris-reseller-${resellerPayment.id}`,
+          action: "NEW_PAYMENT",
+        }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
+
         console.log(`[Midtrans Webhook] SUCCESS: Reseller "${resellerPayment.user.fullName}" unlocked`);
         return NextResponse.json({ status: "OK", transaction_status });
       } else if (isFailed) {
@@ -192,6 +202,15 @@ export async function POST(req: NextRequest) {
             },
           }),
         ]);
+
+        // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+        await sendWebPushToSuperAdmins({
+          title: "💰 Pembayaran Pesanan Produk Lunas (QRIS)! ⚡",
+          body: `Pesanan #${resellerOrder.orderNumber} dari "${resellerOrder.customerName}" (${resellerOrder.totalQuantity} pcs • Rp ${resellerOrder.totalAmount.toLocaleString("id-ID")}) telah lunas dibayar via ${payment_type?.toUpperCase() || "QRIS"}.`,
+          url: "/super-admin",
+          tag: `qris-order-${resellerOrder.id}`,
+          action: "NEW_ORDER",
+        }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
 
         console.log(`[Midtrans Webhook] SUCCESS: Reseller Order #${resellerOrder.orderNumber} marked PAID`);
         return NextResponse.json({ status: "OK", transaction_status });
@@ -292,6 +311,15 @@ export async function POST(req: NextRequest) {
           },
         }),
       ]);
+
+      // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+      await sendWebPushToSuperAdmins({
+        title: "💰 Pembayaran Member VIP Sukses (QRIS)! ⚡",
+        body: `Outlet "${outlet.name}" (${outlet.owner?.fullName || "Pemilik"}) berhasil memperpanjang Member VIP Rp ${payment.amount.toLocaleString("id-ID")} via ${payment_type?.toUpperCase() || "QRIS"}.`,
+        url: "/super-admin",
+        tag: `qris-vip-${payment.id}`,
+        action: "NEW_PAYMENT",
+      }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
 
       console.log(`[Midtrans Webhook] SUCCESS: Outlet "${outlet.name}" VIP renewed until ${newExpiresAt.toISOString()}`);
     } else if (isFailed) {
