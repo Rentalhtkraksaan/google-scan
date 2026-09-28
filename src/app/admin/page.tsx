@@ -97,6 +97,7 @@ export default async function AdminPage() {
         fullName: true,
         email: true,
         whatsappNumber: true,
+        avatarUrl: true,
         isResellerUnlocked: true,
         resellerVipRewardsClaimed: true,
         createdBy: {
@@ -150,6 +151,7 @@ export default async function AdminPage() {
     fullName: session.user.fullName || "Admin Lapangan",
     email: session.user.email || "",
     role: session.user.role || "ADMIN",
+    avatarUrl: currentAdminUser?.avatarUrl ? `/api/user/${adminId}/avatar` : (session.user.avatarUrl || null),
     isResellerUnlocked: currentAdminUser?.isResellerUnlocked ?? true,
     resellerVipRewardsClaimed: currentAdminUser?.resellerVipRewardsClaimed ?? 0,
   };
@@ -175,30 +177,21 @@ export default async function AdminPage() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col">
-      <Navbar user={authUser} siteSetting={siteSetting as unknown as SiteSettingModel} />
-
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <AdminDashboardClient
-          currentAdmin={{
-            id: adminId,
-            fullName: session.user.fullName || "Admin Lapangan",
-            email: session.user.email || "",
-            whatsappNumber: currentAdminUser?.whatsappNumber,
-            isResellerUnlocked: currentAdminUser?.isResellerUnlocked ?? true,
-            resellerVipRewardsClaimed: currentAdminUser?.resellerVipRewardsClaimed ?? 0,
-          }}
-          superAdminContact={superAdminContact}
-          assignedCards={assignedCards as unknown as QrCardModel[]}
-          createdUsers={createdUsers as unknown as OutletUserItem[]}
-          siteSetting={siteSetting as unknown as SiteSettingModel}
-          vipOutletsCount={vipOutletsCount}
-        />
-      </main>
-
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        &copy; {new Date().getFullYear()} Smart QR Review Platform. Dashboard Admin Lapangan.
-      </footer>
-    </div>
+    <AdminDashboardClient
+      currentAdmin={{
+        id: adminId,
+        fullName: session.user.fullName || "Admin Lapangan",
+        email: session.user.email || "",
+        whatsappNumber: currentAdminUser?.whatsappNumber,
+        avatarUrl: currentAdminUser?.avatarUrl ? `/api/user/${adminId}/avatar` : (session.user.avatarUrl || null),
+        isResellerUnlocked: currentAdminUser?.isResellerUnlocked ?? true,
+        resellerVipRewardsClaimed: currentAdminUser?.resellerVipRewardsClaimed ?? 0,
+      }}
+      superAdminContact={superAdminContact}
+      assignedCards={assignedCards as unknown as QrCardModel[]}
+      createdUsers={createdUsers as unknown as OutletUserItem[]}
+      siteSetting={siteSetting as unknown as SiteSettingModel}
+      vipOutletsCount={vipOutletsCount}
+    />
   );
 }
