@@ -56,6 +56,9 @@ export interface SiteSettingModel {
   resellerModuleTitle?: string;
   resellerModuleDesc?: string | null;
   resellerModulePdfUrl?: string | null;
+  resellerBankName?: string;
+  resellerAccountNumber?: string;
+  resellerAccountName?: string;
   updatedAt?: string | Date;
 }
 
@@ -345,6 +348,64 @@ export interface ResellerModulePaymentItem {
   senderName?: string | null;
   senderNotes?: string | null;
   adminNotes?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface ResellerProductModel {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  price: number;
+  minOrder: number;
+  unit?: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface ResellerOrderItemModel {
+  id: string;
+  orderId: string;
+  productId?: string | null;
+  product?: ResellerProductModel | null;
+  productName: string;
+  productPrice: number;
+  quantity: number;
+  subtotal: number;
+  createdAt?: string | Date;
+}
+
+export interface ResellerOrderModel {
+  id: string;
+  orderNumber: string;
+  adminId: string;
+  admin?: {
+    id: string;
+    fullName: string;
+    email: string;
+    whatsappNumber?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  shippingAddress?: string | null;
+  notes?: string | null;
+  paymentMethod: string;
+  paymentStatus: "PENDING" | "PAID" | "REJECTED" | "CANCELLED" | string;
+  orderStatus: "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED" | string;
+  totalQuantity: number;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  receiptImageUrl?: string | null;
+  midtransSnapToken?: string | null;
+  midtransOrderId?: string | null;
+  midtransTransactionId?: string | null;
+  items: ResellerOrderItemModel[];
   createdAt: string | Date;
   updatedAt: string | Date;
 }

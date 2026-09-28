@@ -48,7 +48,11 @@ import {
   Zap,
   Calendar,
   MoreHorizontal,
+  ShoppingCart,
+  Package,
 } from "lucide-react";
+import { ResellerProductManagerModal } from "@/components/dashboard/ResellerProductManagerModal";
+import { ResellerOrdersManagerModal } from "@/components/dashboard/ResellerOrdersManagerModal";
 import { EditMembershipDateModal } from "@/components/dashboard/EditMembershipDateModal";
 import { BulkActivateVipModal } from "@/components/dashboard/BulkActivateVipModal";
 import { formatMembershipExpiry, getDefaultSeptember30Expiry } from "@/lib/membership-utils";
@@ -335,6 +339,8 @@ export function SuperAdminDashboardClient({
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const [isBulkActivateModalOpen, setIsBulkActivateModalOpen] = useState(false);
+  const [isResellerProductsModalOpen, setIsResellerProductsModalOpen] = useState(false);
+  const [isResellerOrdersModalOpen, setIsResellerOrdersModalOpen] = useState(false);
   const [editingMembershipOutlet, setEditingMembershipOutlet] = useState<{
     id: string;
     name: string;
@@ -1467,6 +1473,44 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Pesanan Reseller (Shopee Cart Orders) */}
+            <button
+              onClick={() => {
+                setIsResellerOrdersModalOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              title="Kelola & proses pesanan kartu/standee reseller mitra"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <ShoppingCart className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Pesanan Reseller (Shopee)</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                ORDER
+              </span>
+            </button>
+
+            {/* Katalog Produk Reseller (Khusus Super Admin 1 Master) */}
+            {isMaster && (
+              <button
+                onClick={() => {
+                  setIsResellerProductsModalOpen(true);
+                  setIsMobileSidebarOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-teal-300 hover:text-white bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-all cursor-pointer text-left shadow-sm group"
+                title="Kelola harga (Rp 25k/28k), foto, dan deskripsi produk reseller"
+              >
+                <div className="flex items-center gap-3 truncate">
+                  <Package className="w-4 h-4 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
+                  <span className="truncate">Katalog Produk Reseller</span>
+                </div>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                  CEO
+                </span>
+              </button>
+            )}
+
             {/* Cetak Invoice Penjualan (Khusus Super Admin 1 & 2) - POSISI UTAMA */}
             <button
               onClick={() => setIsInvoiceModalOpen(true)}
@@ -1676,7 +1720,18 @@ Tim Layanan Smart QR`;
 
           {/* Top-Right Quick Action CTA Buttons */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* 1. Kelola Member & Bukti Transfer */}
+            {/* 1. Pesanan Reseller */}
+            <button
+              onClick={() => setIsResellerOrdersModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-bold text-xs border border-emerald-500/40 hover:border-emerald-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Kelola pesanan belanja kartu fisik dari admin reseller"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline">Pesanan Reseller</span>
+              <span className="sm:hidden text-xs">Pesanan</span>
+            </button>
+
+            {/* 2. Kelola Member & Bukti Transfer */}
             <button
               onClick={() => setIsMembershipModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
@@ -4105,6 +4160,24 @@ Tim Layanan Smart QR`;
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="SUPER_ADMIN"
       />
+
+      {/* Reseller Orders Manager Modal (Super Admin 1 & 2) */}
+      <ResellerOrdersManagerModal
+        isOpen={isResellerOrdersModalOpen}
+        onClose={() => setIsResellerOrdersModalOpen(false)}
+        isMaster={isMaster}
+        superAdminName={currentUser.fullName}
+        onRefreshData={() => router.refresh()}
+      />
+
+      {/* Reseller Product Catalog Manager Modal (Khusus Super Admin 1 Master) */}
+      {isMaster && (
+        <ResellerProductManagerModal
+          isOpen={isResellerProductsModalOpen}
+          onClose={() => setIsResellerProductsModalOpen(false)}
+          isMaster={isMaster}
+        />
+      )}
 
       {/* Modal Edit Tanggal & Perpanjang Member Outlet */}
       {editingMembershipOutlet && (

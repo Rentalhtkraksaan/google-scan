@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
     // Ambil SiteSetting untuk mengambil server key
     const siteSetting = await prisma.siteSetting.findUnique({
       where: { id: "default" },
-      select: { midtransServerKey: true },
+      select: {
+        midtransServerKey: true,
+        resellerVipDiscountPerCard: true,
+      },
     });
 
     const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
@@ -130,7 +133,84 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "OK", transaction_status });
     }
 
-    // 2. Transaksi Outlet Membership VIP
+    // 2. Cek jika transaksi adalah Pesanan Keranjang Produk Reseller
+    if (order_id.startsWith("RSLORD-")) {
+      const resellerOrder = await prisma.resellerOrder.findFirst({
+        where: {
+          OR: [
+            { midtransOrderId: order_id },
+            { id: order_id },
+            { orderNumber: order_id },
+          ],
+        },
+        include: { admin: true },
+      });
+
+      if (!resellerOrder) {
+        console.warn("[Midtrans Webhook] Reseller order not found for order_id:", order_id);
+        return NextResponse.json({ error: "Reseller order record not found" }, { status: 404 });
+      }
+
+      if (resellerOrder.paymentStatus === "PAID" && isSuccess) {
+        return NextResponse.json({ status: "OK", message: "Pesanan sudah berstatus lunas sebelumnya." });
+      }
+
+      if (isSuccess) {
+        // Jika pesanan menggunakan diskon reward VIP, update klaim reward admin
+        if (resellerOrder.discountAmount > 0 && resellerOrder.adminId) {
+          const discountPerCard = siteSetting?.resellerVipDiscountPerCard || 5000;
+          const claimedCards = Math.floor(resellerOrder.discountAmount / discountPerCard);
+          if (claimedCards > 0) {
+            await prisma.user.update({
+              where: { id: resellerOrder.adminId },
+              data: {
+                resellerVipRewardsClaimed: { increment: claimedCards },
+              },
+            }).catch(() => {});
+          }
+        }
+
+        await prisma.$transaction([
+          prisma.resellerOrder.update({
+            where: { id: resellerOrder.id },
+            data: {
+              paymentStatus: "PAID",
+              orderStatus: "PROCESSING",
+              midtransTransactionId: transaction_id || undefined,
+            },
+          }),
+          prisma.activityLog.create({
+            data: {
+              userId: resellerOrder.adminId,
+              userName: resellerOrder.customerName,
+              userRole: "ADMIN",
+              action: "UPDATE_STATUS",
+              title: "Pembayaran Pesanan Produk Berhasil (Midtrans QRIS) ⚡",
+              description: `Pesanan #${resellerOrder.orderNumber} sebesar Rp ${resellerOrder.totalAmount.toLocaleString("id-ID")} berhasil dibayar lunas via Midtrans ${payment_type?.toUpperCase() || "QRIS"}. Status: Diproses.`,
+              targetId: resellerOrder.id,
+              targetName: resellerOrder.orderNumber,
+            },
+          }),
+        ]);
+
+        console.log(`[Midtrans Webhook] SUCCESS: Reseller Order #${resellerOrder.orderNumber} marked PAID`);
+        return NextResponse.json({ status: "OK", transaction_status });
+      } else if (isFailed) {
+        await prisma.resellerOrder.update({
+          where: { id: resellerOrder.id },
+          data: {
+            paymentStatus: "REJECTED",
+            orderStatus: "CANCELLED",
+            notes: `Gagal / Dibatalkan via Midtrans (${transaction_status})`,
+          },
+        });
+        return NextResponse.json({ status: "OK", transaction_status });
+      }
+
+      return NextResponse.json({ status: "OK", transaction_status });
+    }
+
+    // 3. Transaksi Outlet Membership VIP
     const payment = await prisma.membershipPayment.findFirst({
       where: {
         OR: [

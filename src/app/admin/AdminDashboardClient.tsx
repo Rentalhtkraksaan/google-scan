@@ -32,6 +32,7 @@ import {
   Volume2,
   VolumeX,
   HelpCircle,
+  ShoppingCart,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
@@ -42,6 +43,7 @@ import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { ResellerModuleModal } from "@/components/dashboard/ResellerModuleModal";
+import { ResellerShopModal } from "@/components/dashboard/ResellerShopModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 import { deleteOutletUserAction, toggleUserActiveStatusAction, logLogoutAction } from "@/lib/actions/auth.actions";
 import { toggleCardStatusAction } from "@/lib/actions/qr.actions";
@@ -137,6 +139,7 @@ export function AdminDashboardClient({
   const [editingOutlet, setEditingOutlet] = useState<EditingOutletType | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isResellerModuleModalOpen, setIsResellerModuleModalOpen] = useState(false);
   const [assigningOutlet, setAssigningOutlet] = useState<{
@@ -445,6 +448,24 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Beli Kartu Fisik & Standee (Katalog Reseller Shopee) */}
+            <button
+              onClick={() => {
+                setIsShopModalOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 transition-all cursor-pointer text-left shadow-sm group"
+              title="Buka katalog produk & keranjang belanja kartu resmi reseller"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <ShoppingCart className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Keranjang Reseller</span>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/25 text-emerald-300 border border-emerald-500/40">
+                TOKO
+              </span>
+            </button>
+
             {/* Minta Tambah Kuota Kartu */}
             <button
               onClick={() => {
@@ -615,7 +636,18 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
-            {/* 2. Minta Tambah Kuota Kartu */}
+            {/* 2. Keranjang Belanja Reseller */}
+            <button
+              onClick={() => setIsShopModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600/90 to-teal-600/90 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs border border-emerald-400/40 transition-all cursor-pointer shadow-md shadow-emerald-900/30 hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Beli kartu & standee fisik via Keranjang Reseller"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 text-white shrink-0" />
+              <span className="hidden sm:inline">Beli Kartu (Toko)</span>
+              <span className="sm:hidden text-xs">Toko</span>
+            </button>
+
+            {/* 3. Minta Tambah Kuota Kartu */}
             <button
               onClick={() => setIsRequestCardModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
@@ -758,6 +790,15 @@ Tim Layanan Smart QR`;
               {/* Quick Action Buttons Grid */}
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
+
+                <button
+                  onClick={() => setIsShopModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  title="Beli Kartu Fisik & Standee via Katalog Shopee Reseller"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5 text-white shrink-0" />
+                  <span>Keranjang Reseller</span>
+                </button>
 
                 <button
                   onClick={() => setIsResellerModuleModalOpen(true)}
@@ -1656,6 +1697,20 @@ Tim Layanan Smart QR`;
           onClose={() => setIsRequestCardModalOpen(false)}
         />
       )}
+
+      {/* Reseller Shop / Keranjang Belanja Shopee Modal */}
+      <ResellerShopModal
+        isOpen={isShopModalOpen}
+        onClose={() => setIsShopModalOpen(false)}
+        user={{
+          fullName: currentAdmin.fullName,
+          email: currentAdmin.email,
+          whatsappNumber: currentAdmin.whatsappNumber,
+        }}
+        siteSetting={siteSetting}
+        vipOutletsCount={vipOutletsCount}
+        claimedVipRewards={currentAdmin.resellerVipRewardsClaimed || 0}
+      />
 
       {/* Reseller Module & SOP Modal */}
       <ResellerModuleModal

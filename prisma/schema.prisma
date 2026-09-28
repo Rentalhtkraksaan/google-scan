@@ -60,6 +60,7 @@ model User {
   invoices               Invoice[]
   pushSubscriptions      PushSubscription[]
   resellerModulePayments ResellerModulePayment[]
+  resellerOrders         ResellerOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -118,6 +119,9 @@ model SiteSetting {
   resellerModuleTitle        String   @default("Starter Kit & Modul Resmi Kemitraan Smart QR")
   resellerModuleDesc         String?  @db.Text
   resellerModulePdfUrl       String?  @db.LongText
+  resellerBankName           String   @default("BNI")
+  resellerAccountNumber      String   @default("1234567890")
+  resellerAccountName        String   @default("Smart QR Review")
 
   updatedAt          DateTime @updatedAt
 
@@ -365,5 +369,77 @@ model ResellerModulePayment {
   @@index([midtransOrderId])
   @@index([createdAt])
   @@map("reseller_module_payments")
+}
+
+model ResellerProduct {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  imageUrl    String?  @db.LongText
+  price       Int      @default(25000)
+  minOrder    Int      @default(8)
+  unit        String   @default("pcs")
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+
+  orderItems  ResellerOrderItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("reseller_products")
+}
+
+model ResellerOrder {
+  id                    String              @id @default(cuid())
+  orderNumber           String              @unique
+  adminId               String
+  admin                 User                @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  customerName          String
+  customerPhone         String
+  customerEmail         String
+  shippingAddress       String?             @db.Text
+  notes                 String?             @db.Text
+  paymentMethod         String              @default("MANUAL_BANK_BNI") // "MIDTRANS_QRIS" | "MANUAL_BANK_BNI"
+  paymentStatus         String              @default("PENDING") // "PENDING" | "PAID" | "REJECTED" | "CANCELLED"
+  orderStatus           String              @default("PENDING") // "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED"
+  totalQuantity         Int
+  subtotal              Int
+  discountAmount        Int                 @default(0)
+  totalAmount           Int
+  receiptImageUrl       String?             @db.LongText
+  midtransSnapToken     String?             @db.Text
+  midtransOrderId       String?             @unique
+  midtransTransactionId String?
+  items                 ResellerOrderItem[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([adminId])
+  @@index([paymentStatus])
+  @@index([orderStatus])
+  @@index([midtransOrderId])
+  @@index([createdAt])
+  @@map("reseller_orders")
+}
+
+model ResellerOrderItem {
+  id           String           @id @default(cuid())
+  orderId      String
+  order        ResellerOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      ResellerProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName  String
+  productPrice Int
+  quantity     Int
+  subtotal     Int
+  createdAt    DateTime         @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("reseller_order_items")
 }
 
