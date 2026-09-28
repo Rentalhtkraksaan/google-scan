@@ -212,18 +212,16 @@ export default async function LandingPage({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <LandingResellerButtons siteSetting={siteSetting || undefined} variant="header" />
-
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <Link
               href={getPortalHref()}
               prefetch={true}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+              className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 rounded-xl transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
             >
               {session?.user ? (
                 <>
                   <LayoutDashboard className="w-4 h-4" />
-                  <span>Buka Dashboard</span>
+                  <span>Dashboard</span>
                 </>
               ) : (
                 <span>Masuk Portal</span>
@@ -234,10 +232,11 @@ export default async function LandingPage({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-600/25 transition-all"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-600/25 transition-all"
             >
               <MessageCircle className="w-4 h-4" />
-              <span>Hubungi WhatsApp</span>
+              <span className="hidden sm:inline">Hubungi WhatsApp</span>
+              <span className="sm:hidden">WhatsApp</span>
             </a>
           </div>
         </div>
@@ -264,32 +263,28 @@ export default async function LandingPage({
           </p>
         </FadeIn>
 
-        {/* CTA Buttons & Reseller Registration */}
+        {/* Hero CTA Buttons */}
         <FadeIn delay={0.3}>
-          <div className="mt-8 space-y-4">
-            <LandingResellerButtons siteSetting={siteSetting || undefined} variant="hero" />
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xl shadow-emerald-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>{ctaPrimaryText}</span>
+            </a>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-800 transition-all"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-400" />
-                <span>Konsultasi Outlet via WhatsApp</span>
-              </a>
-
-              <a
-                href={ctaSecondaryUrl}
-                target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
-                rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-semibold text-xs sm:text-sm rounded-xl border border-slate-800/80 transition-all"
-              >
-                <Smartphone className="w-4 h-4 text-sky-400" />
-                <span>{ctaSecondaryText}</span>
-              </a>
-            </div>
+            <a
+              href={ctaSecondaryUrl}
+              target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
+              rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-800 transition-all"
+            >
+              <Smartphone className="w-4 h-4 text-sky-400" />
+              <span>{ctaSecondaryText}</span>
+            </a>
           </div>
         </FadeIn>
 
@@ -610,11 +605,18 @@ export default async function LandingPage({
         </div>
       </section>
 
+      {/* Reseller Partnership & Tracking Section (Clean & Below) */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <FadeIn direction="up">
+          <LandingResellerButtons siteSetting={siteSetting || undefined} variant="section" />
+        </FadeIn>
+      </section>
+
       {/* CTA Bottom Banner */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+      <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
         <FadeIn direction="up">
           <div className="bg-gradient-to-r from-emerald-900/40 via-teal-900/30 to-slate-900 border border-emerald-500/30 rounded-3xl p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-3">
               Siap Melejitkan Rating Bisnis Anda di Google?
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto mb-6">
@@ -625,7 +627,7 @@ export default async function LandingPage({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 px-7 sm:px-8 py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-105"
             >
               <MessageCircle className="w-5 h-5" />
               <span>Chat WhatsApp Customer Support</span>
@@ -636,14 +638,16 @@ export default async function LandingPage({
 
       {/* Footer */}
       <footer className="border-t border-slate-900/80 py-8 px-4 text-center text-xs text-slate-500">
-        <div className="flex items-center justify-center gap-4 mb-3">
-          <Link href="/login" className="hover:text-slate-300 transition-colors">
+        <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap mb-3 text-slate-400">
+          <Link href="/login" className="hover:text-white transition-colors">
             Login Portal
           </Link>
           <span>•</span>
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors">
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
             WhatsApp Order
           </a>
+          <span>•</span>
+          <LandingResellerButtons siteSetting={siteSetting || undefined} variant="footer-links" />
         </div>
         <p>&copy; {new Date().getFullYear()} {footerText}</p>
       </footer>

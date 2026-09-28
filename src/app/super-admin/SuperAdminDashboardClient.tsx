@@ -1719,27 +1719,25 @@ Tim Layanan Smart QR`;
           </div>
 
           {/* Top-Right Quick Action CTA Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* 1. Pesanan Reseller */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* 1. Pesanan Reseller (Tablet & Desktop) */}
             <button
               onClick={() => setIsResellerOrdersModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-bold text-xs border border-emerald-500/40 hover:border-emerald-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-bold text-xs border border-emerald-500/40 hover:border-emerald-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
               title="Kelola pesanan belanja kartu fisik dari admin reseller"
             >
               <ShoppingCart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="hidden sm:inline">Pesanan Reseller</span>
-              <span className="sm:hidden text-xs">Pesanan</span>
+              <span>Pesanan Reseller</span>
             </button>
 
-            {/* 2. Kelola Member & Bukti Transfer */}
+            {/* 2. Kelola Member & Bukti Transfer (Tablet & Desktop) */}
             <button
               onClick={() => setIsMembershipModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
               title="Kelola bukti transfer masuk, tarif member & perpanjangan"
             >
               <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="hidden sm:inline">Kelola Member</span>
-              <span className="sm:hidden text-xs">Member</span>
+              <span>Kelola Member</span>
             </button>
 
             {/* 2. Dynamic Primary Action Button */}

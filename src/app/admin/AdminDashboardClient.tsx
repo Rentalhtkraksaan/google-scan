@@ -612,8 +612,8 @@ Tim Layanan Smart QR`;
           </div>
 
           {/* Top-Right Quick Action CTA Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* 1. Toggle Suara Notifikasi */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* 1. Toggle Suara Notifikasi (Desktop only) */}
             <button
               type="button"
               onClick={() => {
@@ -623,7 +623,7 @@ Tim Layanan Smart QR`;
                 }
                 setIsSoundEnabled(!isSoundEnabled);
               }}
-              className={`p-2 sm:px-2.5 sm:py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`hidden md:flex p-2 sm:px-2.5 sm:py-2 rounded-xl border text-xs font-semibold items-center gap-1.5 transition-all cursor-pointer ${
                 isSoundEnabled
                   ? "bg-slate-900 border-indigo-500/30 text-indigo-400 hover:bg-slate-800 shadow-sm shadow-indigo-500/10"
                   : "bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300"
@@ -631,34 +631,32 @@ Tim Layanan Smart QR`;
               title={isSoundEnabled ? "Suara Notifikasi Aktif (Klik untuk matikan)" : "Suara Notifikasi Senyap (Klik untuk aktifkan)"}
             >
               {isSoundEnabled ? <Volume2 className="w-3.5 h-3.5 text-indigo-400" /> : <VolumeX className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline text-[11px] font-bold">
+              <span className="hidden lg:inline text-[11px] font-bold">
                 {isSoundEnabled ? "Suara Aktif" : "Senyap"}
               </span>
             </button>
 
-            {/* 2. Keranjang Belanja Reseller */}
+            {/* 2. Keranjang Belanja Reseller (Tablet & Desktop) */}
             <button
               onClick={() => setIsShopModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600/90 to-teal-600/90 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs border border-emerald-400/40 transition-all cursor-pointer shadow-md shadow-emerald-900/30 hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600/90 to-teal-600/90 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs border border-emerald-400/40 transition-all cursor-pointer shadow-md shadow-emerald-900/30 hover:scale-[1.02] active:scale-[0.98] shrink-0"
               title="Beli kartu & standee fisik via Keranjang Reseller"
             >
               <ShoppingCart className="w-3.5 h-3.5 text-white shrink-0" />
-              <span className="hidden sm:inline">Beli Kartu (Toko)</span>
-              <span className="sm:hidden text-xs">Toko</span>
+              <span>Beli Kartu</span>
             </button>
 
-            {/* 3. Minta Tambah Kuota Kartu */}
+            {/* 3. Minta Tambah Kuota Kartu (Tablet & Desktop) */}
             <button
               onClick={() => setIsRequestCardModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
               title="Minta tambahan kuota kartu fisik ke Super Admin"
             >
               <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="hidden sm:inline">Minta Kuota</span>
-              <span className="sm:hidden text-xs">Kuota</span>
+              <span>Minta Kuota</span>
             </button>
 
-            {/* 3. Primary CTA Button: Daftarkan Outlet Baru */}
+            {/* 4. Primary CTA Button: Daftarkan Outlet Baru */}
             <button
               onClick={() => {
                 setPrefilledCardCode("");
@@ -669,10 +667,10 @@ Tim Layanan Smart QR`;
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="hidden sm:inline">+ Daftarkan Outlet</span>
-              <span className="sm:hidden text-xs">+ Outlet</span>
+              <span className="sm:hidden font-bold">+ Outlet</span>
             </button>
 
-            {/* 4. User Profile Avatar with Dropdown */}
+            {/* 5. User Profile Avatar with Dropdown */}
             <div className="relative" ref={userMenuRef}>
               <button
                 type="button"
@@ -788,43 +786,41 @@ Tim Layanan Smart QR`;
               </div>
 
               {/* Quick Action Buttons Grid */}
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <InstallPwaButton variant="compact" label="Pasang Aplikasi" />
-
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0">
                 <button
                   onClick={() => setIsShopModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                   title="Beli Kartu Fisik & Standee via Katalog Shopee Reseller"
                 >
                   <ShoppingCart className="w-3.5 h-3.5 text-white shrink-0" />
-                  <span>Keranjang Reseller</span>
+                  <span>Beli Kartu</span>
                 </button>
 
                 <button
                   onClick={() => setIsResellerModuleModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-semibold text-xs rounded-xl border border-indigo-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
                   title="Buka Modul & Materi Kemitraan Reseller"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                  <span>Modul Reseller</span>
-                </button>
-
-                <button
-                  onClick={() => setIsGuideModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 font-semibold text-xs rounded-xl border border-sky-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-                  title="Buka Buku Panduan Admin Lapangan"
-                >
-                  <HelpCircle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                  <span>Panduan</span>
+                  <span>Modul Mitra</span>
                 </button>
 
                 <button
                   onClick={() => setIsRequestCardModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
                   title="Minta Tambahan Jatah Kuota Kartu ke Super Admin"
                 >
                   <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>Minta Kuota</span>
+                </button>
+
+                <button
+                  onClick={() => setIsGuideModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 font-semibold text-xs rounded-xl border border-sky-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  title="Buka Buku Panduan Admin Lapangan"
+                >
+                  <HelpCircle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Buku Panduan</span>
                 </button>
               </div>
             </div>
