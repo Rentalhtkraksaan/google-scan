@@ -33,6 +33,7 @@ import {
   VolumeX,
   HelpCircle,
   ShoppingCart,
+  Globe,
 } from "lucide-react";
 import ActivityLogTable from "@/components/dashboard/ActivityLogTable";
 import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
@@ -424,13 +425,8 @@ Tim Layanan Smart QR`;
             </button>
           </div>
 
-          {/* Section: Alat & Kontrol Cepat */}
-          <div className="space-y-1">
-            <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Alat & Manajemen
-            </div>
-
-            {/* Tambah / Daftarkan Outlet Baru */}
+          {/* Quick Action: Daftarkan Outlet Baru */}
+          <div className="pt-1 pb-1">
             <button
               onClick={() => {
                 setPrefilledCardCode("");
@@ -438,17 +434,19 @@ Tim Layanan Smart QR`;
                 setIsMobileSidebarOpen(false);
               }}
               disabled={blankCards.length === 0}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer text-left shadow-sm group disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-all cursor-pointer group active:scale-[0.98] disabled:opacity-50"
               title="Daftarkan outlet baru menggunakan kuota kartu kosong Anda"
             >
-              <div className="flex items-center gap-3 truncate">
-                <Plus className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
-                <span className="truncate">+ Daftarkan Outlet</span>
-              </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                BARU
-              </span>
+              <Plus className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              <span>+ Daftarkan Outlet</span>
             </button>
+          </div>
+
+          {/* Section: Alat & Reseller */}
+          <div className="space-y-1">
+            <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Alat & Reseller
+            </div>
 
             {/* Beli Kartu Fisik & Standee (Katalog Reseller Shopee) */}
             <button
@@ -456,14 +454,14 @@ Tim Layanan Smart QR`;
                 setIsShopModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Buka katalog produk & keranjang belanja kartu resmi reseller"
             >
               <div className="flex items-center gap-3 truncate">
                 <ShoppingCart className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Keranjang Reseller</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/25 text-emerald-300 border border-emerald-500/40">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 TOKO
               </span>
             </button>
@@ -474,14 +472,14 @@ Tim Layanan Smart QR`;
                 setIsRequestCardModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Kirim pesan WhatsApp ke Super Admin untuk meminta tambahan jatah kartu fisik"
             >
               <div className="flex items-center gap-3 truncate">
                 <Layers className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Minta Kuota Kartu</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                 WA
               </span>
             </button>
@@ -492,14 +490,14 @@ Tim Layanan Smart QR`;
                 setIsResellerModuleModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Buka modul panduan & materi promosi reseller"
             >
               <div className="flex items-center gap-3 truncate">
                 <BookOpen className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Modul Reseller</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                 PDF
               </span>
             </button>
@@ -510,14 +508,14 @@ Tim Layanan Smart QR`;
                 setIsGuideModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-sky-300 hover:text-white bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Buka panduan lengkap sistem Smart QR Review"
             >
               <div className="flex items-center gap-3 truncate">
                 <HelpCircle className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Buku Panduan</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-sky-500/15 text-sky-300 border border-sky-500/30">
                 SOP
               </span>
             </button>
@@ -530,12 +528,13 @@ Tim Layanan Smart QR`;
               href="/?view=landing"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-3 truncate">
-                <ExternalLink className="w-4 h-4 shrink-0 text-slate-400" />
+                <Globe className="w-4 h-4 shrink-0 text-emerald-400" />
                 <span className="truncate">Lihat Landing Page</span>
               </div>
+              <ExternalLink className="w-3.5 h-3.5 opacity-60" />
             </a>
           </div>
         </div>

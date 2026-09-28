@@ -110,7 +110,7 @@ export function InstallPwaButton({
       "inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-semibold text-[11px] sm:text-xs rounded-xl border border-emerald-500/30 transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer";
   } else if (variant === "drawer") {
     buttonStyle =
-      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer text-left shadow-sm group";
+      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group";
   } else {
     buttonStyle =
       "inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer shadow-sm";
@@ -130,7 +130,7 @@ export function InstallPwaButton({
               <Smartphone className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
               <span className="truncate">{label}</span>
             </div>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
               PWA
             </span>
           </>

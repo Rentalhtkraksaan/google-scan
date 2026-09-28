@@ -1441,62 +1441,59 @@ Tim Layanan Smart QR`;
             </button>
           </div>
 
-            {/* Section: Alat & Kontrol Cepat */}
-          <div className="space-y-1">
-            <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Alat & Manajemen
-            </div>
-
-            {/* Tambah Admin Lapangan Baru */}
+          {/* Quick Action: Tambah Admin Baru */}
+          <div className="pt-1 pb-1">
             <button
               onClick={() => {
                 setIsCreateAdminOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 shadow-md shadow-amber-500/20 hover:shadow-amber-500/30 transition-all cursor-pointer group active:scale-[0.98]"
               title="Daftarkan akun admin lapangan baru & generate kuota kartu"
             >
-              <div className="flex items-center gap-3 truncate">
-                <UserPlus className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span className="truncate">+ Tambah Admin Baru</span>
-              </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                MITRA
-              </span>
+              <UserPlus className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              <span>+ Tambah Admin Baru</span>
             </button>
+          </div>
 
-            {/* Kelola Member & Pembayaran (Super Admin) */}
+          {/* Section: Bisnis & Reseller */}
+          <div className="space-y-1">
+            <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Bisnis & Reseller
+            </div>
+
+            {/* Kelola Member & Pembayaran */}
             <button
               onClick={() => {
                 setIsMembershipModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 hover:text-white bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Kelola bukti transfer masuk & pengaturan harga member"
             >
               <div className="flex items-center gap-3 truncate">
                 <Crown className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Kelola Member (Rp 45rb)</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                 VIP
               </span>
             </button>
 
-            {/* Pesanan Reseller (Shopee Cart Orders) */}
+            {/* Pesanan Reseller */}
             <button
               onClick={() => {
                 setIsResellerOrdersModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Kelola & proses pesanan kartu/standee reseller mitra"
             >
               <div className="flex items-center gap-3 truncate">
                 <ShoppingCart className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Pesanan Reseller (Shopee)</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 ORDER
               </span>
             </button>
@@ -1508,48 +1505,135 @@ Tim Layanan Smart QR`;
                   setIsResellerProductsModalOpen(true);
                   setIsMobileSidebarOpen(false);
                 }}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-teal-300 hover:text-white bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 transition-all cursor-pointer text-left shadow-sm group"
-                title="Kelola harga (Rp 25k/28k), foto, dan deskripsi produk reseller"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+                title="Kelola harga, foto, dan deskripsi produk reseller"
               >
                 <div className="flex items-center gap-3 truncate">
                   <Package className="w-4 h-4 shrink-0 text-teal-400 group-hover:scale-110 transition-transform" />
                   <span className="truncate">Katalog Produk Reseller</span>
                 </div>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-teal-500/15 text-teal-300 border border-teal-500/30">
                   CEO
                 </span>
               </button>
             )}
 
-            {/* Cetak Invoice Penjualan (Khusus Super Admin 1 & 2) - POSISI UTAMA */}
+            {/* Cetak Invoice Penjualan */}
             <button
               onClick={() => setIsInvoiceModalOpen(true)}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Buat, edit, dan cetak invoice JPG resolusi tinggi"
             >
               <div className="flex items-center gap-3 truncate">
-                <Receipt className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <Receipt className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Cetak Invoice (JPG)</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                BARU
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                INVOICE
               </span>
             </button>
+          </div>
 
-            {/* Buku Modul & Panduan Sistem (Semua Role) */}
+          {/* Section: Percetakan & Konten */}
+          <div className="space-y-1">
+            <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Percetakan & Konten
+            </div>
+
+            {/* Template Cetak */}
+            {canManageTemplates && (
+              <button
+                onClick={() => setIsPrintTemplateModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              >
+                <Layers className="w-4 h-4 shrink-0 text-purple-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Template Cetak Multi-Ukuran</span>
+              </button>
+            )}
+
+            {/* Ekspor Percetakan Batch */}
+            <button
+              onClick={() => setIsBatchExportOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+            >
+              <Download className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="truncate">Ekspor Cetak (CSV/ZIP)</span>
+            </button>
+
+            {/* Pengaturan Landing Page & SEO */}
+            {canEditLanding && (
+              <button
+                onClick={() => setIsLandingPageModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              >
+                <Globe className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Pengaturan Web & SEO</span>
+              </button>
+            )}
+
+            {/* Promo & Diskon (Khusus Super Admin 1) */}
+            {isMaster && (
+              <button
+                onClick={() => setIsPromoModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              >
+                <Tag className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Promo & Banner Web</span>
+              </button>
+            )}
+
+            {/* Foto Produk (Khusus Super Admin 1) */}
+            {isMaster && (
+              <button
+                onClick={() => setIsPhotoModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              >
+                <Images className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Foto Produk Reseller</span>
+              </button>
+            )}
+
+            {/* Scan Kamera QR */}
+            <button
+              onClick={() => setIsScannerModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+            >
+              <Camera className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
+              <span className="truncate">Scan Kamera QR</span>
+            </button>
+
+            {/* Analitik Pengunjung */}
+            {canViewVisitorAnalytics && (
+              <button
+                onClick={() => setIsVisitorModalOpen(true)}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              >
+                <TrendingUp className="w-4 h-4 shrink-0 text-rose-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Analitik Pengunjung</span>
+              </button>
+            )}
+          </div>
+
+          {/* Section: Bantuan & Aplikasi */}
+          <div className="space-y-1">
+            <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Bantuan & Lainnya
+            </div>
+
+            {/* Buku Panduan Sistem */}
             <button
               onClick={() => {
                 setIsGuideModalOpen(true);
                 setIsMobileSidebarOpen(false);
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-indigo-300 hover:text-white bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition-all cursor-pointer text-left shadow-sm group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
               title="Buka buku modul & panduan lengkap seluruh fitur sistem"
             >
               <div className="flex items-center gap-3 truncate">
                 <BookOpen className="w-4 h-4 shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
-                <span className="truncate">Buku Modul Sistem</span>
+                <span className="truncate">Buku Panduan Sistem</span>
               </div>
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                 PANDUAN
               </span>
             </button>
@@ -1557,85 +1641,12 @@ Tim Layanan Smart QR`;
             {/* Pasang Aplikasi PWA */}
             <InstallPwaButton variant="drawer" label="Pasang Aplikasi di HP" />
 
-            {/* Template Cetak - hanya tampil jika memiliki izin */}
-            {canManageTemplates && (
-              <button
-                onClick={() => setIsPrintTemplateModalOpen(true)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-              >
-                <Layers className="w-4 h-4 shrink-0 text-purple-400" />
-                <span className="truncate">Template Cetak</span>
-              </button>
-            )}
-
-            {/* Pengaturan Landing Page & SEO - hanya tampil jika memiliki izin */}
-            {canEditLanding && (
-              <button
-                onClick={() => setIsLandingPageModalOpen(true)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-              >
-                <Globe className="w-4 h-4 shrink-0 text-sky-400" />
-                <span className="truncate">Pengaturan Web & SEO</span>
-              </button>
-            )}
-
-            {/* Ekspor Percetakan Batch */}
-            <button
-              onClick={() => setIsBatchExportOpen(true)}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-            >
-              <Download className="w-4 h-4 shrink-0 text-amber-400" />
-              <span className="truncate">Ekspor Cetak (CSV/ZIP)</span>
-            </button>
-
-            {/* Scan Kamera QR */}
-            <button
-              onClick={() => setIsScannerModalOpen(true)}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-            >
-              <Camera className="w-4 h-4 shrink-0 text-indigo-400" />
-              <span className="truncate">Scan Kamera QR</span>
-            </button>
-
-            {/* Analitik Pengunjung (SA1 atau SA2 berizin) */}
-            {canViewVisitorAnalytics && (
-              <button
-                onClick={() => setIsVisitorModalOpen(true)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer text-left"
-              >
-                <TrendingUp className="w-4 h-4 shrink-0 text-rose-400" />
-                <span className="truncate">Analitik Pengunjung</span>
-              </button>
-            )}
-
-            {/* Kelola Promo & Diskon (Khusus Super Admin 1) */}
-            {isMaster && (
-              <button
-                onClick={() => setIsPromoModalOpen(true)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-amber-500/10 hover:text-amber-300 transition-all cursor-pointer text-left"
-              >
-                <Tag className="w-4 h-4 shrink-0 text-amber-400" />
-                <span className="truncate">Promo & Diskon</span>
-              </button>
-            )}
-
-            {/* Kelola Foto Produk (Khusus Super Admin 1) */}
-            {isMaster && (
-              <button
-                onClick={() => setIsPhotoModalOpen(true)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-sky-500/10 hover:text-sky-300 transition-all cursor-pointer text-left"
-              >
-                <Images className="w-4 h-4 shrink-0 text-sky-400" />
-                <span className="truncate">Foto Produk</span>
-              </button>
-            )}
-
             {/* Buka Landing Page Publik */}
             <a
               href="/?view=landing"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all cursor-pointer"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-3 truncate">
                 <Globe className="w-4 h-4 shrink-0 text-emerald-400" />
