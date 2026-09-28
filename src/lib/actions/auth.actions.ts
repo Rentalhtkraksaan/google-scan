@@ -1127,13 +1127,31 @@ export async function updateOutletAction(
       userUpdateData.password = await bcrypt.hash(newPassword, 10);
     }
 
+    const enableSmartFilterRaw = formData.get("enableSmartFilter");
+    const allowSmartFilterRaw = formData.get("allowSmartFilter");
+
+    const outletUpdateData: {
+      name: string;
+      googleReviewUrl: string;
+      enableSmartFilter?: boolean;
+      allowSmartFilter?: boolean;
+    } = {
+      name: name.trim(),
+      googleReviewUrl: finalReviewUrl,
+    };
+
+    if (enableSmartFilterRaw !== null) {
+      outletUpdateData.enableSmartFilter = enableSmartFilterRaw === "true" || enableSmartFilterRaw === "1";
+    }
+
+    if (allowSmartFilterRaw !== null && (session.user.role === Role.ADMIN || session.user.role === Role.SUPER_ADMIN)) {
+      outletUpdateData.allowSmartFilter = allowSmartFilterRaw === "true" || allowSmartFilterRaw === "1";
+    }
+
     await prisma.$transaction([
       prisma.outlet.update({
         where: { id: outletId },
-        data: {
-          name: name.trim(),
-          googleReviewUrl: finalReviewUrl,
-        },
+        data: outletUpdateData,
       }),
       prisma.user.update({
         where: { id: outlet.ownerId },

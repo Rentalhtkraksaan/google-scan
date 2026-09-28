@@ -156,6 +156,11 @@ export interface OutletModel {
       } | null;
     } | null;
   } | null;
+  enableSmartFilter?: boolean;
+  allowSmartFilter?: boolean;
+  soundEffect?: string;
+  customGreetingText?: string | null;
+  staffPairingToken?: string | null;
 }
 
 export interface QrCardModel {

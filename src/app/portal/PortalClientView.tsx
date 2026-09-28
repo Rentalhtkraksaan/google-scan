@@ -87,6 +87,8 @@ interface PortalClientViewProps {
     customVipPrice?: number | null;
     soundEffect?: string;
     customGreetingText?: string | null;
+    enableSmartFilter?: boolean;
+    allowSmartFilter?: boolean;
     staffPairingToken?: string | null;
     hasPendingPayment?: boolean;
     qrCards?: {
@@ -123,9 +125,10 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
-  // VIP Sound & Greeting Settings State
+  // VIP Sound, Greeting, & Smart Filter Settings State
   const [selectedSoundEffect, setSelectedSoundEffect] = useState<string>(outlet?.soundEffect || "BELL_DOUBLE");
   const [customGreetingText, setCustomGreetingText] = useState<string>(outlet?.customGreetingText || "");
+  const [enableSmartFilter, setEnableSmartFilter] = useState<boolean>(outlet?.enableSmartFilter !== false);
   const [isSavingVipSettings, setIsSavingVipSettings] = useState(false);
 
   // Staff Pairing QR State
@@ -183,17 +186,19 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     speakVoiceAnnouncement(textToSpeak);
   };
 
-  const handleSaveVipSettings = async () => {
+  const handleSaveVipSettings = async (overrideFilterVal?: boolean) => {
     if (!outlet?.id) return;
+    const filterToSave = overrideFilterVal !== undefined ? overrideFilterVal : enableSmartFilter;
     setIsSavingVipSettings(true);
     try {
       const res = await updateOutletVipSettingsAction({
         outletId: outlet.id,
         soundEffect: selectedSoundEffect,
         customGreetingText: customGreetingText.trim() || undefined,
+        enableSmartFilter: filterToSave,
       });
       if (res.success) {
-        showSuccessAlert("Berhasil Disimpan! 🎉", "Pengaturan nada dering dan suara sambutan AI toko Anda telah diperbarui.");
+        showSuccessAlert("Berhasil Disimpan! 🎉", "Pengaturan nada dering, suara AI, dan filter rating ulasan toko Anda telah diperbarui.");
       } else {
         showErrorAlert("Gagal Menyimpan", res.message || "Terjadi kesalahan.");
       }
@@ -1674,7 +1679,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                         <button
                           type="button"
                           disabled={isSavingVipSettings}
-                          onClick={handleSaveVipSettings}
+                          onClick={() => handleSaveVipSettings()}
                           className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                         >
                           {isSavingVipSettings ? "Menyimpan..." : "💾 Terapkan Nada Dering Kasir"}
@@ -1725,7 +1730,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                         <button
                           type="button"
                           disabled={isSavingVipSettings}
-                          onClick={handleSaveVipSettings}
+                          onClick={() => handleSaveVipSettings()}
                           className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                         >
                           {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Ucapan AI"}
@@ -1851,6 +1856,97 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           </span>
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* PANEL 4: FILTER RATING ULASAN CERDAS (SMART FILTER RATING) */}
+                  <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-emerald-500/30 space-y-6 shadow-2xl relative overflow-hidden">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-emerald-500 text-slate-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/20 shrink-0">
+                          🛡️
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base sm:text-lg font-black text-white">
+                              4. Smart Rating Gate (Filter Ulasan Bintang 1-3 ke WA)
+                            </h3>
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
+                              PROTEKSI RATING GOOGLE
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Lindungi reputasi Google Review toko Anda dari ulasan buruk dengan mengalihkan rating rendah langsung ke WhatsApp pribadi Anda.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Interactive Switch ON/OFF */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newVal = !enableSmartFilter;
+                          setEnableSmartFilter(newVal);
+                          handleSaveVipSettings(newVal);
+                        }}
+                        disabled={isSavingVipSettings}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shrink-0 shadow-md ${
+                          enableSmartFilter
+                            ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25"
+                            : "bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700"
+                        }`}
+                      >
+                        <span className={`w-2.5 h-2.5 rounded-full ${enableSmartFilter ? "bg-white animate-pulse" : "bg-slate-500"}`} />
+                        <span>{enableSmartFilter ? "STATUS: AKTIF (FILTER MENYALA)" : "STATUS: NONAKTIF (DIRECT GOOGLE)"}</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      {/* Bintang 4-5 Box */}
+                      <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                            <span>⭐ Bintang 4 & 5</span>
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                            Review Publik
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-[11px] leading-relaxed">
+                          Pengunjung yang puas (bintang 4 atau 5) langsung dialihkan ke formulir <strong>Google Maps Review resmi</strong> untuk meningkatkan rating bintang 5 toko Anda.
+                        </p>
+                      </div>
+
+                      {/* Bintang 1-3 Box */}
+                      <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                            <span>⭐ Bintang 1, 2, & 3</span>
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                            Kritik Privat ke WhatsApp
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-[11px] leading-relaxed">
+                          Pengunjung yang memberi ulasan rendah <strong>tidak dibuka ke Google Maps</strong>, melainkan membuka form masukan privat yang langsung terkirim ke <strong>WhatsApp Owner: {user.whatsappNumber || "Nomor WA Anda"}</strong>.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px]">
+                      <span className="text-slate-400">
+                        {enableSmartFilter
+                          ? "Saat ini Smart Filter aktif. Pengunjung akan melihat formulir bintang sebelum diteruskan sesuai ratingnya."
+                          : "Smart Filter sedang dimatikan. Pengunjung yang scan kartu akan langsung 100% membuka Google Maps Review tanpa halaman perantara bintang."}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isSavingVipSettings}
+                        onClick={() => handleSaveVipSettings()}
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Status Filter"}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -2011,6 +2107,17 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                             <td className="py-3 text-center text-amber-400 font-bold">Aktif (Push Realtime Kencang) ⚡</td>
                           </tr>
                           <tr>
+                            <td className="py-3 text-slate-300">Smart Rating Gate (Filter Bintang 1-3 ke WA)</td>
+                            <td className="py-3 text-center text-slate-500">
+                              {outlet.allowSmartFilter ? (
+                                <span className="text-emerald-400 font-semibold">Izin Khusus Admin ✅</span>
+                              ) : (
+                                "Direct Google Review (Tanpa Filter)"
+                              )}
+                            </td>
+                            <td className="py-3 text-center text-amber-400 font-bold">Smart Rating Gate Aktif (Filter 1-3 WA) 🛡️</td>
+                          </tr>
+                          <tr>
                             <td className="py-3 text-slate-300">Lencana VIP Gold di Dashboard</td>
                             <td className="py-3 text-center text-slate-500">Standar</td>
                             <td className="py-3 text-center text-amber-400 font-bold">👑 VIP Gold Member</td>
@@ -2019,6 +2126,56 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       </table>
                     </div>
                   </div>
+
+                  {/* Jika Outlet Reguler diberi Izin Khusus Smart Rating Gate oleh Admin */}
+                  {outlet.allowSmartFilter && (
+                    <div className="p-6 rounded-3xl bg-slate-900 border border-emerald-500/40 space-y-4 shadow-xl">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <ShieldCheck className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-white text-sm sm:text-base">
+                                Smart Rating Gate (Izin Khusus Reguler)
+                              </h4>
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/30">
+                                DIIZINKAN ADMIN
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              Super Admin telah memberikan izin fitur filter ulasan bintang 1-3 ke WhatsApp untuk outlet Anda.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newVal = !enableSmartFilter;
+                            setEnableSmartFilter(newVal);
+                            handleSaveVipSettings(newVal);
+                          }}
+                          disabled={isSavingVipSettings}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 shadow-md ${
+                            enableSmartFilter
+                              ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                              : "bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700"
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${enableSmartFilter ? "bg-white animate-pulse" : "bg-slate-500"}`} />
+                          <span>{enableSmartFilter ? "Filter Aktif (1-3 WA)" : "Direct Google (Mati)"}</span>
+                        </button>
+                      </div>
+
+                      <div className="text-xs text-slate-300 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800 leading-relaxed">
+                        {enableSmartFilter
+                          ? "🛡️ Filter Aktif: Pengunjung yang memberi rating 1-3 bintang akan dialihkan ke form pesan WhatsApp Anda, sedangkan rating 4-5 bintang langsung ke Google Review asli."
+                          : "⚡ Direct Redirect: Pengunjung yang scan kartu akan langsung diarahkan ke halaman Google Maps Review tanpa modal bintang."}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

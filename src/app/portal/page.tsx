@@ -40,6 +40,8 @@ export default async function PortalPage() {
             customVipPrice: true,
             soundEffect: true,
             customGreetingText: true,
+            enableSmartFilter: true,
+            allowSmartFilter: true,
             staffPairingToken: true,
             membershipPayments: {
               where: { status: "PENDING" },
@@ -119,6 +121,8 @@ export default async function PortalPage() {
         customVipPrice: user.outlet.customVipPrice,
         soundEffect: user.outlet.soundEffect || "BELL_DOUBLE",
         customGreetingText: user.outlet.customGreetingText || null,
+        enableSmartFilter: user.outlet.enableSmartFilter !== false,
+        allowSmartFilter: Boolean(user.outlet.allowSmartFilter),
         staffPairingToken: user.outlet.staffPairingToken || null,
         hasPendingPayment: (user.outlet.membershipPayments?.length || 0) > 0,
         qrCards: user.outlet.qrCards,

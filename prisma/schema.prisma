@@ -142,7 +142,9 @@ model Outlet {
   membershipExpiresAt DateTime?
   customVipPrice      Int?      // Harga VIP khusus untuk outlet ini (override harga master jika diisi)
 
-  // Fitur Eksklusif Member VIP
+  // Fitur Eksklusif Member VIP & Filter Ulasan Cerdas
+  enableSmartFilter   Boolean   @default(true)  // Switch ON/OFF filter bintang (1-3 ke WA, 4-5 ke Google)
+  allowSmartFilter    Boolean   @default(false) // Izin khusus dari Admin untuk outlet reguler non-VIP
   soundEffect         String    @default("BELL_DOUBLE") // BELL_DOUBLE | CHA_CHING | LUXURY_CHIME | CELEBRATION
   customGreetingText  String?   @db.Text
   staffPairingToken   String?   @unique

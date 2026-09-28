@@ -44,6 +44,7 @@ import {
   toggleOutletMembershipAction,
   updateOutletMembershipExpiryAction,
   updateOutletCustomVipPriceAction,
+  toggleOutletSmartFilterAction,
 } from "@/lib/actions/membership.actions";
 import {
   updateResellerModuleSettingsAction,
@@ -67,6 +68,8 @@ interface OutletMembershipRow {
   membershipStartedAt?: Date | string | null;
   membershipExpiresAt?: Date | string | null;
   customVipPrice?: number | null;
+  enableSmartFilter?: boolean;
+  allowSmartFilter?: boolean;
   cardsCount: number;
   createdAt: Date | string;
 }
@@ -324,6 +327,55 @@ export function MembershipManagementModal({
       showErrorAlert("Error", "Gagal mengubah tanggal kadaluarsa.");
     } finally {
       setIsSavingExpiry(false);
+    }
+  };
+
+  // Handle Toggle Smart Filter (Regular Permission or VIP Enable)
+  const handleToggleSmartFilter = async (outlet: OutletMembershipRow, type: "ALLOW_REGULAR" | "ENABLE_SWITCH") => {
+    if (type === "ALLOW_REGULAR") {
+      const nextAllow = !outlet.allowSmartFilter;
+      const resConfirm = await showConfirmAlert(
+        nextAllow ? "Beri Izin Filter Ulasan (Reguler)?" : "Cabut Izin Filter Ulasan?",
+        nextAllow
+          ? `Outlet reguler "${outlet.name}" akan diizinkan menggunakan Fitur VIP Filter Bintang 1-3 ke WA tanpa harus berlangganan VIP.`
+          : `Izin khusus filter ulasan untuk "${outlet.name}" akan dicabut. Scan QR akan langsung diarahkan ke Google Review.`,
+        nextAllow ? "Ya, Beri Izin ✅" : "Ya, Cabut Izin",
+        nextAllow ? "#10b981" : "#ef4444"
+      );
+      if (!resConfirm.isConfirmed) return;
+
+      try {
+        const res = await toggleOutletSmartFilterAction({
+          outletId: outlet.id,
+          allowSmartFilter: nextAllow,
+        });
+        if (res.success) {
+          showSuccessAlert("Berhasil!", res.message);
+          fetchOutlets();
+          if (onRefreshData) onRefreshData();
+        } else {
+          showErrorAlert("Gagal", res.message);
+        }
+      } catch {
+        showErrorAlert("Error", "Gagal memperbarui izin filter.");
+      }
+    } else {
+      const nextEnable = outlet.enableSmartFilter === false;
+      try {
+        const res = await toggleOutletSmartFilterAction({
+          outletId: outlet.id,
+          enableSmartFilter: nextEnable,
+        });
+        if (res.success) {
+          showSuccessAlert("Berhasil!", res.message);
+          fetchOutlets();
+          if (onRefreshData) onRefreshData();
+        } else {
+          showErrorAlert("Gagal", res.message);
+        }
+      } catch {
+        showErrorAlert("Error", "Gagal memperbarui status filter.");
+      }
     }
   };
 
@@ -867,6 +919,77 @@ export function MembershipManagementModal({
                               <Edit2 className="w-3 h-3" />
                               <span>{isCustomPrice ? "Ubah Khusus" : "Atur Khusus"}</span>
                             </button>
+                          </div>
+                        </div>
+
+                        {/* Smart Rating Gate Row (Fitur VIP Filter Bintang 1-3 WA) */}
+                        <div className="py-2.5 px-3 rounded-xl bg-slate-950/70 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg border shrink-0 ${
+                              (item.isMember && !item.isExpired) || item.allowSmartFilter
+                                ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                : "bg-slate-800 text-slate-500 border-slate-700"
+                            }`}>
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-200">Smart Rating Gate (Bintang 1-3 WA):</span>
+                                {item.isMember && !item.isExpired ? (
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    item.enableSmartFilter !== false
+                                      ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                                      : "bg-slate-800 text-slate-400 border border-slate-700"
+                                  }`}>
+                                    {item.enableSmartFilter !== false ? "Aktif (Filter 1-3 WA)" : "Nonaktif (Direct Google)"}
+                                  </span>
+                                ) : item.allowSmartFilter ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px] font-bold">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    <span>Diizinkan Admin (Reguler)</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-[10px] font-semibold">
+                                    <span>Direct Google (Reguler Standar)</span>
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {item.isMember && !item.isExpired
+                                  ? (item.enableSmartFilter !== false ? "Rating 1-3 diarahkan ke WhatsApp, 4-5 ke Google Maps." : "Bypass filter: Langsung redirect ke Google Maps.")
+                                  : item.allowSmartFilter
+                                  ? "Outlet reguler ini diberi izin khusus Super Admin untuk menggunakan filter rating."
+                                  : "Scan QR reguler langsung redirect ke Google Maps asli tanpa modal bintang."}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                            {item.isMember && !item.isExpired ? (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSmartFilter(item, "ENABLE_SWITCH")}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                                  item.enableSmartFilter !== false
+                                    ? "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                                    : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/30"
+                                }`}
+                              >
+                                {item.enableSmartFilter !== false ? "Matikan Filter" : "Nyalakan Filter"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSmartFilter(item, "ALLOW_REGULAR")}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                                  item.allowSmartFilter
+                                    ? "bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border-rose-500/30"
+                                    : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/30"
+                                }`}
+                              >
+                                {item.allowSmartFilter ? "Cabut Izin Filter" : "Izinkan Filter (Reguler)"}
+                              </button>
+                            )}
                           </div>
                         </div>
 

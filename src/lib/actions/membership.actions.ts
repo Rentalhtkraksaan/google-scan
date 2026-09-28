@@ -798,6 +798,8 @@ export async function getAllOutletsMembershipAction() {
         membershipStartedAt: o.membershipStartedAt,
         membershipExpiresAt: o.membershipExpiresAt,
         customVipPrice: o.customVipPrice,
+        enableSmartFilter: o.enableSmartFilter !== false,
+        allowSmartFilter: Boolean(o.allowSmartFilter),
         cardsCount: o.qrCards.length,
         createdAt: o.createdAt,
       };
@@ -848,12 +850,14 @@ export async function getMembershipRequestsAction() {
 }
 
 /**
- * Update Pengaturan Fitur VIP Outlet (Efek Suara & Teks Sambutan Audio Custom)
+ * Update Pengaturan Fitur VIP Outlet (Efek Suara, Teks Sambutan Audio Custom, & Filter Rating Cerdas)
  */
 export async function updateOutletVipSettingsAction(data: {
   outletId: string;
   soundEffect?: string;
   customGreetingText?: string;
+  enableSmartFilter?: boolean;
+  allowSmartFilter?: boolean;
 }) {
   try {
     const session = await auth();
@@ -874,19 +878,34 @@ export async function updateOutletVipSettingsAction(data: {
       return { success: false, message: "Akses ditolak." };
     }
 
+    const updateData: {
+      soundEffect?: string;
+      customGreetingText?: string | null;
+      enableSmartFilter?: boolean;
+      allowSmartFilter?: boolean;
+    } = {};
+
+    if (data.soundEffect !== undefined) updateData.soundEffect = data.soundEffect;
+    if (data.customGreetingText !== undefined) updateData.customGreetingText = data.customGreetingText;
+    if (data.enableSmartFilter !== undefined) updateData.enableSmartFilter = data.enableSmartFilter;
+
+    // Izin khusus allowSmartFilter hanya bisa diatur oleh Admin atau Super Admin
+    if (data.allowSmartFilter !== undefined && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN")) {
+      updateData.allowSmartFilter = data.allowSmartFilter;
+    }
+
     await prisma.outlet.update({
       where: { id: data.outletId },
-      data: {
-        soundEffect: data.soundEffect !== undefined ? data.soundEffect : outlet.soundEffect,
-        customGreetingText: data.customGreetingText !== undefined ? data.customGreetingText : outlet.customGreetingText,
-      },
+      data: updateData,
     });
 
     revalidatePath("/portal");
+    revalidatePath("/admin");
+    revalidatePath("/super-admin");
 
     return {
       success: true,
-      message: "Pengaturan fitur VIP berhasil disimpan!",
+      message: "Pengaturan fitur VIP & Smart Filter berhasil disimpan!",
     };
   } catch (err: unknown) {
     console.error("Error updateOutletVipSettingsAction:", err);
@@ -895,6 +914,17 @@ export async function updateOutletVipSettingsAction(data: {
       message: (err as Error)?.message || "Gagal menyimpan pengaturan VIP.",
     };
   }
+}
+
+/**
+ * Toggle Cepat Status Filter Ulasan Cerdas (Bintang 1-3 ke WA, 4-5 ke Google Maps)
+ */
+export async function toggleOutletSmartFilterAction(data: {
+  outletId: string;
+  enableSmartFilter?: boolean;
+  allowSmartFilter?: boolean;
+}) {
+  return updateOutletVipSettingsAction(data);
 }
 
 /**
