@@ -1508,6 +1508,97 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                   </button>
                 </div>
               </div>
+
+              {/* PANEL SMART RATING GATE (Filter Ulasan Bintang 1-3 ke WA) - Tersedia untuk SEMUA Outlet */}
+              <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-emerald-500/30 space-y-6 shadow-2xl relative overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-emerald-500 text-slate-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/20 shrink-0">
+                      🛡️
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-black text-white">
+                          Smart Rating Gate (Filter Ulasan Bintang 1-3 ke WA)
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
+                          PROTEKSI RATING GOOGLE
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Lindungi reputasi Google Review toko Anda dari ulasan buruk dengan mengalihkan rating rendah langsung ke WhatsApp pribadi Anda.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Interactive Switch ON/OFF */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newVal = !enableSmartFilter;
+                      setEnableSmartFilter(newVal);
+                      handleSaveVipSettings(newVal);
+                    }}
+                    disabled={isSavingVipSettings}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shrink-0 shadow-md ${
+                      enableSmartFilter
+                        ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/25"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700"
+                    }`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full ${enableSmartFilter ? "bg-white animate-pulse" : "bg-slate-500"}`} />
+                    <span>{enableSmartFilter ? "STATUS: AKTIF (FILTER MENYALA)" : "STATUS: NONAKTIF (DIRECT GOOGLE)"}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {/* Bintang 4-5 Box */}
+                  <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                        <span>⭐ Bintang 4 & 5</span>
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                        Review Publik
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Pengunjung yang puas (bintang 4 atau 5) langsung dialihkan ke formulir <strong>Google Maps Review resmi</strong> untuk meningkatkan rating bintang 5 toko Anda.
+                    </p>
+                  </div>
+
+                  {/* Bintang 1-3 Box */}
+                  <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                        <span>⭐ Bintang 1, 2, & 3</span>
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                        Kritik Privat ke WhatsApp
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] leading-relaxed">
+                      Pengunjung yang memberi ulasan rendah <strong>tidak dibuka ke Google Maps</strong>, melainkan membuka form kritik privat yang langsung terkirim ke <strong>WhatsApp Owner: {user.whatsappNumber || "Nomor WA Anda"}</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px]">
+                  <span className="text-slate-400">
+                    {enableSmartFilter
+                      ? "Saat ini Smart Filter aktif. Pengunjung akan melihat pilihan bintang sebelum diteruskan sesuai ratingnya."
+                      : "Smart Filter sedang dimatikan. Pengunjung yang scan kartu akan langsung 100% membuka Google Maps Review tanpa halaman perantara bintang."}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isSavingVipSettings}
+                    onClick={() => handleSaveVipSettings()}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
+                  >
+                    {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Status Filter"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

@@ -198,12 +198,11 @@ export default async function SmartReviewPage({
   const formattedGoogleUrl = formatGoogleReviewUrl(card.outlet.googleReviewUrl);
   const isMemberActive = isOutletMemberActive(card.outlet);
 
-  // 6. Logika Fitur VIP Smart Filter Rating (Bintang 1-3 ke WA, Bintang 4-5 ke Google Maps)
-  // - Khusus Outlet VIP (Member Aktif) atau Outlet Reguler yang diberi izin khusus oleh Admin (allowSmartFilter: true)
-  // - Outlet Reguler secara default langsung dialihkan seketika (Direct Redirect) ke halaman Google Review asli
-  // - Outlet VIP yang mematikan toggle filter (enableSmartFilter: false) juga langsung dialihkan ke Google Review asli
-  const hasSmartFilterAccess = isMemberActive || Boolean(card.outlet.allowSmartFilter);
-  const isSmartFilterEnabled = hasSmartFilterAccess && card.outlet.enableSmartFilter !== false;
+  // 6. Logika Fitur Smart Filter Rating (Bintang 1-3 ke WA, Bintang 4-5 ke Google Maps)
+  // - Aktif untuk SEMUA outlet (baik Reguler maupun VIP) secara gratis
+  // - Pengunjung yang memberi ulasan 1-3 diteruskan ke WhatsApp Owner, 4-5 ke Google Maps Review
+  // - Jika pemilik outlet sengaja mematikan toggle filter (enableSmartFilter: false), baru dialihkan langsung ke Google Review asli
+  const isSmartFilterEnabled = card.outlet.enableSmartFilter !== false;
 
   if (!isSmartFilterEnabled) {
     redirect(formattedGoogleUrl);
