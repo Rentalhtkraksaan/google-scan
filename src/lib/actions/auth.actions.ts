@@ -795,26 +795,29 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       cleanWa = "62" + cleanWa.slice(1);
     }
 
-    // 4. Buat User + Outlet + Hubungkan ke Kartu QR dalam transaksi atomic
-    const result = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email: email.toLowerCase().trim(),
-          password: hashedPassword,
-          fullName: fullName.trim(),
-          whatsappNumber: cleanWa,
-          role: Role.USER,
-          createdById: session.user.id,
-        },
-      });
+    // Periksa pengaturan otomatis Free Trial VIP untuk outlet baru
+    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    const isAutoVip = siteSetting ? (siteSetting.autoVipTrialOnActivation ?? true) : true;
+    const trialDays = siteSetting?.trialDurationDays ?? 30;
+    const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
-      // Periksa pengaturan otomatis Free Trial VIP untuk outlet baru
-      const siteSetting = await tx.siteSetting.findUnique({ where: { id: "default" } });
-      const isAutoVip = siteSetting ? (siteSetting.autoVipTrialOnActivation ?? true) : true;
-      const trialDays = siteSetting?.trialDurationDays ?? 30;
-      const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+    // 4. Buat User + Outlet + Hubungkan ke Kartu QR secara berurutan dengan auto-rollback
+    const newUser = await prisma.user.create({
+      data: {
+        email: email.toLowerCase().trim(),
+        password: hashedPassword,
+        fullName: fullName.trim(),
+        whatsappNumber: cleanWa,
+        role: Role.USER,
+        createdById: session.user.id,
+      },
+    });
 
-      const newOutlet = await tx.outlet.create({
+    let newOutlet;
+    let updatedCard;
+
+    try {
+      newOutlet = await prisma.outlet.create({
         data: {
           ownerId: newUser.id,
           name: outletName.trim(),
@@ -825,7 +828,7 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         },
       });
 
-      const updatedCard = await tx.qrCard.update({
+      updatedCard = await prisma.qrCard.update({
         where: { code },
         data: {
           outletId: newOutlet.id,
@@ -834,9 +837,13 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
           ...(session.user.role === Role.ADMIN && !card.assignedAdminId ? { assignedAdminId: session.user.id } : {}),
         },
       });
+    } catch (creationError) {
+      // Auto-rollback user jika ada kegagalan pada outlet atau kartu
+      await prisma.user.delete({ where: { id: newUser.id } }).catch(() => {});
+      throw creationError;
+    }
 
-      return { user: newUser, outlet: newOutlet, card: updatedCard };
-    });
+    const result = { user: newUser, outlet: newOutlet, card: updatedCard };
 
     try {
       await recordActivityLog({
