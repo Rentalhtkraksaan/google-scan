@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -148,44 +148,46 @@ export function AdminDashboardClient({
     currentCards?: { code: string }[];
   } | null>(null);
 
-  // Derived metrics
+  // Derived metrics (Memoized)
   const totalAssignedCards = assignedCards.length;
-  const blankCards = assignedCards.filter((c) => !c.outletId);
-  const claimedCards = assignedCards.filter((c) => !!c.outletId);
-  const totalScans = assignedCards.reduce((acc, c) => acc + (c.scanCount || 0), 0);
+  const blankCards = useMemo(() => assignedCards.filter((c) => !c.outletId), [assignedCards]);
+  const claimedCards = useMemo(() => assignedCards.filter((c) => !!c.outletId), [assignedCards]);
+  const totalScans = useMemo(() => assignedCards.reduce((acc, c) => acc + (c.scanCount || 0), 0), [assignedCards]);
 
-  // Filtered outlets
-  const filteredUsers = createdUsers.filter((u) => {
-    if (!searchQuery.trim()) return true;
+  // Filtered outlets (Memoized)
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return createdUsers;
     const q = searchQuery.toLowerCase().trim();
 
-    if (searchScope === "CODE") {
-      return u.outlet?.qrCard?.code && u.outlet.qrCard.code.toLowerCase().includes(q);
-    }
-    if (searchScope === "OUTLET") {
+    return createdUsers.filter((u) => {
+      if (searchScope === "CODE") {
+        return u.outlet?.qrCard?.code && u.outlet.qrCard.code.toLowerCase().includes(q);
+      }
+      if (searchScope === "OUTLET") {
+        return (
+          u.fullName.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          (u.whatsappNumber && u.whatsappNumber.includes(q)) ||
+          (u.outlet?.name && u.outlet.name.toLowerCase().includes(q))
+        );
+      }
+
       return (
         u.fullName.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         (u.whatsappNumber && u.whatsappNumber.includes(q)) ||
-        (u.outlet?.name && u.outlet.name.toLowerCase().includes(q))
+        (u.outlet?.name && u.outlet.name.toLowerCase().includes(q)) ||
+        (u.outlet?.qrCard?.code && u.outlet.qrCard.code.toLowerCase().includes(q))
       );
-    }
+    });
+  }, [createdUsers, searchQuery, searchScope]);
 
-    return (
-      u.fullName.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      (u.whatsappNumber && u.whatsappNumber.includes(q)) ||
-      (u.outlet?.name && u.outlet.name.toLowerCase().includes(q)) ||
-      (u.outlet?.qrCard?.code && u.outlet.qrCard.code.toLowerCase().includes(q))
-    );
-  });
-
-  // Filtered blank cards
-  const filteredBlankCards = blankCards.filter((c) => {
-    if (!searchQuery.trim()) return true;
+  // Filtered blank cards (Memoized)
+  const filteredBlankCards = useMemo(() => {
+    if (!searchQuery.trim()) return blankCards;
     const q = searchQuery.toLowerCase().trim();
-    return c.code.toLowerCase().includes(q);
-  });
+    return blankCards.filter((c) => c.code.toLowerCase().includes(q));
+  }, [blankCards, searchQuery]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { recordActivityLog } from "@/lib/actions/activity.actions";
@@ -359,6 +359,9 @@ export function SuperAdminDashboardClient({
   useEffect(() => {
     let isSubscribed = true;
     const pollVipRenewals = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       try {
         const res = await getRecentVipRenewalsAction(lastVipPollTimeRef.current);
         if (isSubscribed && res.success && res.renewals && res.renewals.length > 0) {
@@ -377,7 +380,7 @@ export function SuperAdminDashboardClient({
       }
     };
 
-    const interval = setInterval(pollVipRenewals, 5000);
+    const interval = setInterval(pollVipRenewals, 12000);
     return () => {
       isSubscribed = false;
       clearInterval(interval);
@@ -420,17 +423,24 @@ export function SuperAdminDashboardClient({
     );
   };
 
-  // Hanya Super Admin 1 (Master) yang melihat Kartu & Outlet Demo Landing Page
-  const displayCards = isMaster ? localCards : localCards.filter((c) => !isDemoCard(c.code));
-  const displayOutlets = isMaster
-    ? localOutlets
-    : localOutlets.filter((o) => !o.qrCard?.code || !isDemoCard(o.qrCard.code));
+  // Hanya Super Admin 1 (Master) yang melihat Kartu & Outlet Demo Landing Page (Memoized)
+  const displayCards = useMemo(
+    () => (isMaster ? localCards : localCards.filter((c) => !isDemoCard(c.code))),
+    [isMaster, localCards, siteSetting?.ctaSecondaryUrl]
+  );
+  const displayOutlets = useMemo(
+    () =>
+      isMaster
+        ? localOutlets
+        : localOutlets.filter((o) => !o.qrCard?.code || !isDemoCard(o.qrCard.code)),
+    [isMaster, localOutlets, siteSetting?.ctaSecondaryUrl]
+  );
 
-  // Global calculations
-  const totalScans = localCards.reduce((acc, c) => acc + (c.scanCount || 0), 0);
+  // Global calculations (Memoized)
+  const totalScans = useMemo(() => localCards.reduce((acc, c) => acc + (c.scanCount || 0), 0), [localCards]);
   const totalCards = displayCards.length;
-  const totalActiveCards = displayCards.filter((c) => c.status === "ACTIVE").length;
-  const connectedCards = displayCards.filter((c) => c.outletId != null).length;
+  const totalActiveCards = useMemo(() => displayCards.filter((c) => c.status === "ACTIVE").length, [displayCards]);
+  const connectedCards = useMemo(() => displayCards.filter((c) => c.outletId != null).length, [displayCards]);
   const unconnectedCards = totalCards - connectedCards;
   const totalOutlets = displayOutlets.length;
   const totalAdmins = localAdmins.length;

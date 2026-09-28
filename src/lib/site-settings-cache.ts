@@ -44,6 +44,7 @@ export const getCachedSiteSetting = unstable_cache(
         membershipAccountName: true,
         membershipNotes: true,
         membershipTrialNotice: true,
+        midtransServerKey: true,
         midtransClientKey: true,
         midtransIsProduction: true,
         trialDurationDays: true,
@@ -54,6 +55,10 @@ export const getCachedSiteSetting = unstable_cache(
         resellerModuleTitle: true,
         resellerModuleDesc: true,
         resellerModulePdfUrl: true,
+        resellerShippingFee: true,
+        resellerBankName: true,
+        resellerAccountNumber: true,
+        resellerAccountName: true,
         updatedAt: true,
       },
     });

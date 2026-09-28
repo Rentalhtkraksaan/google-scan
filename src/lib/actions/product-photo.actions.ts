@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { unstable_cache } from "next/cache";
+
 // ─── Helper: cek Super Admin 1 ──────────────────────────────────────────────
 async function requireSuperAdmin1() {
   const session = await auth();
@@ -20,9 +22,16 @@ async function requireSuperAdmin1() {
 }
 
 // ─── Get semua foto produk ────────────────────────────────────────────────────
-export async function getProductPhotosAction() {
-  return prisma.productPhoto.findMany({ orderBy: { order: "asc" } });
-}
+export const getProductPhotosAction = unstable_cache(
+  async () => {
+    return prisma.productPhoto.findMany({ orderBy: { order: "asc" } });
+  },
+  ["product-photos-cache"],
+  {
+    revalidate: 60,
+    tags: ["site-setting", "product-photos"],
+  }
+);
 
 // ─── Upload foto baru ────────────────────────────────────────────────────────
 export async function uploadProductPhotoAction(formData: FormData) {

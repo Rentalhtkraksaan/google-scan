@@ -68,6 +68,9 @@ model User {
   @@index([createdById])
   @@index([role])
   @@index([isActive])
+  @@index([role, createdAt])
+  @@index([createdById, role])
+  @@index([role, isSuperAdminMaster])
   @@map("users")
 }
 
@@ -158,6 +161,9 @@ model Outlet {
   updatedAt       DateTime @updatedAt
 
   @@index([isMember])
+  @@index([isMember, membershipExpiresAt])
+  @@index([createdAt])
+  @@index([name])
   @@map("outlets")
 }
 
@@ -175,6 +181,8 @@ model CustomerFeedback {
 
   @@index([outletId])
   @@index([createdAt])
+  @@index([outletId, rating])
+  @@index([outletId, createdAt])
   @@map("customer_feedbacks")
 }
 
@@ -195,6 +203,9 @@ model QrCard {
   @@index([assignedAdminId])
   @@index([outletId])
   @@index([status])
+  @@index([outletId, status])
+  @@index([assignedAdminId, status])
+  @@index([createdAt])
   @@map("qr_cards")
 }
 
@@ -219,6 +230,8 @@ model ActivityLog {
   @@index([adminId])
   @@index([superAdminId])
   @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([outletId, createdAt])
   @@map("activity_logs")
 }
 
@@ -346,6 +359,8 @@ model MembershipPayment {
   @@index([status])
   @@index([midtransOrderId])
   @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([outletId, status])
   @@map("membership_payments")
 }
 
@@ -371,6 +386,7 @@ model ResellerModulePayment {
   @@index([status])
   @@index([midtransOrderId])
   @@index([createdAt])
+  @@index([status, createdAt])
   @@map("reseller_module_payments")
 }
 
@@ -427,6 +443,8 @@ model ResellerOrder {
   @@index([orderStatus])
   @@index([midtransOrderId])
   @@index([createdAt])
+  @@index([orderStatus, createdAt])
+  @@index([paymentStatus, createdAt])
   @@map("reseller_orders")
 }
 

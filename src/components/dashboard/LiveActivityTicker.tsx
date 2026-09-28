@@ -30,6 +30,9 @@ export function LiveActivityTicker({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchEvents = useCallback(async () => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return;
+    }
     setIsRefreshing(true);
     try {
       const res = await getLiveTickerEventsAction();

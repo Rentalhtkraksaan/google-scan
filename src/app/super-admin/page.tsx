@@ -2,8 +2,9 @@ import { auth } from "@root/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SuperAdminDashboardClient } from "./SuperAdminDashboardClient";
-import { AdminWithRelations, AuthenticatedUser, OutletModel, QrCardModel } from "@/types/models";
+import { AdminWithRelations, AuthenticatedUser, OutletModel, QrCardModel, SiteSettingModel } from "@/types/models";
 import { isOutletMemberActive } from "@/lib/membership-utils";
+import { getCachedSiteSetting } from "@/lib/site-settings-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -181,9 +182,7 @@ export default async function SuperAdminPage() {
     }),
 
     // 6. Fetch site setting (cached)
-    prisma.siteSetting.findUnique({
-      where: { id: "default" },
-    }),
+    getCachedSiteSetting(),
   ]);
 
   const allOutlets = rawOutlets.map((o) => ({
@@ -196,7 +195,7 @@ export default async function SuperAdminPage() {
   let siteSetting = cachedSetting;
 
   if (!siteSetting) {
-    siteSetting = await prisma.siteSetting.create({
+    const created = await prisma.siteSetting.create({
       data: {
         id: "default",
         whatsappNumber: "6281234567890",
@@ -218,6 +217,18 @@ export default async function SuperAdminPage() {
           "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.",
       },
     });
+    siteSetting = {
+      ...created,
+      faviconUrl: created.faviconUrl || "/favicon.ico",
+      dashboardLogoUrl: created.dashboardLogoUrl || null,
+      landingPageLogoUrl: created.landingPageLogoUrl || null,
+      membershipNotes: created.membershipNotes || null,
+      membershipTrialNotice: created.membershipTrialNotice || null,
+      midtransServerKey: created.midtransServerKey || null,
+      midtransClientKey: created.midtransClientKey || null,
+      resellerModuleDesc: created.resellerModuleDesc || null,
+      resellerModulePdfUrl: created.resellerModulePdfUrl || null,
+    };
   }
 
   const authUser: AuthenticatedUser = {
@@ -252,7 +263,7 @@ export default async function SuperAdminPage() {
       admins={admins as unknown as AdminWithRelations[]}
       allCards={allCards as unknown as QrCardModel[]}
       allOutlets={allOutlets as unknown as OutletModel[]}
-      siteSetting={safeSiteSetting as unknown as typeof siteSetting}
+      siteSetting={safeSiteSetting as unknown as SiteSettingModel}
     />
   );
 }

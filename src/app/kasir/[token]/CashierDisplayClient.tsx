@@ -189,14 +189,20 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
     }
   };
 
+  const lastCheckTimeRef = useRef<number>(Date.now());
+
   // Polling In-memory realtime bus (0 DB queries & 0 latency)
   useEffect(() => {
     let isCancelled = false;
 
     const pollEvents = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+
       try {
         const res = await fetch(
-          `/api/portal/realtime?outletId=${outlet.id}&since=${lastCheckTime}`
+          `/api/portal/realtime?outletId=${outlet.id}&since=${lastCheckTimeRef.current}`
         );
         if (!res.ok) return;
 
@@ -204,7 +210,7 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
         if (isCancelled) return;
 
         if (data.serverTime) {
-          setLastCheckTime(data.serverTime);
+          lastCheckTimeRef.current = data.serverTime;
         }
 
         if (data.events && data.events.length > 0) {
@@ -241,12 +247,12 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
       }
     };
 
-    const interval = setInterval(pollEvents, 3000);
+    const interval = setInterval(pollEvents, 3500);
     return () => {
       isCancelled = true;
       clearInterval(interval);
     };
-  }, [outlet.id, outlet.soundEffect, isMuted, lastCheckTime]);
+  }, [outlet.id, outlet.name, outlet.soundEffect, isMuted, isSpeakerAnnouncement]);
 
   return (
     <div

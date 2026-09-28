@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath, revalidateTag } from "next/cache";
 
+import { unstable_cache } from "next/cache";
+
 // ─── Helper: cek Super Admin 1 ──────────────────────────────────────────────
 async function requireSuperAdmin1() {
   const session = await auth();
@@ -20,16 +22,23 @@ async function requireSuperAdmin1() {
 }
 
 // ─── Get semua promo aktif (untuk landing page) ──────────────────────────────
-export async function getActivePromosAction() {
-  const now = new Date();
-  return prisma.promo.findMany({
-    where: {
-      isActive: true,
-      OR: [{ expiredAt: null }, { expiredAt: { gt: now } }],
-    },
-    orderBy: { order: "asc" },
-  });
-}
+export const getActivePromosAction = unstable_cache(
+  async () => {
+    const now = new Date();
+    return prisma.promo.findMany({
+      where: {
+        isActive: true,
+        OR: [{ expiredAt: null }, { expiredAt: { gt: now } }],
+      },
+      orderBy: { order: "asc" },
+    });
+  },
+  ["active-promos-cache"],
+  {
+    revalidate: 60,
+    tags: ["site-setting", "promos"],
+  }
+);
 
 // ─── Get semua promo (untuk admin panel) ─────────────────────────────────────
 export async function getAllPromosAction() {

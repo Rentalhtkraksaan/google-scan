@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+let memoryLogoCache: {
+  data: Record<string, { buffer: Buffer; contentType: string } | null>;
+  timestamp: number;
+} = { data: {}, timestamp: 0 };
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ type: string }> }
@@ -16,12 +21,28 @@ export async function GET(
       const badgePath = path.join(process.cwd(), "public", "badge.png");
       if (fs.existsSync(badgePath)) {
         const buffer = fs.readFileSync(badgePath);
-        return new NextResponse(buffer, {
+        return new NextResponse(new Uint8Array(buffer), {
           status: 200,
           headers: {
             "Content-Type": "image/png",
-            "Cache-Control": "public, max-age=86400",
+            "Cache-Control": "public, max-age=31536000, immutable",
             "Content-Length": buffer.length.toString(),
+          },
+        });
+      }
+    }
+
+    // Check memory cache (valid for 60s)
+    const now = Date.now();
+    if (now - memoryLogoCache.timestamp < 60000 && memoryLogoCache.data[type] !== undefined) {
+      const cached = memoryLogoCache.data[type];
+      if (cached) {
+        return new NextResponse(new Uint8Array(cached.buffer), {
+          status: 200,
+          headers: {
+            "Content-Type": cached.contentType,
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Content-Length": cached.buffer.length.toString(),
           },
         });
       }
@@ -57,7 +78,10 @@ export async function GET(
       const contentType = matches[1];
       const buffer = Buffer.from(matches[2], "base64");
 
-      return new NextResponse(buffer, {
+      memoryLogoCache.data[type] = { buffer, contentType };
+      memoryLogoCache.timestamp = Date.now();
+
+      return new NextResponse(new Uint8Array(buffer), {
         status: 200,
         headers: {
           "Content-Type": contentType,

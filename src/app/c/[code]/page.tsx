@@ -13,14 +13,33 @@ import { sendWebPushToOutlet } from "@/lib/web-push";
 
 export const dynamic = "force-dynamic";
 
-// Cache per-request data kartu agar query tidak diduplikasi antara generateMetadata & page render
 const getCardByCode = cache(async (code: string) => {
   return prisma.qrCard.findUnique({
     where: { code },
-    include: {
+    select: {
+      code: true,
+      status: true,
+      fallbackUrl: true,
+      outletId: true,
       outlet: {
-        include: {
-          owner: true,
+        select: {
+          id: true,
+          name: true,
+          googleReviewUrl: true,
+          isMember: true,
+          membershipExpiresAt: true,
+          allowSmartFilter: true,
+          enableSmartFilter: true,
+          soundEffect: true,
+          customGreetingText: true,
+          owner: {
+            select: {
+              id: true,
+              fullName: true,
+              whatsappNumber: true,
+              isActive: true,
+            },
+          },
         },
       },
     },

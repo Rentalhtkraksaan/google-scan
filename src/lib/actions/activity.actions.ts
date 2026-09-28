@@ -418,6 +418,9 @@ export interface LiveTickerItem {
   createdAt: string;
 }
 
+// In-memory cache for live ticker events (5 seconds TTL) to eliminate redundant database queries
+let tickerCache: { timestamp: number; data: LiveTickerItem[] } | null = null;
+
 /**
  * Mendapatkan event aktivitas terkini untuk Ticker Realtime
  */
@@ -428,12 +431,27 @@ export async function getLiveTickerEventsAction(): Promise<ActionResult<LiveTick
       return { success: false, message: "Unauthorized", data: [] };
     }
 
+    const now = Date.now();
+    if (tickerCache && now - tickerCache.timestamp < 5000) {
+      return {
+        success: true,
+        message: "Data realtime (cache)",
+        data: tickerCache.data,
+      };
+    }
+
     const logs = await prisma.activityLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
+      select: {
+        id: true,
+        action: true,
+        title: true,
+        description: true,
+        userName: true,
+        createdAt: true,
+      },
     });
-
-    const now = Date.now();
 
     const formatted: LiveTickerItem[] = logs.map((log) => {
       const diffMs = now - new Date(log.createdAt).getTime();
@@ -473,6 +491,8 @@ export async function getLiveTickerEventsAction(): Promise<ActionResult<LiveTick
         createdAt: log.createdAt.toISOString(),
       };
     });
+
+    tickerCache = { timestamp: now, data: formatted };
 
     return {
       success: true,

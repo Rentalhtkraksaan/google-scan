@@ -379,7 +379,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       }
     };
 
-    const interval = setInterval(pollRealtime, 2500);
+    const interval = setInterval(pollRealtime, 4000);
 
     return () => {
       isSubscribed = false;

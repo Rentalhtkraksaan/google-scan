@@ -997,6 +997,14 @@ export async function getRecentVipRenewalsAction(sinceTimestamp?: number) {
       where: whereCondition,
       orderBy: { createdAt: "desc" },
       take: 5,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        outletId: true,
+        userName: true,
+        createdAt: true,
+      },
     });
 
     return {

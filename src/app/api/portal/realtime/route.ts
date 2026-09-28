@@ -5,6 +5,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
+const outletScanCache = new Map<string, { totalScans: number; timestamp: number }>();
+
 export async function GET(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown_ip";
@@ -27,13 +29,21 @@ export async function GET(req: NextRequest) {
     const parsedSince = since ? parseInt(since, 10) : NaN;
     const sinceMs = !isNaN(parsedSince) && parsedSince > 0 ? parsedSince : Date.now() - 10000;
 
-    // 1. Fetch live total scans from qrCard (lightweight count)
-    const cards = await prisma.qrCard.findMany({
-      where: { outletId },
-      select: { scanCount: true },
-    });
+    // 1. Fetch live total scans from memory cache (15s TTL) or database
+    const now = Date.now();
+    const cached = outletScanCache.get(outletId);
+    let totalScans = 0;
 
-    const totalScans = cards.reduce((sum, c) => sum + (c.scanCount || 0), 0);
+    if (cached && now - cached.timestamp < 15000) {
+      totalScans = cached.totalScans;
+    } else {
+      const scanAggregate = await prisma.qrCard.aggregate({
+        where: { outletId },
+        _sum: { scanCount: true },
+      });
+      totalScans = scanAggregate._sum.scanCount || 0;
+      outletScanCache.set(outletId, { totalScans, timestamp: now });
+    }
 
     // 2. Fetch new scan/review events directly from in-memory RAM bus (0 DB queries & 0 DB storage!)
     const recentEvents = getRecentRealtimeReviewEvents(outletId, sinceMs);
@@ -41,8 +51,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       totalScans,
-      serverTime: Date.now(),
+      serverTime: now,
       events: recentEvents,
+      newEvents: recentEvents,
     });
   } catch (error) {
     console.error("Error fetching portal realtime data:", error);
