@@ -53,6 +53,7 @@ export interface SiteSettingModel {
   resellerModulePrice?: number;
   resellerVipDiscountPerCard?: number;
   resellerCardBasePrice?: number;
+  resellerShippingFee?: number;
   resellerModuleTitle?: string;
   resellerModuleDesc?: string | null;
   resellerModulePdfUrl?: string | null;
@@ -381,7 +382,7 @@ export interface ResellerOrderItemModel {
 export interface ResellerOrderModel {
   id: string;
   orderNumber: string;
-  adminId: string;
+  adminId?: string | null;
   admin?: {
     id: string;
     fullName: string;
@@ -400,6 +401,7 @@ export interface ResellerOrderModel {
   totalQuantity: number;
   subtotal: number;
   discountAmount: number;
+  shippingFee: number;
   totalAmount: number;
   receiptImageUrl?: string | null;
   midtransSnapToken?: string | null;

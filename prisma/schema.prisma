@@ -116,6 +116,7 @@ model SiteSetting {
   resellerModulePrice        Int      @default(150000)
   resellerVipDiscountPerCard Int      @default(5000)
   resellerCardBasePrice      Int      @default(25000)
+  resellerShippingFee        Int      @default(20000) // Biaya Ongkir & Packing Tetap (Rp 20.000)
   resellerModuleTitle        String   @default("Starter Kit & Modul Resmi Kemitraan Smart QR")
   resellerModuleDesc         String?  @db.Text
   resellerModulePdfUrl       String?  @db.LongText
@@ -395,8 +396,8 @@ model ResellerProduct {
 model ResellerOrder {
   id                    String              @id @default(cuid())
   orderNumber           String              @unique
-  adminId               String
-  admin                 User                @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId               String?
+  admin                 User?               @relation(fields: [adminId], references: [id], onDelete: SetNull)
   customerName          String
   customerPhone         String
   customerEmail         String
@@ -408,6 +409,7 @@ model ResellerOrder {
   totalQuantity         Int
   subtotal              Int
   discountAmount        Int                 @default(0)
+  shippingFee           Int                 @default(20000)
   totalAmount           Int
   receiptImageUrl       String?             @db.LongText
   midtransSnapToken     String?             @db.Text

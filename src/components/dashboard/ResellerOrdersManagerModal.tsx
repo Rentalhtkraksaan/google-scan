@@ -37,6 +37,7 @@ import {
   rejectResellerOrderAction,
   updateResellerOrderStatusAction,
   deleteResellerOrderRecordAction,
+  convertResellerOrderToAdminAction,
 } from "@/lib/actions/reseller-shop.actions";
 import { ResellerOrderModel } from "@/types/models";
 
@@ -232,11 +233,57 @@ export function ResellerOrdersManagerModal({
     }
   };
 
+  const handleConvertToAdmin = async (order: ResellerOrderModel) => {
+    const result = await showConfirmAlert(
+      `Buat Akun Admin Lapangan untuk ${order.customerName}?`,
+      `Sistem akan membuatkan akun Mitra Lapangan (Role: ADMIN) dengan email <b>${order.customerEmail}</b> dan password awal <b>Reseller123!</b>.<br/><br/>Akun akan terkunci hingga reseller membayar lisensi modul di dashboardnya.`,
+      "Ya, Buatkan Akun",
+      "#10b981"
+    );
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await convertResellerOrderToAdminAction(order.id);
+      if (res.success && res.data) {
+        let cleanWa = res.data.whatsappNumber?.replace(/[^0-9]/g, "") || "";
+        if (cleanWa.startsWith("08")) cleanWa = "62" + cleanWa.slice(1);
+        const loginUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
+        const waMsg = encodeURIComponent(
+`Halo Kak *${res.data.fullName}*! 👋✨
+
+Pesanan paket perdana kartu QR Anda (#${order.orderNumber}) telah kami terima dan sedang diproses.
+
+Berikut detail akun Portal Admin Lapangan Anda:
+🌐 *Link Login*: ${loginUrl}
+📧 *Email*: ${res.data.email}
+🔑 *Password*: ${res.data.password}
+
+Silakan login ke portal untuk memantau inventaris kartu & aktivasi lisensi kemitraan.
+
+Salam sukses,
+Tim Layanan Smart QR`
+        );
+        const waLink = `https://wa.me/${cleanWa}?text=${waMsg}`;
+
+        showSuccessAlert(
+          "Akun Berhasil Dibuat! 🎉",
+          `Akun Admin untuk ${res.data.fullName} berhasil dibuat.<br/><br/><a href="${waLink}" target="_blank" style="color:#10b981;font-weight:bold;text-decoration:underline;">Klik di sini untuk kirim info login via WhatsApp</a>`
+        );
+        loadOrders();
+        onRefreshData?.();
+      } else {
+        showErrorAlert("Gagal", res.message || "Gagal membuat akun admin.");
+      }
+    } catch (err) {
+      showErrorAlert("Kesalahan", "Terjadi kesalahan saat membuat akun admin.");
+    }
+  };
+
   const getWaLink = (phone: string, name: string, orderNumber: string) => {
-    let clean = phone.replace(/[^0-9]/g, "");
+    let clean = phone?.replace(/[^0-9]/g, "") || "";
     if (clean.startsWith("08")) clean = "62" + clean.slice(1);
     const msg = encodeURIComponent(
-      `Halo Kak ${name} dari Smart QR Review. Mengenai pesanan kartu #${orderNumber}...`
+      `Halo Kak ${name}, kami dari Tim Layanan Smart QR terkait pesanan Anda #${orderNumber}. Ada yang bisa kami bantu?`
     );
     return `https://wa.me/${clean}?text=${msg}`;
   };
@@ -469,6 +516,10 @@ export function ResellerOrdersManagerModal({
                               </span>
                             </div>
                           ))}
+                          <div className="flex items-center justify-between text-[11px] py-1 px-2.5 text-slate-400">
+                            <span>Ongkir & Packing Tetap:</span>
+                            <span className="font-mono font-semibold text-slate-300">Rp {(order.shippingFee || 20000).toLocaleString("id-ID")}</span>
+                          </div>
                         </div>
 
                         {order.discountAmount > 0 && (
@@ -518,7 +569,18 @@ export function ResellerOrdersManagerModal({
                       </div>
 
                       {/* Approval & Delete Actions */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Tombol Buat Akun Admin Lapangan */}
+                        <button
+                          type="button"
+                          onClick={() => handleConvertToAdmin(order)}
+                          className="px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                          title="Buatkan akun login Admin Lapangan untuk pemesan ini"
+                        >
+                          <User className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>{order.adminId ? "Detail Akun Admin" : "Buatkan Akun Admin"}</span>
+                        </button>
+
                         {isPending && (
                           <>
                             <button

@@ -1,0 +1,600 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import {
+  X,
+  ShoppingCart,
+  Plus,
+  Minus,
+  CheckCircle2,
+  Sparkles,
+  Layers,
+  CreditCard,
+  Building2,
+  QrCode,
+  Copy,
+  Upload,
+  Clock,
+  ArrowRight,
+  Send,
+  AlertCircle,
+  Package,
+  Loader2,
+  Phone,
+  Mail,
+  User,
+  MapPin,
+  FileText,
+  Truck,
+  Check,
+} from "lucide-react";
+import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
+import {
+  getResellerProductsAction,
+  createResellerOrderAction,
+} from "@/lib/actions/reseller-shop.actions";
+import { ResellerProductModel, SiteSettingModel } from "@/types/models";
+
+interface PublicResellerRegistrationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  siteSetting?: SiteSettingModel;
+  onOpenTracking?: (orderNumber?: string) => void;
+}
+
+export function PublicResellerRegistrationModal({
+  isOpen,
+  onClose,
+  siteSetting,
+  onOpenTracking,
+}: PublicResellerRegistrationModalProps) {
+  const [products, setProducts] = useState<ResellerProductModel[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
+  // Cart Quantities state: map of productId -> quantity
+  const [cartQuantities, setCartQuantities] = useState<Record<string, number>>({});
+
+  // Checkout Form State
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">("MIDTRANS_QRIS");
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
+  const [copiedBank, setCopiedBank] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load products when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    const loadProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const res = await getResellerProductsAction(true);
+        if (isMounted && res.success && res.data) {
+          setProducts(res.data as ResellerProductModel[]);
+          // Default initial quantities: 8 pcs for first product
+          if (res.data.length > 0) {
+            const initialMap: Record<string, number> = {};
+            res.data.forEach((p, index) => {
+              initialMap[p.id] = index === 0 ? 8 : 0;
+            });
+            setCartQuantities(initialMap);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memuat produk:", err);
+      } finally {
+        if (isMounted) setIsLoadingProducts(false);
+      }
+    };
+
+    loadProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  // Cart calculations
+  const totalQuantity = Object.values(cartQuantities).reduce((a, b) => a + (Number(b) || 0), 0);
+  const subtotal = products.reduce((sum, p) => {
+    const qty = cartQuantities[p.id] || 0;
+    return sum + p.price * qty;
+  }, 0);
+
+  const shippingFee = siteSetting?.resellerShippingFee || 20000;
+  const totalAmount = subtotal + shippingFee;
+  const isMinOrderMet = totalQuantity >= 8;
+
+  const handleQtyChange = (productId: string, delta: number) => {
+    setCartQuantities((prev) => {
+      const current = prev[productId] || 0;
+      const next = Math.max(0, current + delta);
+      return { ...prev, [productId]: next };
+    });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showErrorAlert("File Terlalu Besar", "Ukuran foto struk maksimal 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setReceiptImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCopyBank = () => {
+    const acc = siteSetting?.resellerAccountNumber || "1234567890";
+    navigator.clipboard.writeText(acc);
+    setCopiedBank(true);
+    setTimeout(() => setCopiedBank(false), 2000);
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isMinOrderMet) {
+      showErrorAlert("Minimal Pengambilan 8 Pcs", `Total kartu yang dipilih saat ini ${totalQuantity} pcs. Silakan tambah menjadi minimal 8 pcs.`);
+      return;
+    }
+
+    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
+      showErrorAlert("Data Belum Lengkap", "Nama, Nomor WhatsApp, dan Email wajib diisi dengan lengkap.");
+      return;
+    }
+
+    if (!shippingAddress.trim()) {
+      showErrorAlert("Alamat Belum Diisi", "Alamat lengkap pengiriman wajib diisi untuk pengiriman paket kartu fisik.");
+      return;
+    }
+
+    if (paymentMethod === "MANUAL_BANK_BNI" && !receiptImage) {
+      showErrorAlert("Bukti Transfer Belum Diupload", "Silakan unggah foto struk / tangkapan layar bukti transfer Bank BNI.");
+      return;
+    }
+
+    const items = Object.entries(cartQuantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([productId, quantity]) => ({ productId, quantity }));
+
+    setIsSubmitting(true);
+    try {
+      const res = await createResellerOrderAction({
+        items,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim().toLowerCase(),
+        shippingAddress: shippingAddress.trim(),
+        notes: notes.trim(),
+        paymentMethod,
+        receiptImageUrl: receiptImage || undefined,
+      });
+
+      if (!res.success || !res.order) {
+        showErrorAlert("Gagal Membuat Pesanan", res.message || "Terjadi kesalahan saat memproses pesanan.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      setCreatedOrderNumber(res.order.orderNumber);
+
+      // Jika Midtrans QRIS, panggil popup Snap Midtrans
+      if (paymentMethod === "MIDTRANS_QRIS" && res.snapToken && typeof window !== "undefined") {
+        const snap = (window as any).snap;
+        if (snap) {
+          snap.pay(res.snapToken, {
+            onSuccess: () => {
+              showSuccessAlert("Pembayaran Berhasil! 🎉", "Pesanan Anda telah otomatis terverifikasi dan masuk ke antrean pengemasan.");
+            },
+            onPending: () => {
+              showSuccessAlert("Menunggu Pembayaran", "Silakan selesaikan scan QRIS Anda.");
+            },
+            onError: () => {
+              showErrorAlert("Gagal Bayar", "Transaksi pembayaran QRIS gagal atau dibatalkan.");
+            },
+          });
+        }
+      } else {
+        showSuccessAlert(
+          "Pendaftaran Reseller Berhasil! 🎉",
+          `Pesanan #${res.order.orderNumber} telah diterima. Super Admin akan segera memproses akun dan pengiriman kartu Anda.`
+        );
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      showErrorAlert("Kesalahan Teknis", "Gagal menghubungkan ke server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 p-3 sm:p-4 bg-black/80 backdrop-blur-md flex items-center justify-center animate-in fade-in"
+    >
+      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto custom-scrollbar flex flex-col">
+        {/* Header Modal */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
+              <ShoppingCart className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base sm:text-lg text-white">Daftar Jadi Mitra Reseller</h3>
+              <p className="text-xs text-slate-400">Pesan paket kartu perdana & bergabung sebagai Admin Lapangan</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Tutup Modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* View: Success Registration Screen */}
+        {createdOrderNumber ? (
+          <div className="py-8 space-y-5 text-center animate-in zoom-in-95">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/10">
+              <CheckCircle2 className="w-10 h-10 animate-bounce" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h4 className="text-xl font-extrabold text-white">Pendaftaran & Pesanan Berhasil! 🎉</h4>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
+                Terima kasih telah bergabung! Nomor pesanan Anda adalah:
+              </p>
+              <div className="inline-block px-4 py-2 bg-slate-950 border border-emerald-500/40 rounded-2xl font-mono text-base font-black text-emerald-400 mt-2">
+                #{createdOrderNumber}
+              </div>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-left text-xs space-y-2.5 max-w-md mx-auto">
+              <div className="flex items-center gap-2 text-indigo-300 font-bold">
+                <Truck className="w-4 h-4 text-indigo-400" />
+                <span>Langkah Selanjutnya:</span>
+              </div>
+              <ul className="text-slate-400 space-y-1.5 list-disc list-inside">
+                <li>Super Admin menerima pesanan Anda dan mengemas paket kartu.</li>
+                <li>Super Admin akan membuatkan akun login <strong>Admin Lapangan</strong> untuk Anda.</li>
+                <li>Anda dapat melacak status pengiriman kapan saja menggunakan nomor pesanan di atas.</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenTracking?.(createdOrderNumber);
+                }}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Truck className="w-4 h-4" />
+                <span>Lacak Status Pesanan</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* View: Registration & Shopping Form */
+          <form onSubmit={handleCheckout} className="flex-1 overflow-y-auto space-y-5 pt-4">
+            {/* Step 1: Product Selection (Shopee Style) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-emerald-400" />
+                  1. Pilih Paket Kartu Perdana (Min. 8 Pcs)
+                </span>
+                <span className="text-[11px] font-bold text-emerald-400">
+                  Total: {totalQuantity} pcs {isMinOrderMet ? "✅" : "⚠️ (Kurang " + (8 - totalQuantity) + ")"}
+                </span>
+              </div>
+
+              {isLoadingProducts ? (
+                <div className="py-8 text-center space-y-2">
+                  <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
+                  <p className="text-xs text-slate-400">Memuat katalog kartu...</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {products.map((product) => {
+                    const qty = cartQuantities[product.id] || 0;
+                    return (
+                      <div
+                        key={product.id}
+                        className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          qty > 0
+                            ? "bg-slate-950 border-emerald-500/40 shadow-sm"
+                            : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          {product.imageUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-slate-800 shrink-0 shadow"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 shrink-0">
+                              <Package className="w-6 h-6" />
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-white truncate">{product.name}</h4>
+                            <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{product.description}</p>
+                            <span className="text-xs sm:text-sm font-extrabold text-emerald-400 font-mono mt-1 block">
+                              Rp {product.price.toLocaleString("id-ID")}
+                              <span className="text-[10px] text-slate-500 font-normal"> / {product.unit}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Quantity Controls */}
+                        <div className="flex items-center justify-end gap-2.5 shrink-0 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handleQtyChange(product.id, -1)}
+                            disabled={qty === 0}
+                            className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 disabled:opacity-30 flex items-center justify-center cursor-pointer transition-colors"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-8 text-center font-bold font-mono text-sm text-white">{qty}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleQtyChange(product.id, 1)}
+                            className="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer transition-colors shadow"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Customer Delivery Data Form */}
+            <div className="space-y-3 pt-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-indigo-400" />
+                2. Data Pemesan & Alamat Pengiriman
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
+                  <div className="relative flex items-center">
+                    <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Contoh: Budi Santoso"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
+                  <div className="relative flex items-center">
+                    <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="tel"
+                      required
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
+                  <div className="relative flex items-center">
+                    <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="Contoh: budi@gmail.com"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman (Jalan, RT/RW, Kec, Kota, Kode Pos) *</label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                    <textarea
+                      required
+                      rows={2}
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder="Contoh: Jl. Pahlawan No. 45, RT 02/03, Kel. Sukamaju, Kec. Cilincing, Jakarta Utara 14120"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Payment Method Selector */}
+            <div className="space-y-3 pt-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+                3. Pilih Metode Pembayaran
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
+                  className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                    paymentMethod === "MIDTRANS_QRIS"
+                      ? "bg-indigo-950/40 border-indigo-500/50 text-white shadow-md shadow-indigo-950/30"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                    <QrCode className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold block text-white">QRIS Instan (Midtrans)</span>
+                    <span className="text-[10px] text-slate-400">Verifikasi otomatis 24 jam</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("MANUAL_BANK_BNI")}
+                  className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                    paymentMethod === "MANUAL_BANK_BNI"
+                      ? "bg-amber-950/40 border-amber-500/50 text-white shadow-md shadow-amber-950/30"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold block text-white">Transfer Bank BNI (Manual)</span>
+                    <span className="text-[10px] text-slate-400">Upload bukti transfer struk</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* BNI Transfer Account Detail Box */}
+              {paymentMethod === "MANUAL_BANK_BNI" && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-amber-400 block">Nomor Rekening Tujuan</span>
+                      <span className="text-sm font-extrabold text-white font-mono">
+                        {siteSetting?.resellerAccountNumber || "1234567890"} (Bank {siteSetting?.resellerBankName || "BNI"})
+                      </span>
+                      <span className="text-[11px] text-slate-300 block">
+                        a/n {siteSetting?.resellerAccountName || "Smart QR Review"}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyBank}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedBank ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedBank ? "Tersalin!" : "Salin Rekening"}</span>
+                    </button>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-500/20">
+                    <label className="text-[11px] font-bold text-amber-300 block mb-1">
+                      Upload Struk / Bukti Transfer BNI *
+                    </label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-2.5 px-3 rounded-xl bg-slate-900 border border-dashed border-amber-500/40 text-amber-300 text-xs font-medium flex items-center justify-center gap-2 hover:bg-slate-850 cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>{receiptImage ? "Ganti Foto Struk Bukti Bayar" : "Pilih Foto Struk Bukti Bayar"}</span>
+                    </button>
+                    {receiptImage && (
+                      <span className="text-[11px] text-emerald-400 font-medium block mt-1">
+                        ✓ Foto struk siap dikirim
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Price Summary Breakdown */}
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Subtotal Produk ({totalQuantity} pcs):</span>
+                <span className="font-mono font-semibold text-white">Rp {subtotal.toLocaleString("id-ID")}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span className="flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                  Biaya Ongkir & Packing (Tetap):
+                </span>
+                <span className="font-mono font-semibold text-white">Rp {shippingFee.toLocaleString("id-ID")}</span>
+              </div>
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-xs font-bold text-white uppercase">Total Tagihan:</span>
+                <span className="text-base font-extrabold text-emerald-400 font-mono">
+                  Rp {totalAmount.toLocaleString("id-ID")}
+                </span>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting || !isMinOrderMet}
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Memproses Pesanan...</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Daftar & Checkout Sekarang (Rp {totalAmount.toLocaleString("id-ID")})</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}

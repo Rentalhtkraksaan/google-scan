@@ -31,6 +31,7 @@ import {
   MapPin,
   FileText,
   Crown,
+  Truck,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 import {
@@ -122,12 +123,13 @@ export function ResellerShopModal({
   const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  // VIP Rewards calculation
+  // VIP Rewards calculation (hanya dari outlet yang membayar perpanjangan VIP)
   const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard || 5000;
   const eligibleDiscountUnits = Math.max(0, vipOutletsCount - claimedVipRewards);
   const discountedCardsCount = Math.min(totalQuantity, eligibleDiscountUnits);
   const discountAmount = discountedCardsCount * vipDiscountPerCard;
-  const finalTotalAmount = Math.max(0, subtotal - discountAmount);
+  const shippingFee = siteSetting?.resellerShippingFee || 20000;
+  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
 
   const isMinOrderMet = totalQuantity >= 8;
   const missingQty = Math.max(0, 8 - totalQuantity);
@@ -753,6 +755,14 @@ export function ResellerShopModal({
                         <span className="font-mono font-bold">- Rp {discountAmount.toLocaleString("id-ID")}</span>
                       </div>
                     )}
+
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                        Biaya Ongkir & Packing (Tetap):
+                      </span>
+                      <span className="font-mono font-bold text-slate-200">Rp {shippingFee.toLocaleString("id-ID")}</span>
+                    </div>
 
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">
                       <span className="font-bold text-white">Total Tagihan Pembayaran</span>

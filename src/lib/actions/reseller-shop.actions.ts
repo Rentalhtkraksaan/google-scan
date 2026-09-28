@@ -220,8 +220,11 @@ export async function deleteResellerProductAction(id: string) {
   }
 }
 
+import bcrypt from "bcryptjs";
+
 /**
- * 5. Reseller: Checkout Keranjang Belanja Produk (Midtrans QRIS / Transfer Manual BNI)
+ * 5. Reseller / Calon Reseller Baru: Checkout Keranjang Belanja Produk (Midtrans QRIS / Transfer Manual BNI)
+ * Mendukung pemesanan oleh Reseller yang sudah login maupun Calon Reseller Baru dari Landing Page Publik.
  */
 export async function createResellerOrderAction(data: {
   items: { productId: string; quantity: number }[];
@@ -235,9 +238,7 @@ export async function createResellerOrderAction(data: {
 }) {
   try {
     const session = await auth();
-    if (!session || !session.user || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
-      return { success: false, message: "Akses ditolak: Khusus Akun Reseller / Mitra Lapangan." };
-    }
+    const isAdminUser = session && session.user && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN");
 
     if (!data.items || data.items.length === 0) {
       return { success: false, message: "Keranjang belanja Anda masih kosong." };
@@ -289,38 +290,39 @@ export async function createResellerOrderAction(data: {
       return { success: false, message: "Produk yang dipilih tidak valid." };
     }
 
-    // Hitung diskon reward VIP (jika ada outlet binaan aktif VIP)
-    let discountAmount = 0;
-    const adminUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        createdUsers: {
-          where: { role: "USER" },
-          include: { outlet: true },
-        },
-      },
-    });
-
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard || 5000;
+    const shippingFee = siteSetting?.resellerShippingFee ?? 20000;
+    const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard ?? 5000;
 
-    const now = Date.now();
-    const activeVipOutletsCount = (adminUser?.createdUsers || []).filter(
-      (u) =>
-        u.outlet?.isMember &&
-        u.outlet?.membershipExpiresAt &&
-        new Date(u.outlet.membershipExpiresAt).getTime() > now
-    ).length;
+    // Hitung diskon reward VIP: HANYA DIBERIKAN DARI OUTLET YANG SUDAH MEMBAYAR PERPANJANGAN VIP RESMI (BUKAN FREE TRIAL PERTAMA)
+    let discountAmount = 0;
+    if (isAdminUser && session?.user?.id) {
+      const adminUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+      });
 
-    const claimedRewards = adminUser?.resellerVipRewardsClaimed || 0;
-    const eligibleDiscountUnits = Math.max(0, activeVipOutletsCount - claimedRewards);
+      // Hitung total pembayaran VIP yang APPROVED dari outlet binaan admin ini
+      const approvedPaidVipCount = await prisma.membershipPayment.count({
+        where: {
+          status: "APPROVED",
+          outlet: {
+            owner: {
+              createdById: session.user.id,
+            },
+          },
+        },
+      });
 
-    if (eligibleDiscountUnits > 0) {
-      const discountedCardsCount = Math.min(totalQuantity, eligibleDiscountUnits);
-      discountAmount = discountedCardsCount * vipDiscountPerCard;
+      const claimedRewards = adminUser?.resellerVipRewardsClaimed || 0;
+      const eligibleDiscountUnits = Math.max(0, approvedPaidVipCount - claimedRewards);
+
+      if (eligibleDiscountUnits > 0) {
+        const discountedCardsCount = Math.min(totalQuantity, eligibleDiscountUnits);
+        discountAmount = discountedCardsCount * vipDiscountPerCard;
+      }
     }
 
-    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount);
+    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + shippingFee);
     const orderNumber = `RSLORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     // Handle Midtrans QRIS
@@ -342,7 +344,7 @@ export async function createResellerOrderAction(data: {
 
       const authHeader = "Basic " + Buffer.from(serverKey + ":").toString("base64");
 
-      const midtransPayload = {
+      const midtransPayload: Record<string, unknown> = {
         transaction_details: {
           order_id: orderNumber,
           gross_amount: finalTotalAmount,
@@ -352,20 +354,28 @@ export async function createResellerOrderAction(data: {
           email: data.customerEmail.trim(),
           phone: data.customerPhone.trim(),
         },
-        item_details: orderItemsData.map((item) => ({
-          id: item.productId,
-          price: item.productPrice,
-          quantity: item.quantity,
-          name: item.productName.slice(0, 50),
-        })),
+        item_details: [
+          ...orderItemsData.map((item) => ({
+            id: item.productId,
+            price: item.productPrice,
+            quantity: item.quantity,
+            name: item.productName.slice(0, 50),
+          })),
+          {
+            id: "SHIPPING-FEE",
+            price: shippingFee,
+            quantity: 1,
+            name: "Biaya Ongkir & Packing Tetap",
+          },
+        ],
       };
 
       if (discountAmount > 0) {
-        midtransPayload.item_details.push({
+        (midtransPayload.item_details as Array<Record<string, unknown>>).push({
           id: "DISCOUNT-VIP",
           price: -discountAmount,
           quantity: 1,
-          name: "Diskon Reward Outlet VIP",
+          name: "Diskon Reward Outlet VIP Berbayar",
         });
       }
 
@@ -394,7 +404,7 @@ export async function createResellerOrderAction(data: {
     const order = await prisma.resellerOrder.create({
       data: {
         orderNumber,
-        adminId: session.user.id,
+        adminId: isAdminUser ? session.user.id : null,
         customerName: data.customerName.trim(),
         customerPhone: data.customerPhone.trim(),
         customerEmail: data.customerEmail.trim(),
@@ -406,6 +416,7 @@ export async function createResellerOrderAction(data: {
         totalQuantity,
         subtotal: calculatedSubtotal,
         discountAmount,
+        shippingFee,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,
@@ -421,12 +432,12 @@ export async function createResellerOrderAction(data: {
 
     await prisma.activityLog.create({
       data: {
-        userId: session.user.id,
-        userName: session.user.name || data.customerName,
-        userRole: session.user.role,
+        userId: session?.user?.id || null,
+        userName: session?.user?.name || data.customerName,
+        userRole: (session?.user?.role as any) || "USER",
         action: "CREATE",
-        title: "Pesanan Produk Reseller Masuk 🛒",
-        description: `Pesanan baru #${order.orderNumber} oleh "${data.customerName}" sebanyak ${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")} via ${data.paymentMethod === "MIDTRANS_QRIS" ? "Midtrans QRIS" : "Transfer Bank BNI"}.`,
+        title: "Pesanan Paket Reseller Masuk 🛒",
+        description: `Pesanan baru #${order.orderNumber} oleh "${data.customerName}" (${data.customerPhone}) sebanyak ${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")} via ${data.paymentMethod === "MIDTRANS_QRIS" ? "Midtrans QRIS" : "Transfer Bank BNI"}.`,
         targetId: order.id,
         targetName: order.orderNumber,
       },
@@ -709,5 +720,149 @@ export async function deleteResellerOrderRecordAction(orderId: string) {
   } catch (error) {
     console.error("deleteResellerOrderRecordAction error:", error);
     return { success: false, message: "Gagal menghapus pesanan." };
+  }
+}
+
+/**
+ * 12. Publik: Lacak Status Pesanan Berdasarkan Nomor Pesanan atau Nomor WhatsApp
+ */
+export async function trackResellerOrderAction(query: string) {
+  try {
+    const cleanQuery = query.trim();
+    if (!cleanQuery || cleanQuery.length < 3) {
+      return { success: false, message: "Masukkan Nomor Pesanan (RSLORD-xxx) atau Nomor WhatsApp yang valid." };
+    }
+
+    let cleanPhone = cleanQuery.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("08")) cleanPhone = "62" + cleanPhone.slice(1);
+
+    const orders = await prisma.resellerOrder.findMany({
+      where: {
+        OR: [
+          { orderNumber: { equals: cleanQuery } },
+          { customerPhone: { contains: cleanQuery } },
+          ...(cleanPhone.length >= 8 ? [{ customerPhone: { contains: cleanPhone } }] : []),
+        ],
+      },
+      include: {
+        items: {
+          include: { product: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (orders.length === 0) {
+      return {
+        success: false,
+        message: `Pesanan dengan kata kunci "${cleanQuery}" tidak ditemukan. Pastikan nomor pesanan atau no. WhatsApp sudah benar.`,
+      };
+    }
+
+    return { success: true, data: orders };
+  } catch (error) {
+    console.error("trackResellerOrderAction error:", error);
+    return { success: false, message: "Terjadi kesalahan saat melacak pesanan." };
+  }
+}
+
+/**
+ * 13. Super Admin: Ubah Calon Reseller / Data Pesanan Menjadi Akun Admin Lapangan Resmi
+ */
+export async function convertResellerOrderToAdminAction(orderId: string, customPassword?: string) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak: Khusus Super Admin." };
+    }
+
+    const order = await prisma.resellerOrder.findUnique({
+      where: { id: orderId },
+      include: { admin: true },
+    });
+
+    if (!order) {
+      return { success: false, message: "Pesanan tidak ditemukan." };
+    }
+
+    const targetEmail = order.customerEmail.toLowerCase().trim();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: targetEmail },
+    });
+
+    let assignedAdminId = order.adminId;
+    const defaultPassword = customPassword?.trim() || "Reseller123!";
+
+    if (existingUser) {
+      // Jika akun sudah ada, pastikan rolenya ADMIN
+      if (existingUser.role !== "ADMIN" && existingUser.role !== "SUPER_ADMIN") {
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            role: "ADMIN",
+            isResellerUnlocked: false, // Wajib bayar lisensi dulu saat masuk dashboard
+          },
+        });
+      }
+      assignedAdminId = existingUser.id;
+    } else {
+      // Buat akun Admin Lapangan baru
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      let cleanWa = order.customerPhone.replace(/[^0-9]/g, "");
+      if (cleanWa.startsWith("08")) cleanWa = "62" + cleanWa.slice(1);
+
+      const newAdmin = await prisma.user.create({
+        data: {
+          email: targetEmail,
+          password: hashedPassword,
+          fullName: order.customerName.trim(),
+          whatsappNumber: cleanWa,
+          role: "ADMIN",
+          isActive: true,
+          isResellerUnlocked: false, // Akun terkunci, harus bayar lisensi/modul di dashboard
+          createdById: session.user.id,
+        },
+      });
+
+      assignedAdminId = newAdmin.id;
+    }
+
+    // Hubungkan order ke admin ini jika belum terhubung
+    await prisma.resellerOrder.update({
+      where: { id: orderId },
+      data: {
+        adminId: assignedAdminId,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "CREATE",
+        title: "Pembuatan Akun Admin Lapangan Reseller 👤",
+        description: `Super Admin membuatkan akun Admin Lapangan untuk pemesan Order #${order.orderNumber} (${order.customerName} - ${targetEmail}).`,
+        targetId: assignedAdminId,
+        targetName: order.customerName,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      message: `Akun Admin Lapangan untuk ${order.customerName} (${targetEmail}) berhasil dibuat/dihubungkan!`,
+      data: {
+        email: targetEmail,
+        password: defaultPassword,
+        fullName: order.customerName,
+        whatsappNumber: order.customerPhone,
+      },
+    };
+  } catch (error) {
+    console.error("convertResellerOrderToAdminAction error:", error);
+    return { success: false, message: "Gagal membuat akun Admin Lapangan dari pesanan ini." };
   }
 }

@@ -23,6 +23,7 @@ import {
 
 import type { Metadata } from "next";
 import { PwaInstantRedirect } from "@/components/pwa/PwaInstantRedirect";
+import { LandingResellerButtons } from "@/components/public/LandingResellerButtons";
 
 export const dynamic = "force-dynamic";
 
@@ -211,7 +212,9 @@ export default async function LandingPage({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <LandingResellerButtons siteSetting={siteSetting || undefined} variant="header" />
+
             <Link
               href={getPortalHref()}
               prefetch={true}
@@ -261,28 +264,32 @@ export default async function LandingPage({
           </p>
         </FadeIn>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons & Reseller Registration */}
         <FadeIn delay={0.3}>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>{ctaPrimaryText}</span>
-            </a>
+          <div className="mt-8 space-y-4">
+            <LandingResellerButtons siteSetting={siteSetting || undefined} variant="hero" />
 
-            <a
-              href={ctaSecondaryUrl}
-              target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
-              rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-sm sm:text-base rounded-2xl border border-slate-800 transition-all"
-            >
-              <Smartphone className="w-4 h-4 text-sky-400" />
-              <span>{ctaSecondaryText}</span>
-            </a>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs sm:text-sm rounded-xl border border-slate-800 transition-all"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span>Konsultasi Outlet via WhatsApp</span>
+              </a>
+
+              <a
+                href={ctaSecondaryUrl}
+                target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
+                rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-semibold text-xs sm:text-sm rounded-xl border border-slate-800/80 transition-all"
+              >
+                <Smartphone className="w-4 h-4 text-sky-400" />
+                <span>{ctaSecondaryText}</span>
+              </a>
+            </div>
           </div>
         </FadeIn>
 
