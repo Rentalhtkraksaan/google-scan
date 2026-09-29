@@ -224,15 +224,17 @@ export async function deleteResellerProductAction(id: string) {
 import bcrypt from "bcryptjs";
 
 /**
- * Generator Kode Unik Pesanan 6 Karakter (contoh: A9PC1A, K7B2X9)
+ * Generator Kode Unik Pesanan 6 Karakter (contoh: AP2AC6, AP8K9Z)
+ * Awalan 'AP' diikuti 4 karakter alfanumerik acak
  */
 export async function generateUniqueOrderCode(): Promise<string> {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  for (let attempt = 0; attempt < 15; attempt++) {
-    let code = "";
-    for (let j = 0; j < 6; j++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let attempt = 0; attempt < 25; attempt++) {
+    let suffix = "";
+    for (let j = 0; j < 4; j++) {
+      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    const code = `AP${suffix}`;
     const existing = await prisma.resellerOrder.findUnique({
       where: { orderNumber: code },
       select: { id: true },
@@ -241,7 +243,7 @@ export async function generateUniqueOrderCode(): Promise<string> {
       return code;
     }
   }
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `AP${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 }
 
 /**
@@ -996,13 +998,13 @@ export async function deleteResellerOrderRecordAction(orderId: string) {
 }
 
 /**
- * 12. Publik & Pembeli: Lacak Status Pesanan Berdasarkan Kode Pesanan (contoh: A9PC1A) atau Nomor WhatsApp
+ * 12. Publik & Pembeli: Lacak Status Pesanan Berdasarkan Kode Pesanan (contoh: AP2AC6) atau Nomor WhatsApp
  */
 export async function trackResellerOrderAction(query: string) {
   try {
     const cleanQuery = query.trim();
     if (!cleanQuery || cleanQuery.length < 3) {
-      return { success: false, message: "Masukkan Kode Pesanan (contoh: A9PC1A) atau Nomor WhatsApp yang valid." };
+      return { success: false, message: "Masukkan Kode Pesanan (contoh: AP2AC6) atau Nomor WhatsApp yang valid." };
     }
 
     const upperCode = cleanQuery.toUpperCase();
