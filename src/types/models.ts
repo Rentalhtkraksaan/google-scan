@@ -368,6 +368,7 @@ export interface ResellerProductModel {
   description?: string | null;
   imageUrl?: string | null;
   price: number;
+  retailPrice?: number;
   minOrder: number;
   unit?: string;
   isActive: boolean;

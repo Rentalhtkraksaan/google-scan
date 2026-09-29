@@ -47,6 +47,7 @@ export function ResellerProductManagerModal({
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formPrice, setFormPrice] = useState<number>(25000);
+  const [formRetailPrice, setFormRetailPrice] = useState<number>(49000);
   const [formMinOrder, setFormMinOrder] = useState<number>(8);
   const [formUnit, setFormUnit] = useState("pcs");
   const [formImage, setFormImage] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export function ResellerProductManagerModal({
     setFormName("");
     setFormDesc("");
     setFormPrice(25000);
+    setFormRetailPrice(49000);
     setFormMinOrder(8);
     setFormUnit("pcs");
     setFormImage(null);
@@ -91,6 +93,7 @@ export function ResellerProductManagerModal({
     setFormName(p.name);
     setFormDesc(p.description || "");
     setFormPrice(p.price);
+    setFormRetailPrice(p.retailPrice || 49000);
     setFormMinOrder(p.minOrder);
     setFormUnit(p.unit || "pcs");
     setFormImage(p.imageUrl || null);
@@ -135,6 +138,7 @@ export function ResellerProductManagerModal({
           description: formDesc.trim(),
           imageUrl: formImage || undefined,
           price: Number(formPrice),
+          retailPrice: Number(formRetailPrice) || 49000,
           minOrder: Number(formMinOrder) || 8,
           unit: formUnit.trim() || "pcs",
         });
@@ -152,6 +156,7 @@ export function ResellerProductManagerModal({
           description: formDesc.trim(),
           imageUrl: formImage || undefined,
           price: Number(formPrice),
+          retailPrice: Number(formRetailPrice) || 49000,
           minOrder: Number(formMinOrder) || 8,
           unit: formUnit.trim() || "pcs",
           isActive: formIsActive,
@@ -275,9 +280,9 @@ export function ResellerProductManagerModal({
                   />
                 </div>
 
-                {/* Harga per pcs */}
+                {/* Harga Grosir Reseller per pcs */}
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Harga per Pcs (Rp) *</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Harga Grosir Reseller (Min. 8 pcs) *</label>
                   <input
                     type="number"
                     required
@@ -288,11 +293,28 @@ export function ResellerProductManagerModal({
                     placeholder="25000"
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
                   />
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Khusus paket reseller di /reseller</span>
+                </div>
+
+                {/* Harga Eceran Outlet / Beli 1-2 pcs */}
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Harga Eceran Outlet (Beli 1 atau 2 pcs) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1000}
+                    step={1000}
+                    value={formRetailPrice}
+                    onChange={(e) => setFormRetailPrice(Number(e.target.value))}
+                    placeholder="49000"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  <span className="text-[10px] text-slate-500 block mt-0.5">Untuk pembelian eceran di landing page</span>
                 </div>
 
                 {/* Min. Order */}
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Batas Minimal Order (Qty) *</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Batas Minimal Order Grosir (Qty) *</label>
                   <input
                     type="number"
                     required
@@ -454,12 +476,14 @@ export function ResellerProductManagerModal({
                       <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
                         {product.description || "Tanpa deskripsi"}
                       </p>
-                      <div className="flex items-center gap-2 mt-1 text-[11px]">
+                      <div className="flex items-center gap-2 mt-1 text-[11px] flex-wrap">
                         <span className="font-mono font-bold text-amber-300">
-                          Rp {product.price.toLocaleString("id-ID")}/{product.unit}
+                          Grosir: Rp {product.price.toLocaleString("id-ID")}/{product.unit} (Min. {product.minOrder})
                         </span>
                         <span className="text-slate-600">•</span>
-                        <span className="text-slate-400">Min. {product.minOrder} {product.unit}</span>
+                        <span className="font-mono font-bold text-emerald-300">
+                          Eceran: Rp {(product.retailPrice || 49000).toLocaleString("id-ID")}/{product.unit}
+                        </span>
                       </div>
                     </div>
                   </div>

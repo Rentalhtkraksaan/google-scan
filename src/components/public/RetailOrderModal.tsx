@@ -161,7 +161,8 @@ export function RetailOrderModal({
   // Calculations
   const calculatedSubtotal = products.reduce((sum, p) => {
     const qty = quantities[p.id] || 0;
-    return sum + p.price * qty;
+    const itemPrice = p.retailPrice || p.price;
+    return sum + itemPrice * qty;
   }, 0);
 
   // Shipping Calculation:
@@ -494,7 +495,7 @@ export function RetailOrderModal({
                           <div className="min-w-0">
                             <h4 className="font-bold text-xs sm:text-sm text-white truncate">{p.name}</h4>
                             <span className="font-mono font-bold text-xs text-amber-400">
-                              Rp {p.price.toLocaleString("id-ID")}{" "}
+                              Rp {(p.retailPrice || p.price).toLocaleString("id-ID")}{" "}
                               <span className="text-[10px] text-slate-400 font-normal">/{p.unit}</span>
                             </span>
                           </div>

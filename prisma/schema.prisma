@@ -399,7 +399,8 @@ model ResellerProduct {
   name        String
   description String?  @db.Text
   imageUrl    String?  @db.LongText
-  price       Int      @default(25000)
+  price       Int      @default(25000) // Harga Grosir Reseller (Min 8 pcs)
+  retailPrice Int?     @default(49000) // Harga Eceran Outlet / Pembeli Umum (Beli 1 atau 2 pcs)
   minOrder    Int      @default(8)
   unit        String   @default("pcs")
   isActive    Boolean  @default(true)

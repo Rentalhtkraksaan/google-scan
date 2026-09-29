@@ -17,6 +17,7 @@ async function ensureDefaultProducts() {
           name: "Kartu Akrilik Standar (c-Series)",
           description: "Kartu QR Akrilik Meja ukuran standar (8.5 x 5.5 cm) dengan chip NFC ntag213 & dynamic QR code anti air dan tahan gores.",
           price: 25000,
+          retailPrice: 49000,
           minOrder: 8,
           unit: "pcs",
           isActive: true,
@@ -27,6 +28,7 @@ async function ensureDefaultProducts() {
           name: "Kartu Akrilik Standee Besar",
           description: "Kartu QR Akrilik Standee Meja ukuran lebih besar (10 x 7 cm) dengan visibilitas ulasan lebih mencolok untuk meja kasir & resto ramai.",
           price: 28000,
+          retailPrice: 55000,
           minOrder: 8,
           unit: "pcs",
           isActive: true,
@@ -35,6 +37,12 @@ async function ensureDefaultProducts() {
         },
       ],
     });
+  } else {
+    // Pastikan produk yang sudah ada terisi retailPrice jika masih kosong
+    await prisma.resellerProduct.updateMany({
+      where: { retailPrice: null },
+      data: { retailPrice: 49000 },
+    }).catch(() => {});
   }
 }
 
@@ -65,6 +73,7 @@ export async function createResellerProductAction(data: {
   description?: string;
   imageUrl?: string;
   price: number;
+  retailPrice?: number;
   minOrder?: number;
   unit?: string;
 }) {
@@ -87,6 +96,7 @@ export async function createResellerProductAction(data: {
         description: data.description?.trim() || "",
         imageUrl: data.imageUrl || null,
         price: Number(data.price),
+        retailPrice: data.retailPrice !== undefined ? Number(data.retailPrice) : 49000,
         minOrder: Number(data.minOrder) || 8,
         unit: data.unit?.trim() || "pcs",
         sortOrder: nextSort,
@@ -127,6 +137,7 @@ export async function updateResellerProductAction(
     description?: string;
     imageUrl?: string;
     price?: number;
+    retailPrice?: number;
     minOrder?: number;
     unit?: string;
     isActive?: boolean;
@@ -151,6 +162,7 @@ export async function updateResellerProductAction(
         description: data.description !== undefined ? data.description.trim() : undefined,
         imageUrl: data.imageUrl !== undefined ? data.imageUrl : undefined,
         price: data.price !== undefined ? Number(data.price) : undefined,
+        retailPrice: data.retailPrice !== undefined ? Number(data.retailPrice) : undefined,
         minOrder: data.minOrder !== undefined ? Number(data.minOrder) : undefined,
         unit: data.unit !== undefined ? data.unit.trim() : undefined,
         isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
@@ -544,12 +556,13 @@ export async function createRetailOrderAction(data: {
       if (!p) continue;
       const qty = Number(item.quantity) || 0;
       if (qty <= 0) continue;
-      const lineTotal = p.price * qty;
+      const itemPrice = p.retailPrice || p.price; // Gunakan harga eceran outlet untuk beli 1 atau 2 pcs
+      const lineTotal = itemPrice * qty;
       calculatedSubtotal += lineTotal;
       orderItemsData.push({
         productId: p.id,
         productName: p.name,
-        productPrice: p.price,
+        productPrice: itemPrice,
         quantity: qty,
         subtotal: lineTotal,
       });
