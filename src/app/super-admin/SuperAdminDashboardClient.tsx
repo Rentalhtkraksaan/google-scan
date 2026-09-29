@@ -1801,6 +1801,11 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Notifikasi & Dering HP Super Admin (Di Sidebar Mobile & Desktop) */}
+            <div className="pt-1">
+              <NotificationPrompt className="w-full justify-between" />
+            </div>
+
             {/* Pasang Aplikasi PWA */}
             <InstallPwaButton variant="drawer" label="Pasang Aplikasi di HP" />
 
@@ -1934,8 +1939,8 @@ Tim Layanan Smart QR`;
               <span>Kelola Member</span>
             </button>
 
-            {/* 4. Notifikasi & Dering HP Super Admin */}
-            <NotificationPrompt className="shrink-0" />
+            {/* 4. Notifikasi & Dering HP Super Admin (Desktop Only agar tidak menimpa tombol menu di HP) */}
+            <NotificationPrompt className="hidden lg:inline-flex shrink-0" />
 
             {/* 5. Dynamic Primary Action Button */}
             {activeTab === "ADMINS" ? (
