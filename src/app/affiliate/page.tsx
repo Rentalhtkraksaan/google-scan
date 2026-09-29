@@ -73,6 +73,7 @@ export default async function AffiliatePage() {
         phone: affiliate.phone,
         email: affiliate.email,
         referralCode: affiliate.referralCode,
+        referralCodeChangeCount: affiliate.referralCodeChangeCount || 0,
         followersCount: affiliate.followersCount,
         commissionPerPcs: affiliate.commissionPerPcs,
         balance: affiliate.balance,

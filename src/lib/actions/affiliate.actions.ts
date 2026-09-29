@@ -593,3 +593,256 @@ export async function checkAffiliateStatsAction(query: string) {
     return { success: false, message: "Gagal memuat statistik affiliate." };
   }
 }
+
+/**
+ * 10. Affiliate Mandiri: Ubah Kode Referral (Maksimal 1x Seumur Hidup)
+ */
+export async function updateAffiliateReferralCodeSelfAction(rawCode: string) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Sesi login tidak valid." };
+    }
+
+    if (!rawCode || !rawCode.trim()) {
+      return { success: false, message: "Kode referral baru tidak boleh kosong." };
+    }
+
+    const cleanCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (cleanCode.length < 3 || cleanCode.length > 20) {
+      return { success: false, message: "Kode referral harus berupa 3-20 karakter alfanumerik (huruf dan angka saja)." };
+    }
+
+    const affiliate = await prisma.affiliateAccount.findFirst({
+      where: {
+        OR: [
+          { email: session.user.email?.toLowerCase().trim() },
+          { id: session.user.id },
+        ],
+      },
+    });
+
+    if (!affiliate) {
+      return { success: false, message: "Akun affiliate tidak ditemukan." };
+    }
+
+    if ((affiliate.referralCodeChangeCount || 0) >= 1) {
+      return {
+        success: false,
+        message: "Kesempatan ubah kode referral sudah habis. Kode referral hanya dapat diubah maksimal 1 kali.",
+      };
+    }
+
+    if (cleanCode === affiliate.referralCode.toUpperCase()) {
+      return { success: false, message: "Kode referral baru sama dengan kode Anda saat ini." };
+    }
+
+    // Pastikan kode referral belum digunakan
+    const existing = await prisma.affiliateAccount.findUnique({
+      where: { referralCode: cleanCode },
+    });
+
+    if (existing) {
+      return { success: false, message: `Kode referral "${cleanCode}" sudah digunakan oleh mitra lain. Silakan pilih kode yang lain.` };
+    }
+
+    const oldCode = affiliate.referralCode;
+
+    const updated = await prisma.affiliateAccount.update({
+      where: { id: affiliate.id },
+      data: {
+        referralCode: cleanCode,
+        referralCodeChangeCount: { increment: 1 },
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: affiliate.id,
+        userName: affiliate.fullName,
+        userRole: "USER",
+        action: "UPDATE",
+        title: "Ubah Kode Referral Affiliate 🏷️",
+        description: `Affiliate "${affiliate.fullName}" mengubah kode referral dari "${oldCode}" menjadi "${cleanCode}" (Kesempatan 1x terpakai).`,
+        targetId: affiliate.id,
+        targetName: cleanCode,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/affiliate");
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: `Kode referral berhasil diubah menjadi "${cleanCode}"! Kesempatan ubah kode telah terpakai (Maks. 1x).`,
+      newCode: cleanCode,
+      changeCount: updated.referralCodeChangeCount,
+    };
+  } catch (error) {
+    console.error("updateAffiliateReferralCodeSelfAction error:", error);
+    return { success: false, message: "Gagal memperbarui kode referral." };
+  }
+}
+
+/**
+ * 11. Affiliate Mandiri: Ubah Data Rekening Pencairan Komisi
+ */
+export async function updateAffiliateBankInfoSelfAction(data: {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+}) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Sesi login tidak valid." };
+    }
+
+    if (!data.bankName?.trim() || !data.accountNumber?.trim() || !data.accountHolder?.trim()) {
+      return { success: false, message: "Nama Bank/E-Wallet, Nomor Rekening, dan Nama Pemilik Rekening wajib diisi." };
+    }
+
+    const affiliate = await prisma.affiliateAccount.findFirst({
+      where: {
+        OR: [
+          { email: session.user.email?.toLowerCase().trim() },
+          { id: session.user.id },
+        ],
+      },
+    });
+
+    if (!affiliate) {
+      return { success: false, message: "Akun affiliate tidak ditemukan." };
+    }
+
+    const updated = await prisma.affiliateAccount.update({
+      where: { id: affiliate.id },
+      data: {
+        bankName: data.bankName.trim(),
+        accountNumber: data.accountNumber.trim(),
+        accountHolder: data.accountHolder.trim(),
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: affiliate.id,
+        userName: affiliate.fullName,
+        userRole: "USER",
+        action: "UPDATE",
+        title: "Update Rekening Affiliate 💳",
+        description: `Affiliate "${affiliate.fullName}" memperbarui rekening pencairan: ${updated.bankName} ${updated.accountNumber} a.n ${updated.accountHolder}.`,
+        targetId: affiliate.id,
+        targetName: affiliate.referralCode,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/affiliate");
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: "Data rekening pencairan berhasil disimpan!",
+      bankInfo: {
+        bankName: updated.bankName,
+        accountNumber: updated.accountNumber,
+        accountHolder: updated.accountHolder,
+      },
+    };
+  } catch (error) {
+    console.error("updateAffiliateBankInfoSelfAction error:", error);
+    return { success: false, message: "Gagal menyimpan data rekening." };
+  }
+}
+
+/**
+ * 12. Affiliate Mandiri: Ubah Profil & Password Akun (Nama, WA, Email, Password, Medsos)
+ */
+export async function updateAffiliateProfileSelfAction(data: {
+  fullName: string;
+  phone: string;
+  email: string;
+  newPassword?: string;
+  socialMediaUrl?: string;
+}) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Sesi login tidak valid." };
+    }
+
+    if (!data.fullName?.trim() || !data.phone?.trim() || !data.email?.trim()) {
+      return { success: false, message: "Nama lengkap, nomor WhatsApp, dan Email wajib diisi." };
+    }
+
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanPhone = data.phone.trim().replace(/[^0-9]/g, "");
+
+    const affiliate = await prisma.affiliateAccount.findFirst({
+      where: {
+        OR: [
+          { email: session.user.email?.toLowerCase().trim() },
+          { id: session.user.id },
+        ],
+      },
+    });
+
+    if (!affiliate) {
+      return { success: false, message: "Akun affiliate tidak ditemukan." };
+    }
+
+    // Cek duplikasi email jika diganti
+    if (cleanEmail !== affiliate.email.toLowerCase()) {
+      const dup = await prisma.affiliateAccount.findUnique({
+        where: { email: cleanEmail },
+      });
+      if (dup && dup.id !== affiliate.id) {
+        return { success: false, message: "Email ini sudah digunakan oleh akun affiliate lain." };
+      }
+    }
+
+    let hashedPassword: string | undefined = undefined;
+    if (data.newPassword && data.newPassword.trim()) {
+      if (data.newPassword.trim().length < 4) {
+        return { success: false, message: "Password baru minimal 4 karakter." };
+      }
+      hashedPassword = await bcrypt.hash(data.newPassword.trim(), 10);
+    }
+
+    const updated = await prisma.affiliateAccount.update({
+      where: { id: affiliate.id },
+      data: {
+        fullName: data.fullName.trim(),
+        phone: cleanPhone,
+        email: cleanEmail,
+        password: hashedPassword,
+        socialMediaUrl: data.socialMediaUrl !== undefined ? data.socialMediaUrl.trim() || null : undefined,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: affiliate.id,
+        userName: affiliate.fullName,
+        userRole: "USER",
+        action: "UPDATE",
+        title: "Update Profil Affiliate 👤",
+        description: `Affiliate "${updated.fullName}" (${updated.email}) memperbarui profil & kredensial login.`,
+        targetId: affiliate.id,
+        targetName: affiliate.referralCode,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/affiliate");
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: "Profil dan akun affiliate berhasil diperbarui!",
+      affiliate: updated,
+    };
+  } catch (error) {
+    console.error("updateAffiliateProfileSelfAction error:", error);
+    return { success: false, message: "Gagal memperbarui profil affiliate." };
+  }
+}
