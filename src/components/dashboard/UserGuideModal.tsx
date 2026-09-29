@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Sparkles,
   Layers,
+  ShoppingCart,
   ArrowRight,
   Info,
   AlertTriangle,
@@ -343,20 +344,20 @@ export function UserGuideModal({
       title: "3. Cara Mengajukan Tambahan Jatah Kuota Kartu",
       icon: Layers,
       tag: "Stok Kartu",
-      tagColor: "amber",
-      summary: "Prosedur meminta tambahan kartu fisik ke Super Admin saat kuota habis.",
+      tagColor: "emerald",
+      summary: "Prosedur pemesanan kartu fisik & standee grosir melalui Keranjang Reseller.",
       content: (
         <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
           <p>
-            Jika kuota kartu kosong Anda habis atau menipis:
+            Jika kuota kartu kosong Anda habis atau ingin menambah stok lapangan:
           </p>
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11.5px] space-y-2">
-            <div className="flex items-center gap-1.5 font-bold text-amber-300">
-              <Layers className="w-4 h-4" />
-              <span>Tombol "Minta Tambah Jatah Kartu"</span>
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11.5px] space-y-2">
+            <div className="flex items-center gap-1.5 font-bold text-emerald-300">
+              <ShoppingCart className="w-4 h-4" />
+              <span>Menu "Keranjang Reseller / Beli Kartu"</span>
             </div>
             <p>
-              Klik tombol tersebut di bagian atas dashboard Anda. Sistem akan membuka chat WhatsApp yang langsung ditujukan ke Super Admin dengan format permohonan resmi berisi nama admin Anda dan jumlah kuota yang dibutuhkan.
+              Klik tombol keranjang di dashboard Anda untuk memilih paket kartu atau standee dengan harga grosir resmi. Data akun Anda otomatis terhubung sehingga pesanan langsung diproses dan dikirim oleh Super Admin.
             </p>
           </div>
         </div>

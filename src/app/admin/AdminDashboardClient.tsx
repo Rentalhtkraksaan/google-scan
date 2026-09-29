@@ -40,7 +40,6 @@ import { LiveActivityTicker } from "@/components/dashboard/LiveActivityTicker";
 import { RegisterOutletModal } from "@/components/forms/RegisterOutletModal";
 import { EditOutletModal } from "@/components/forms/EditOutletModal";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
-import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { AssignCardToOutletModal } from "@/components/dashboard/AssignCardToOutletModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { ResellerModuleModal } from "@/components/dashboard/ResellerModuleModal";
@@ -139,7 +138,6 @@ export function AdminDashboardClient({
   const [prefilledCardCode, setPrefilledCardCode] = useState<string>("");
   const [editingOutlet, setEditingOutlet] = useState<EditingOutletType | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isRequestCardModalOpen, setIsRequestCardModalOpen] = useState(false);
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isResellerModuleModalOpen, setIsResellerModuleModalOpen] = useState(false);
@@ -466,24 +464,6 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
-            {/* Minta Tambah Kuota Kartu */}
-            <button
-              onClick={() => {
-                setIsRequestCardModalOpen(true);
-                setIsMobileSidebarOpen(false);
-              }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
-              title="Kirim pesan WhatsApp ke Super Admin untuk meminta tambahan jatah kartu fisik"
-            >
-              <div className="flex items-center gap-3 truncate">
-                <Layers className="w-4 h-4 shrink-0 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span className="truncate">Minta Kuota Kartu</span>
-              </div>
-              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                WA
-              </span>
-            </button>
-
             {/* Modul Reseller & SOP */}
             <button
               onClick={() => {
@@ -647,17 +627,7 @@ Tim Layanan Smart QR`;
               <span>Beli Kartu</span>
             </button>
 
-            {/* 3. Minta Tambah Kuota Kartu (Tablet & Desktop) */}
-            <button
-              onClick={() => setIsRequestCardModalOpen(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Minta tambahan kuota kartu fisik ke Super Admin"
-            >
-              <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>Minta Kuota</span>
-            </button>
-
-            {/* 4. Primary CTA Button: Daftarkan Outlet Baru */}
+            {/* 3. Primary CTA Button: Daftarkan Outlet Baru */}
             <button
               onClick={() => {
                 setPrefilledCardCode("");
@@ -806,14 +776,6 @@ Tim Layanan Smart QR`;
                   <span>Modul Mitra</span>
                 </button>
 
-                <button
-                  onClick={() => setIsRequestCardModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs rounded-xl border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]"
-                  title="Minta Tambahan Jatah Kuota Kartu ke Super Admin"
-                >
-                  <Layers className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Minta Kuota</span>
-                </button>
 
                 <button
                   onClick={() => setIsGuideModalOpen(true)}
@@ -1567,11 +1529,11 @@ Tim Layanan Smart QR`;
                       Semua kartu jatah Anda telah terpakai atau belum ada kuota yang dialokasikan oleh Super Admin.
                     </p>
                     <button
-                      onClick={() => setIsRequestCardModalOpen(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm"
+                      onClick={() => setIsShopModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-sm"
                     >
-                      <Layers className="w-4 h-4 text-amber-400" />
-                      <span>Minta Tambahan Jatah Kartu ke Super Admin</span>
+                      <ShoppingCart className="w-4 h-4 text-emerald-400" />
+                      <span>Beli Tambahan Stok Kartu Reseller</span>
                     </button>
                   </div>
                 ) : (
@@ -1679,21 +1641,6 @@ Tim Layanan Smart QR`;
         />
       )}
 
-      {isRequestCardModalOpen && (
-        <RequestCardModal
-          mode="ADMIN"
-          user={{
-            fullName: currentAdmin.fullName,
-            whatsappNumber: currentAdmin.whatsappNumber,
-          }}
-          targetContact={superAdminContact}
-          vipOutletsCount={vipOutletsCount}
-          claimedVipRewards={currentAdmin.resellerVipRewardsClaimed || 0}
-          resellerCardBasePrice={siteSetting?.resellerCardBasePrice || 25000}
-          resellerVipDiscountPerCard={siteSetting?.resellerVipDiscountPerCard || 5000}
-          onClose={() => setIsRequestCardModalOpen(false)}
-        />
-      )}
 
       {/* Reseller Shop / Keranjang Belanja Shopee Modal */}
       <ResellerShopModal

@@ -242,10 +242,9 @@ export function ResellerShopModal({
       return;
     }
 
-    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
-      showErrorAlert("Data Tidak Lengkap", "Nama penerima, nomor WhatsApp, dan email wajib diisi.");
-      return;
-    }
+    const finalName = user.fullName?.trim() || customerName.trim() || "Mitra Reseller";
+    const finalPhone = user.whatsappNumber?.trim() || customerPhone.trim() || "08123456789";
+    const finalEmail = user.email?.trim() || customerEmail.trim() || "reseller@smartqr.id";
 
     if (paymentMethod === "MANUAL_BANK_BNI" && !receiptImage) {
       showErrorAlert(
@@ -263,10 +262,10 @@ export function ResellerShopModal({
           productId: item.product.id,
           quantity: item.quantity,
         })),
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        customerEmail: customerEmail.trim(),
-        shippingAddress: shippingAddress.trim() || undefined,
+        customerName: finalName,
+        customerPhone: finalPhone,
+        customerEmail: finalEmail,
+        shippingAddress: undefined,
         notes: notes.trim() || undefined,
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
@@ -659,83 +658,39 @@ export function ResellerShopModal({
                     )}
                   </div>
 
-                  {/* Form Data Pemesan / Pengiriman */}
+                  {/* Akun Pemesan Reseller Terdaftar */}
                   <div className="p-4 sm:p-5 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-3.5">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                      <User className="w-4 h-4 text-emerald-400" />
-                      <span>Formulir Data Pemesan & Pengiriman</span>
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="block text-slate-300 font-semibold mb-1">Nama Penerima / Pemesan *</label>
-                        <div className="relative">
-                          <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            required
-                            value={customerName}
-                            onChange={(e) => setCustomerName(e.target.value)}
-                            placeholder="Nama Lengkap"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                          />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold shrink-0">
+                          <User className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white flex items-center gap-2">
+                            <span>{user.fullName || "Mitra Reseller"}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                              Akun Terverifikasi
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {user.email} {user.whatsappNumber ? `• ${user.whatsappNumber}` : ""}
+                          </p>
                         </div>
                       </div>
+                    </div>
 
-                      <div>
-                        <label className="block text-slate-300 font-semibold mb-1">No. WhatsApp Aktif *</label>
-                        <div className="relative">
-                          <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="text"
-                            required
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            placeholder="08123456789"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-slate-300 font-semibold mb-1">Email Pemesan *</label>
-                        <div className="relative">
-                          <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                          <input
-                            type="email"
-                            required
-                            value={customerEmail}
-                            onChange={(e) => setCustomerEmail(e.target.value)}
-                            placeholder="nama@email.com"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-slate-300 font-semibold mb-1">Alamat Lengkap Pengiriman (Opsional jika kirim fisik)</label>
-                        <div className="relative">
-                          <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
-                          <textarea
-                            rows={2}
-                            value={shippingAddress}
-                            onChange={(e) => setShippingAddress(e.target.value)}
-                            placeholder="Jl. Mawar No. 123, Kelurahan, Kecamatan, Kota, Kode Pos"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 resize-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="block text-slate-300 font-semibold mb-1">Catatan Tambahan (Opsional)</label>
-                        <input
-                          type="text"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="Misal: Mohon prioritaskan pengiriman sebelum hari Sabtu"
-                          className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
+                    <div className="pt-3 border-t border-slate-800/80">
+                      <label className="block text-slate-400 text-xs font-semibold mb-1.5 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Catatan Tambahan untuk Super Admin (Opsional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Misal: Mohon prioritaskan pengiriman sebelum hari Sabtu / catatan khusus"
+                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
                     </div>
                   </div>
 
