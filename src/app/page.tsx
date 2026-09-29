@@ -213,8 +213,6 @@ export default async function LandingPage({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
-            <LandingRetailButtons siteSetting={siteSetting || undefined} variant="navbar" />
-
             <Link
               href={getPortalHref()}
               prefetch={true}
@@ -226,7 +224,7 @@ export default async function LandingPage({
                   <span>Dashboard</span>
                 </>
               ) : (
-                <span>Portal</span>
+                <span>Login</span>
               )}
             </Link>
           </div>

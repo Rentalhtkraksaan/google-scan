@@ -72,18 +72,9 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
           </Link>
 
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setIsTrackModalOpen(true)}
-              className="px-3 sm:px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Truck className="w-3.5 h-3.5 text-sky-400" />
-              <span>Lacak Pesanan</span>
-            </button>
-
             <Link
               href="/login"
-              className="px-3.5 sm:px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-1.5"
+              className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-1.5"
             >
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Login Admin Reseller</span>
