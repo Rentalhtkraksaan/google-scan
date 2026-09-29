@@ -147,15 +147,18 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     }
   }, [activePairingToken]);
 
-  // VIP Renewal Reminder State (Maksimal 2x per hari saat mendekati H-7 atau habis)
+  // VIP Renewal Reminder State (Maksimal 2x per hari saat mendekati H-7 atau habis, tidak memaksa)
   const [isRenewalReminderOpen, setIsRenewalReminderOpen] = useState(false);
 
   useEffect(() => {
     if (!outlet?.id || !outlet?.membershipExpiresAt) return;
-    const daysRemaining = getMembershipDaysRemaining(outlet.membershipExpiresAt);
-    // Tampilkan jika mendekati masa habis (tersisa <= 7 hari) atau sudah expired
-    if (daysRemaining <= 7) {
-      try {
+    try {
+      if (sessionStorage.getItem(`vip_reminder_dismissed_${outlet.id}`) === "true") {
+        return;
+      }
+      const daysRemaining = getMembershipDaysRemaining(outlet.membershipExpiresAt);
+      // Tampilkan jika mendekati masa habis (tersisa <= 7 hari) atau sudah expired
+      if (daysRemaining <= 7) {
         const today = new Date().toISOString().split("T")[0];
         const reminderKey = `vip_reminder_shown_${outlet.id}_${today}`;
         const shownCount = parseInt(localStorage.getItem(reminderKey) || "0", 10);
@@ -163,14 +166,21 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
           const timer = setTimeout(() => {
             setIsRenewalReminderOpen(true);
             localStorage.setItem(reminderKey, (shownCount + 1).toString());
-          }, 1500);
+          }, 2500);
           return () => clearTimeout(timer);
         }
-      } catch (err) {
-        console.error("Error reading vip_reminder localStorage:", err);
       }
+    } catch (err) {
+      console.error("Error reading vip_reminder localStorage:", err);
     }
   }, [outlet?.id, outlet?.membershipExpiresAt]);
+
+  const handleCloseRenewalReminder = () => {
+    setIsRenewalReminderOpen(false);
+    try {
+      sessionStorage.setItem(`vip_reminder_dismissed_${outlet?.id}`, "true");
+    } catch {}
+  };
 
   const handleTestSoundChime = (effectId: string) => {
     unlockAudioContext();
@@ -2328,12 +2338,12 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       {/* Modal Pengingat Perpanjangan VIP (Maks 2x per hari saat mendekati H-7 atau habis) */}
       <VipRenewalReminderModal
         isOpen={isRenewalReminderOpen}
-        onClose={() => setIsRenewalReminderOpen(false)}
+        onClose={handleCloseRenewalReminder}
         outletName={outlet.name}
         daysRemaining={getMembershipDaysRemaining(outlet.membershipExpiresAt)}
         membershipExpiresAt={outlet.membershipExpiresAt}
         onRenewClick={() => {
-          setIsRenewalReminderOpen(false);
+          handleCloseRenewalReminder();
           setIsUpgradeModalOpen(true);
         }}
       />

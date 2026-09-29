@@ -127,6 +127,10 @@ model SiteSetting {
   resellerAccountNumber      String   @default("1234567890")
   resellerAccountName        String   @default("Smart QR Review")
 
+  // Affiliate Program Settings
+  affiliateDefaultCommission Int      @default(5000) // Komisi default per pcs
+  affiliateShippingDiscount  Int      @default(10000) // Potongan subsidi ongkir referral (Rp 10.000)
+
   updatedAt          DateTime @updatedAt
 
   @@map("site_settings")
@@ -414,13 +418,17 @@ model ResellerProduct {
 model ResellerOrder {
   id                    String              @id @default(cuid())
   orderNumber           String              @unique
+  orderType             String              @default("RESELLER") // "RESELLER" | "RETAIL"
   adminId               String?
   admin                 User?               @relation(fields: [adminId], references: [id], onDelete: SetNull)
   customerName          String
   customerPhone         String
   customerEmail         String
   shippingAddress       String?             @db.Text
+  province              String?             @default("Jawa Timur") // Untuk kalkulasi ongkir & subsidi
   notes                 String?             @db.Text
+  affiliateCode         String?             // Kode Referral Affiliate yang dipakai pembeli
+  affiliateCommission   Int                 @default(0) // Komisi yang didapat affiliate
   paymentMethod         String              @default("MANUAL_BANK_BNI") // "MIDTRANS_QRIS" | "MANUAL_BANK_BNI"
   paymentStatus         String              @default("PENDING") // "PENDING" | "PAID" | "REJECTED" | "CANCELLED"
   orderStatus           String              @default("PENDING") // "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED"
@@ -438,6 +446,8 @@ model ResellerOrder {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
+  @@index([orderType])
+  @@index([affiliateCode])
   @@index([adminId])
   @@index([paymentStatus])
   @@index([orderStatus])
@@ -464,4 +474,31 @@ model ResellerOrderItem {
   @@index([productId])
   @@map("reseller_order_items")
 }
+
+model AffiliateAccount {
+  id               String   @id @default(cuid())
+  fullName         String
+  phone            String
+  email            String   @unique
+  referralCode     String   @unique
+  socialMediaUrl   String?
+  followersCount   Int      @default(0)
+  commissionPerPcs Int      @default(5000) // Setting komisi per pcs kartu terjual
+  totalEarned      Int      @default(0)
+  totalWithdrawn   Int      @default(0)
+  balance          Int      @default(0)
+  bankName         String?
+  accountNumber    String?
+  accountHolder    String?
+  status           String   @default("ACTIVE") // "ACTIVE" | "SUSPENDED"
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([referralCode])
+  @@index([status])
+  @@index([createdAt])
+  @@map("affiliate_accounts")
+}
+
 

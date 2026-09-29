@@ -143,24 +143,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "OK", transaction_status });
     }
 
-    // 2. Cek jika transaksi adalah Pesanan Keranjang Produk Reseller
-    if (order_id.startsWith("RSLORD-")) {
-      const resellerOrder = await prisma.resellerOrder.findFirst({
-        where: {
-          OR: [
-            { midtransOrderId: order_id },
-            { id: order_id },
-            { orderNumber: order_id },
-          ],
-        },
-        include: { admin: true },
-      });
+    // 2. Cek jika transaksi adalah Pesanan Produk (Reseller atau Retail Umum)
+    const resellerOrder = await prisma.resellerOrder.findFirst({
+      where: {
+        OR: [
+          { midtransOrderId: order_id },
+          { id: order_id },
+          { orderNumber: order_id },
+        ],
+      },
+      include: { admin: true },
+    });
 
-      if (!resellerOrder) {
-        console.warn("[Midtrans Webhook] Reseller order not found for order_id:", order_id);
-        return NextResponse.json({ error: "Reseller order record not found" }, { status: 404 });
-      }
-
+    if (resellerOrder) {
       if (resellerOrder.paymentStatus === "PAID" && isSuccess) {
         return NextResponse.json({ status: "OK", message: "Pesanan sudah berstatus lunas sebelumnya." });
       }
@@ -180,6 +175,17 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Jika pesanan berasal dari referral affiliate, tambahkan komisi ke akun affiliate
+        if (resellerOrder.affiliateCode && resellerOrder.affiliateCommission > 0) {
+          await prisma.affiliateAccount.update({
+            where: { referralCode: resellerOrder.affiliateCode },
+            data: {
+              balance: { increment: resellerOrder.affiliateCommission },
+              totalEarned: { increment: resellerOrder.affiliateCommission },
+            },
+          }).catch((affErr) => console.error("Error crediting affiliate commission in midtrans webhook:", affErr));
+        }
+
         await prisma.$transaction([
           prisma.resellerOrder.update({
             where: { id: resellerOrder.id },
@@ -193,7 +199,7 @@ export async function POST(req: NextRequest) {
             data: {
               userId: resellerOrder.adminId,
               userName: resellerOrder.customerName,
-              userRole: "ADMIN",
+              userRole: resellerOrder.adminId ? "ADMIN" : "USER",
               action: "UPDATE_STATUS",
               title: "Pembayaran Pesanan Produk Berhasil (Midtrans QRIS) ⚡",
               description: `Pesanan #${resellerOrder.orderNumber} sebesar Rp ${resellerOrder.totalAmount.toLocaleString("id-ID")} berhasil dibayar lunas via Midtrans ${payment_type?.toUpperCase() || "QRIS"}. Status: Diproses.`,
@@ -212,7 +218,7 @@ export async function POST(req: NextRequest) {
           action: "NEW_ORDER",
         }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
 
-        console.log(`[Midtrans Webhook] SUCCESS: Reseller Order #${resellerOrder.orderNumber} marked PAID`);
+        console.log(`[Midtrans Webhook] SUCCESS: Order #${resellerOrder.orderNumber} marked PAID`);
         return NextResponse.json({ status: "OK", transaction_status });
       } else if (isFailed) {
         await prisma.resellerOrder.update({

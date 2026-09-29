@@ -224,8 +224,28 @@ export async function deleteResellerProductAction(id: string) {
 import bcrypt from "bcryptjs";
 
 /**
- * 5. Reseller / Calon Reseller Baru: Checkout Keranjang Belanja Produk (Midtrans QRIS / Transfer Manual BNI)
- * Mendukung pemesanan oleh Reseller yang sudah login maupun Calon Reseller Baru dari Landing Page Publik.
+ * Generator Kode Unik Pesanan 6 Karakter (contoh: A9PC1A, K7B2X9)
+ */
+export async function generateUniqueOrderCode(): Promise<string> {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let attempt = 0; attempt < 15; attempt++) {
+    let code = "";
+    for (let j = 0; j < 6; j++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await prisma.resellerOrder.findUnique({
+      where: { orderNumber: code },
+      select: { id: true },
+    });
+    if (!existing) {
+      return code;
+    }
+  }
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+/**
+ * 5. Reseller / Mitra Lapangan: Checkout Keranjang Paket Grosir Reseller (Wajib Min 8 pcs)
  */
 export async function createResellerOrderAction(data: {
   items: { productId: string; quantity: number }[];
@@ -242,12 +262,12 @@ export async function createResellerOrderAction(data: {
     const isAdminUser = session && session.user && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN");
 
     if (!data.items || data.items.length === 0) {
-      return { success: false, message: "Keranjang belanja Anda masih kosong." };
+      return { success: false, message: "Keranjang belanja paket reseller masih kosong." };
     }
 
     const totalQuantity = data.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
     if (totalQuantity < 8) {
-      return { success: false, message: `Minimal total pembelian adalah 8 pcs (saat ini ${totalQuantity} pcs).` };
+      return { success: false, message: `Pemesanan paket reseller wajib minimal 8 pcs (saat ini ${totalQuantity} pcs).` };
     }
 
     if (!data.customerName?.trim() || !data.customerPhone?.trim() || !data.customerEmail?.trim()) {
@@ -295,14 +315,13 @@ export async function createResellerOrderAction(data: {
     const shippingFee = siteSetting?.resellerShippingFee ?? 20000;
     const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard ?? 5000;
 
-    // Hitung diskon reward VIP: HANYA DIBERIKAN DARI OUTLET YANG SUDAH MEMBAYAR PERPANJANGAN VIP RESMI (BUKAN FREE TRIAL PERTAMA)
+    // Hitung diskon reward VIP jika reseller login
     let discountAmount = 0;
     if (isAdminUser && session?.user?.id) {
       const adminUser = await prisma.user.findUnique({
         where: { id: session.user.id },
       });
 
-      // Hitung total pembayaran VIP yang APPROVED dari outlet binaan admin ini
       const approvedPaidVipCount = await prisma.membershipPayment.count({
         where: {
           status: "APPROVED",
@@ -324,7 +343,7 @@ export async function createResellerOrderAction(data: {
     }
 
     const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + shippingFee);
-    const orderNumber = `RSLORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const orderNumber = await generateUniqueOrderCode(); // Format unik 6 karakter: A9PC1A
 
     // Handle Midtrans QRIS
     let midtransSnapToken: string | null = null;
@@ -405,11 +424,13 @@ export async function createResellerOrderAction(data: {
     const order = await prisma.resellerOrder.create({
       data: {
         orderNumber,
+        orderType: "RESELLER",
         adminId: isAdminUser ? session.user.id : null,
         customerName: data.customerName.trim(),
         customerPhone: data.customerPhone.trim(),
         customerEmail: data.customerEmail.trim(),
         shippingAddress: data.shippingAddress?.trim() || null,
+        province: "Jawa Timur",
         notes: data.notes?.trim() || null,
         paymentMethod: data.paymentMethod,
         paymentStatus: "PENDING",
@@ -438,15 +459,15 @@ export async function createResellerOrderAction(data: {
         userRole: (session?.user?.role as any) || "USER",
         action: "CREATE",
         title: "Pesanan Paket Reseller Masuk 🛒",
-        description: `Pesanan baru #${order.orderNumber} oleh "${data.customerName}" (${data.customerPhone}) sebanyak ${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")} via ${data.paymentMethod === "MIDTRANS_QRIS" ? "Midtrans QRIS" : "Transfer Bank BNI"}.`,
+        description: `Pesanan grosir baru #${order.orderNumber} oleh "${data.customerName}" (${data.customerPhone}) sebanyak ${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")}.`,
         targetId: order.id,
         targetName: order.orderNumber,
       },
     }).catch(() => {});
 
-    // Kirim Web Push Notification Realtime ke Super Admin (HP berdering meskipun dikunci / di background)
+    // Kirim Web Push Notification Realtime ke Super Admin
     await sendWebPushToSuperAdmins({
-      title: "🛍️ Pesanan Baru Masuk!",
+      title: "🛍️ Pesanan Reseller Baru Masuk!",
       body: `Pesanan #${order.orderNumber} dari "${data.customerName}" (${totalQuantity} pcs • Rp ${finalTotalAmount.toLocaleString("id-ID")}) via ${data.paymentMethod === "MIDTRANS_QRIS" ? "Midtrans QRIS" : "Transfer Bank BNI"}.`,
       url: "/super-admin",
       tag: `order-${order.id}`,
@@ -458,13 +479,243 @@ export async function createResellerOrderAction(data: {
 
     return {
       success: true,
-      message: "Pesanan berhasil dibuat!",
+      message: "Pesanan paket reseller berhasil dibuat!",
       order,
       snapToken: midtransSnapToken,
     };
   } catch (error) {
     console.error("createResellerOrderAction error:", error);
     return { success: false, message: "Gagal memproses pesanan." };
+  }
+}
+
+/**
+ * 5B. Pembeli Umum / Retail: Checkout Keranjang Belanja Satuan (Bisa beli mulai 1 pcs & Dukung Kode Referral Affiliate)
+ */
+export async function createRetailOrderAction(data: {
+  items: { productId: string; quantity: number }[];
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  shippingAddress?: string;
+  province?: string;
+  affiliateCode?: string;
+  notes?: string;
+  paymentMethod: "MIDTRANS_QRIS" | "MANUAL_BANK_BNI";
+  receiptImageUrl?: string;
+}) {
+  try {
+    const session = await auth();
+
+    if (!data.items || data.items.length === 0) {
+      return { success: false, message: "Keranjang belanja Anda masih kosong." };
+    }
+
+    const totalQuantity = data.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+    if (totalQuantity < 1) {
+      return { success: false, message: "Pilih minimal 1 unit produk." };
+    }
+
+    if (!data.customerName?.trim() || !data.customerPhone?.trim() || !data.customerEmail?.trim()) {
+      return { success: false, message: "Nama, No. WhatsApp, dan Email wajib diisi dengan lengkap." };
+    }
+
+    // Ambil produk dari database
+    const productIds = data.items.map((i) => i.productId);
+    const dbProducts = await prisma.resellerProduct.findMany({
+      where: { id: { in: productIds } },
+    });
+
+    const productMap = new Map(dbProducts.map((p) => [p.id, p]));
+
+    let calculatedSubtotal = 0;
+    const orderItemsData: {
+      productId: string;
+      productName: string;
+      productPrice: number;
+      quantity: number;
+      subtotal: number;
+    }[] = [];
+
+    for (const item of data.items) {
+      const p = productMap.get(item.productId);
+      if (!p) continue;
+      const qty = Number(item.quantity) || 0;
+      if (qty <= 0) continue;
+      const lineTotal = p.price * qty;
+      calculatedSubtotal += lineTotal;
+      orderItemsData.push({
+        productId: p.id,
+        productName: p.name,
+        productPrice: p.price,
+        quantity: qty,
+        subtotal: lineTotal,
+      });
+    }
+
+    if (orderItemsData.length === 0) {
+      return { success: false, message: "Produk yang dipilih tidak valid." };
+    }
+
+    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    let baseShippingFee = siteSetting?.resellerShippingFee ?? 20000;
+    const shippingDiscountLimit = siteSetting?.affiliateShippingDiscount ?? 10000;
+
+    // Verifikasi Kode Referral Affiliate jika ada
+    let validAffiliateCode: string | null = null;
+    let affiliateCommission = 0;
+    let shippingDiscount = 0;
+
+    if (data.affiliateCode && data.affiliateCode.trim()) {
+      const cleanRef = data.affiliateCode.trim().toUpperCase();
+      const affiliate = await prisma.affiliateAccount.findUnique({
+        where: { referralCode: cleanRef },
+      });
+
+      if (affiliate && affiliate.status === "ACTIVE") {
+        validAffiliateCode = affiliate.referralCode;
+        // Hitung komisi affiliate per unit
+        affiliateCommission = totalQuantity * (affiliate.commissionPerPcs || 5000);
+        // Potongan subsidi ongkir untuk pembeli max Rp 10.000
+        shippingDiscount = Math.min(baseShippingFee, shippingDiscountLimit);
+      }
+    }
+
+    const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
+    const finalTotalAmount = calculatedSubtotal + finalShippingFee;
+    const orderNumber = await generateUniqueOrderCode(); // Format 6 karakter: A9PC1A
+
+    // Handle Midtrans QRIS
+    let midtransSnapToken: string | null = null;
+    if (data.paymentMethod === "MIDTRANS_QRIS") {
+      const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
+      const isProduction = siteSetting?.midtransIsProduction ?? (process.env.MIDTRANS_IS_PRODUCTION === "true");
+
+      if (!serverKey) {
+        return {
+          success: false,
+          message: "Payment Gateway Midtrans QRIS belum dikonfigurasi. Silakan pilih metode Transfer Bank BNI.",
+        };
+      }
+
+      const snapEndpoint = isProduction
+        ? "https://app.midtrans.com/snap/v1/transactions"
+        : "https://app.sandbox.midtrans.com/snap/v1/transactions";
+
+      const authHeader = "Basic " + Buffer.from(serverKey + ":").toString("base64");
+
+      const midtransPayload: Record<string, unknown> = {
+        transaction_details: {
+          order_id: orderNumber,
+          gross_amount: finalTotalAmount,
+        },
+        customer_details: {
+          first_name: data.customerName.trim(),
+          email: data.customerEmail.trim(),
+          phone: data.customerPhone.trim(),
+        },
+        item_details: [
+          ...orderItemsData.map((item) => ({
+            id: item.productId,
+            price: item.productPrice,
+            quantity: item.quantity,
+            name: item.productName.slice(0, 50),
+          })),
+          {
+            id: "SHIPPING-FEE",
+            price: finalShippingFee,
+            quantity: 1,
+            name: `Ongkir (${data.province || "Jawa Timur"})`,
+          },
+        ],
+      };
+
+      const midtransRes = await fetch(snapEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": authHeader,
+        },
+        body: JSON.stringify(midtransPayload),
+      });
+
+      const snapData = await midtransRes.json();
+      if (!midtransRes.ok || !snapData.token) {
+        console.error("[Midtrans Retail Order Error]:", snapData);
+        return {
+          success: false,
+          message: snapData.error_messages?.[0] || "Gagal membuat invoice pembayaran Midtrans.",
+        };
+      }
+
+      midtransSnapToken = snapData.token;
+    }
+
+    const order = await prisma.resellerOrder.create({
+      data: {
+        orderNumber,
+        orderType: "RETAIL",
+        customerName: data.customerName.trim(),
+        customerPhone: data.customerPhone.trim(),
+        customerEmail: data.customerEmail.trim(),
+        shippingAddress: data.shippingAddress?.trim() || null,
+        province: data.province?.trim() || "Jawa Timur",
+        affiliateCode: validAffiliateCode,
+        affiliateCommission,
+        discountAmount: shippingDiscount,
+        notes: data.notes?.trim() || null,
+        paymentMethod: data.paymentMethod,
+        paymentStatus: "PENDING",
+        orderStatus: "PENDING",
+        totalQuantity,
+        subtotal: calculatedSubtotal,
+        shippingFee: finalShippingFee,
+        totalAmount: finalTotalAmount,
+        receiptImageUrl: data.receiptImageUrl || null,
+        midtransSnapToken: midtransSnapToken || null,
+        midtransOrderId: orderNumber,
+        items: {
+          create: orderItemsData,
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userName: data.customerName,
+        userRole: "USER",
+        action: "CREATE",
+        title: "Pesanan Pembeli Baru Masuk 🛒",
+        description: `Pesanan retail #${order.orderNumber} oleh "${data.customerName}" (${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")})${validAffiliateCode ? ` via Referral Affiliate [${validAffiliateCode}]` : ""}.`,
+        targetId: order.id,
+        targetName: order.orderNumber,
+      },
+    }).catch(() => {});
+
+    // Kirim Web Push Notification Realtime ke Super Admin
+    await sendWebPushToSuperAdmins({
+      title: "🛍️ Pesanan Pembeli Baru Masuk!",
+      body: `Pesanan #${order.orderNumber} dari "${data.customerName}" (${totalQuantity} pcs • Rp ${finalTotalAmount.toLocaleString("id-ID")})${validAffiliateCode ? ` [Ref: ${validAffiliateCode}]` : ""}.`,
+      url: "/super-admin",
+      tag: `order-${order.id}`,
+      action: "NEW_ORDER",
+    }).catch((pushErr) => console.error("Push notification to super admin error:", pushErr));
+
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: "Pesanan berhasil dibuat!",
+      order,
+      snapToken: midtransSnapToken,
+    };
+  } catch (error) {
+    console.error("createRetailOrderAction error:", error);
+    return { success: false, message: "Gagal memproses pesanan retail." };
   }
 }
 
@@ -608,13 +859,24 @@ export async function approveResellerOrderAction(orderId: string) {
       },
     });
 
+    // Jika pesanan berasal dari referral affiliate, tambahkan komisi ke saldo akun affiliate
+    if (order.affiliateCode && order.affiliateCommission > 0) {
+      await prisma.affiliateAccount.update({
+        where: { referralCode: order.affiliateCode },
+        data: {
+          balance: { increment: order.affiliateCommission },
+          totalEarned: { increment: order.affiliateCommission },
+        },
+      }).catch((affErr) => console.error("Error crediting affiliate commission:", affErr));
+    }
+
     await prisma.activityLog.create({
       data: {
         userId: session.user.id,
         userName: session.user.name || "Super Admin",
         userRole: "SUPER_ADMIN",
         action: "UPDATE_STATUS",
-        title: "Konfirmasi Pembayaran Pesanan Reseller ✅",
+        title: "Konfirmasi Pembayaran Pesanan ✅",
         description: `Super Admin menyetujui pembayaran Order #${order.orderNumber} sebesar Rp ${order.totalAmount.toLocaleString("id-ID")}. Status: Diproses.`,
         targetId: order.id,
         targetName: order.orderNumber,
@@ -734,21 +996,23 @@ export async function deleteResellerOrderRecordAction(orderId: string) {
 }
 
 /**
- * 12. Publik: Lacak Status Pesanan Berdasarkan Nomor Pesanan atau Nomor WhatsApp
+ * 12. Publik & Pembeli: Lacak Status Pesanan Berdasarkan Kode Pesanan (contoh: A9PC1A) atau Nomor WhatsApp
  */
 export async function trackResellerOrderAction(query: string) {
   try {
     const cleanQuery = query.trim();
     if (!cleanQuery || cleanQuery.length < 3) {
-      return { success: false, message: "Masukkan Nomor Pesanan (RSLORD-xxx) atau Nomor WhatsApp yang valid." };
+      return { success: false, message: "Masukkan Kode Pesanan (contoh: A9PC1A) atau Nomor WhatsApp yang valid." };
     }
 
+    const upperCode = cleanQuery.toUpperCase();
     let cleanPhone = cleanQuery.replace(/[^0-9]/g, "");
     if (cleanPhone.startsWith("08")) cleanPhone = "62" + cleanPhone.slice(1);
 
     const orders = await prisma.resellerOrder.findMany({
       where: {
         OR: [
+          { orderNumber: { equals: upperCode } },
           { orderNumber: { equals: cleanQuery } },
           { customerPhone: { contains: cleanQuery } },
           ...(cleanPhone.length >= 8 ? [{ customerPhone: { contains: cleanPhone } }] : []),
@@ -765,7 +1029,7 @@ export async function trackResellerOrderAction(query: string) {
     if (orders.length === 0) {
       return {
         success: false,
-        message: `Pesanan dengan kata kunci "${cleanQuery}" tidak ditemukan. Pastikan nomor pesanan atau no. WhatsApp sudah benar.`,
+        message: `Pesanan dengan kata kunci "${cleanQuery}" tidak ditemukan. Pastikan kode pesanan atau no. WhatsApp sudah benar.`,
       };
     }
 

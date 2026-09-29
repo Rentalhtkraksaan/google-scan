@@ -2,7 +2,8 @@ import type { NextAuthConfig } from "next-auth";
 
 // Edge-compatible auth config (no Prisma, no bcrypt)
 export const authConfig: NextAuthConfig = {
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 60 * 60 }, // Max 1 jam (3600 detik) - otomatis logout setelah 1 jam
+  jwt: { maxAge: 60 * 60 }, // JWT token kadaluarsa dalam 1 jam
   pages: {
     signIn: "/login",
     error: "/login",

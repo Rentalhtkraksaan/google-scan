@@ -60,6 +60,10 @@ export interface SiteSettingModel {
   resellerBankName?: string;
   resellerAccountNumber?: string;
   resellerAccountName?: string;
+  manualBniAccountNumber?: string;
+  manualBniAccountHolder?: string;
+  affiliateShippingDiscount?: number;
+  affiliateDefaultCommission?: number;
   updatedAt?: string | Date;
 }
 

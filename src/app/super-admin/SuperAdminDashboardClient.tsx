@@ -50,7 +50,9 @@ import {
   MoreHorizontal,
   ShoppingCart,
   Package,
+  Users,
 } from "lucide-react";
+import { AffiliateManagerModal } from "@/components/dashboard/AffiliateManagerModal";
 import { ResellerProductManagerModal } from "@/components/dashboard/ResellerProductManagerModal";
 import { ResellerOrdersManagerModal } from "@/components/dashboard/ResellerOrdersManagerModal";
 import { EditMembershipDateModal } from "@/components/dashboard/EditMembershipDateModal";
@@ -483,6 +485,7 @@ export function SuperAdminDashboardClient({
   const [isBulkActivateModalOpen, setIsBulkActivateModalOpen] = useState(false);
   const [isResellerProductsModalOpen, setIsResellerProductsModalOpen] = useState(false);
   const [isResellerOrdersModalOpen, setIsResellerOrdersModalOpen] = useState(false);
+  const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
   const [editingMembershipOutlet, setEditingMembershipOutlet] = useState<{
     id: string;
     name: string;
@@ -1640,6 +1643,24 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Affiliate & Komisi */}
+            <button
+              onClick={() => {
+                setIsAffiliateModalOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              title="Kelola mitra affiliate, followers, tarif komisi & pencairan saldo"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <Users className="w-4 h-4 shrink-0 text-purple-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Mitra Affiliate & Komisi</span>
+              </div>
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                KOMISI
+              </span>
+            </button>
+
             {/* Katalog Produk Reseller (Khusus Super Admin 1 Master) */}
             {isMaster && (
               <button
@@ -1883,7 +1904,17 @@ Tim Layanan Smart QR`;
 
           {/* Top-Right Quick Action CTA Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* 1. Pesanan Reseller (Tablet & Desktop) */}
+            {/* 1. Mitra Affiliate (Desktop) */}
+            <button
+              onClick={() => setIsAffiliateModalOpen(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-purple-300 hover:text-white font-bold text-xs border border-purple-500/40 hover:border-purple-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Kelola mitra affiliate & bagi hasil komisi"
+            >
+              <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span>Affiliate</span>
+            </button>
+
+            {/* 2. Pesanan Reseller (Tablet & Desktop) */}
             <button
               onClick={() => setIsResellerOrdersModalOpen(true)}
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-bold text-xs border border-emerald-500/40 hover:border-emerald-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
@@ -1893,7 +1924,7 @@ Tim Layanan Smart QR`;
               <span>Pesanan Reseller</span>
             </button>
 
-            {/* 2. Kelola Member & Bukti Transfer (Tablet & Desktop) */}
+            {/* 3. Kelola Member & Bukti Transfer (Tablet & Desktop) */}
             <button
               onClick={() => setIsMembershipModalOpen(true)}
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
@@ -1903,36 +1934,36 @@ Tim Layanan Smart QR`;
               <span>Kelola Member</span>
             </button>
 
-            {/* 3. Notifikasi & Dering HP Super Admin */}
+            {/* 4. Notifikasi & Dering HP Super Admin */}
             <NotificationPrompt className="shrink-0" />
 
-            {/* 4. Dynamic Primary Action Button */}
+            {/* 5. Dynamic Primary Action Button */}
             {activeTab === "ADMINS" ? (
               <button
                 onClick={() => setIsCreateAdminOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span className="hidden sm:inline">+ Tambah Admin Baru</span>
-                <span className="sm:hidden text-xs">+ Admin</span>
+                <span className="sm:hidden text-[11px]">+ Admin</span>
               </button>
             ) : activeTab === "SUPER_ADMINS" && isMaster ? (
               <button
                 onClick={() => setIsCreateSuperAdminOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span className="hidden sm:inline">+ Super Admin 2</span>
-                <span className="sm:hidden text-xs">+ SA 2</span>
+                <span className="sm:hidden text-[11px]">+ SA 2</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsBatchGenerateOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span className="hidden sm:inline">Input Kartu Baru</span>
-                <span className="sm:hidden text-xs">Kartu</span>
+                <span className="sm:hidden text-[11px]">+ Kartu</span>
               </button>
             )}
           </div>
@@ -4430,6 +4461,11 @@ Tim Layanan Smart QR`;
           }}
         />
       )}
+      {/* Affiliate Manager Modal (Super Admin 1 & 2) */}
+      <AffiliateManagerModal
+        isOpen={isAffiliateModalOpen}
+        onClose={() => setIsAffiliateModalOpen(false)}
+      />
     </div>
   );
 }
