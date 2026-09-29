@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRecentRealtimeReviewEvents } from "@/lib/realtime-events";
+import { getRecentRealtimeReviewEvents, getCachedOutletScanCount, setOutletScanCount } from "@/lib/realtime-events";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const outletScanCache = new Map<string, { totalScans: number; timestamp: number }>();
-
 export async function GET(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown_ip";
-    const rateCheck = checkRateLimit(`portal_realtime_${ip}`, 120, 60 * 1000);
+    const rateCheck = checkRateLimit(`portal_realtime_${ip}`, 300, 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { success: false, message: "Terlalu banyak permintaan polling realtime." },
@@ -28,24 +26,21 @@ export async function GET(req: NextRequest) {
 
     const parsedSince = since ? parseInt(since, 10) : NaN;
     const sinceMs = !isNaN(parsedSince) && parsedSince > 0 ? parsedSince : Date.now() - 10000;
-
-    // 1. Fetch live total scans from memory cache (15s TTL) or database
     const now = Date.now();
-    const cached = outletScanCache.get(outletId);
-    let totalScans = 0;
 
-    if (cached && now - cached.timestamp < 15000) {
-      totalScans = cached.totalScans;
-    } else {
+    // 1. Fetch live total scans from RAM memory cache or fast DB aggregate
+    let totalScans = getCachedOutletScanCount(outletId);
+
+    if (totalScans === null) {
       const scanAggregate = await prisma.qrCard.aggregate({
         where: { outletId },
         _sum: { scanCount: true },
       });
       totalScans = scanAggregate._sum.scanCount || 0;
-      outletScanCache.set(outletId, { totalScans, timestamp: now });
+      setOutletScanCount(outletId, totalScans);
     }
 
-    // 2. Fetch new scan/review events directly from in-memory RAM bus (0 DB queries & 0 DB storage!)
+    // 2. Fetch new scan/review events directly from in-memory RAM bus (0 DB queries & 0 DB latency!)
     const recentEvents = getRecentRealtimeReviewEvents(outletId, sinceMs);
 
     return NextResponse.json({

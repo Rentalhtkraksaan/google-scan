@@ -308,6 +308,8 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
             eventType: rating === 5 ? "FIVE_STAR" : "FOUR_STAR",
             rating,
           }),
+          keepalive: true,
+          cache: "no-store",
         }).catch((err) => console.warn(`Failed to notify outlet of ${rating}-star rating:`, err));
       } catch {
         // Non-blocking

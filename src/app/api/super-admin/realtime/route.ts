@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown_ip";
-    const rateCheck = checkRateLimit(`superadmin_realtime_${ip}`, 120, 60 * 1000);
+    const rateCheck = checkRateLimit(`superadmin_realtime_${ip}`, 300, 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { success: false, message: "Terlalu banyak permintaan polling realtime." },

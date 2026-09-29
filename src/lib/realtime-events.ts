@@ -17,6 +17,8 @@ export interface RealtimeReviewEvent {
 declare global {
   // eslint-disable-next-line no-var
   var __smartqr_realtime_events: RealtimeReviewEvent[] | undefined;
+  // eslint-disable-next-line no-var
+  var __smartqr_scan_counters: Map<string, { count: number; updatedAt: number }> | undefined;
 }
 
 const getEventStore = (): RealtimeReviewEvent[] => {
@@ -25,6 +27,38 @@ const getEventStore = (): RealtimeReviewEvent[] => {
   }
   return global.__smartqr_realtime_events;
 };
+
+const getScanCounterStore = (): Map<string, { count: number; updatedAt: number }> => {
+  if (!global.__smartqr_scan_counters) {
+    global.__smartqr_scan_counters = new Map();
+  }
+  return global.__smartqr_scan_counters;
+};
+
+export function setOutletScanCount(outletId: string, count: number) {
+  const store = getScanCounterStore();
+  store.set(outletId, { count, updatedAt: Date.now() });
+}
+
+export function incrementOutletScanCount(outletId: string, incrementBy: number = 1): number | null {
+  const store = getScanCounterStore();
+  const existing = store.get(outletId);
+  if (existing) {
+    existing.count += incrementBy;
+    existing.updatedAt = Date.now();
+    return existing.count;
+  }
+  return null;
+}
+
+export function getCachedOutletScanCount(outletId: string): number | null {
+  const store = getScanCounterStore();
+  const existing = store.get(outletId);
+  if (existing && Date.now() - existing.updatedAt < 30000) {
+    return existing.count;
+  }
+  return null;
+}
 
 /**
  * Broadcast an incoming scan or review event to memory.
@@ -50,6 +84,11 @@ export function broadcastRealtimeReviewEvent(event: {
   };
 
   store.push(newEvent);
+
+  // Instant in-memory increment if it is a scan event
+  if (event.action === "SCAN_CARD") {
+    incrementOutletScanCount(event.outletId, 1);
+  }
 
   // Keep store lightweight: retain only events from the last 60 seconds and max 100 entries
   const cutoff = Date.now() - 60000;

@@ -247,7 +247,8 @@ export function CashierDisplayClient({ outlet }: CashierDisplayClientProps) {
       }
     };
 
-    const interval = setInterval(pollEvents, 3500);
+    const interval = setInterval(pollEvents, 1500);
+    pollEvents();
     return () => {
       isCancelled = true;
       clearInterval(interval);

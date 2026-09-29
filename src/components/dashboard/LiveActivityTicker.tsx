@@ -21,7 +21,7 @@ interface LiveActivityTickerProps {
 
 export function LiveActivityTicker({
   initialItems = [],
-  refreshIntervalMs = 15000,
+  refreshIntervalMs = 6000,
 }: LiveActivityTickerProps) {
   const [items, setItems] = useState<LiveTickerItem[]>(initialItems);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,7 +68,7 @@ export function LiveActivityTicker({
 
     timerRef.current = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % items.length);
-    }, 4500);
+    }, 3500);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);

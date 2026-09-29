@@ -439,7 +439,7 @@ export function SuperAdminDashboardClient({
       }
     };
 
-    const interval = setInterval(pollRealtime, 10000);
+    const interval = setInterval(pollRealtime, 3000);
     pollRealtime();
 
     return () => {

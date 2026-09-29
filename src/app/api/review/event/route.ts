@@ -8,7 +8,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown_ip";
-    const rateCheck = checkRateLimit(`review_event_${ip}`, 45, 60 * 1000);
+    const rateCheck = checkRateLimit(`review_event_${ip}`, 300, 60 * 1000);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { success: false, message: "Terlalu banyak permintaan event. Silakan tunggu sebentar." },
