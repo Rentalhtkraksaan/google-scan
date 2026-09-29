@@ -23,12 +23,23 @@ import {
   ArrowDownRight,
   ShieldCheck,
   Smartphone,
+  KeyRound,
+  Trash2,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Mail,
+  User,
+  FileText,
 } from "lucide-react";
 import {
   getAffiliateAccountsAction,
   updateAffiliateAccountAction,
   payoutAffiliateCommissionAction,
   registerAffiliateAccountAction,
+  resetAffiliatePasswordAction,
+  deleteAffiliateAccountAction,
 } from "@/lib/actions/affiliate.actions";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 
@@ -49,6 +60,7 @@ interface AffiliateItem {
   accountNumber: string | null;
   accountHolder: string | null;
   notes: string | null;
+  hasPassword?: boolean;
   createdAt: Date | string;
   totalOrders?: number;
   totalCards?: number;
@@ -64,6 +76,7 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
   const [affiliates, setAffiliates] = useState<AffiliateItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Payout modal state
   const [selectedForPayout, setSelectedForPayout] = useState<AffiliateItem | null>(null);
@@ -71,23 +84,44 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
   const [payoutNotes, setPayoutNotes] = useState<string>("");
   const [isProcessingPayout, setIsProcessingPayout] = useState(false);
 
-  // Edit commission modal state
-  const [selectedForEdit, setSelectedForEdit] = useState<AffiliateItem | null>(null);
-  const [editCommission, setEditCommission] = useState<string>("");
-  const [editFollowers, setEditFollowers] = useState<string>("");
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  // Quick Reset Password modal state
+  const [selectedForPassword, setSelectedForPassword] = useState<AffiliateItem | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  // Full Edit modal state
+  const [selectedForEditFull, setSelectedForEditFull] = useState<AffiliateItem | null>(null);
+  const [editFullName, setEditFullName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editReferralCode, setEditReferralCode] = useState("");
+  const [editNewPassword, setEditNewPassword] = useState("");
+  const [editFollowers, setEditFollowers] = useState("");
+  const [editCommission, setEditCommission] = useState("");
+  const [editSocialUrl, setEditSocialUrl] = useState("");
+  const [editBankName, setEditBankName] = useState("");
+  const [editAccountNumber, setEditAccountNumber] = useState("");
+  const [editAccountHolder, setEditAccountHolder] = useState("");
+  const [editStatus, setEditStatus] = useState<"ACTIVE" | "SUSPENDED">("ACTIVE");
+  const [editNotes, setEditNotes] = useState("");
+  const [isSavingFullEdit, setIsSavingFullEdit] = useState(false);
 
   // Create new affiliate state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newFullName, setNewFullName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("affiliate123");
   const [newFollowers, setNewFollowers] = useState("");
+  const [newCommission, setNewCommission] = useState("");
   const [newSocialUrl, setNewSocialUrl] = useState("");
   const [newCustomCode, setNewCustomCode] = useState("");
   const [newBankName, setNewBankName] = useState("");
   const [newAccountNumber, setNewAccountNumber] = useState("");
   const [newAccountHolder, setNewAccountHolder] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [showNewPasswordText, setShowNewPasswordText] = useState(false);
   const [isSubmittingNew, setIsSubmittingNew] = useState(false);
 
   const loadAffiliates = async () => {
@@ -128,6 +162,13 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
   const totalOrdersAll = affiliates.reduce((sum, a) => sum + (a.totalOrders || 0), 0);
   const totalCardsAll = affiliates.reduce((sum, a) => sum + (a.totalCards || 0), 0);
 
+  // Copy helper
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(id);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
   // Payout Handler
   const handleConfirmPayout = async () => {
     if (!selectedForPayout) return;
@@ -161,30 +202,113 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
     }
   };
 
-  // Edit Handler
-  const handleSaveEdit = async () => {
-    if (!selectedForEdit) return;
-    const comm = Number(editCommission);
-    const flw = Number(editFollowers);
+  // Open Full Edit Modal
+  const handleOpenEditFull = (aff: AffiliateItem) => {
+    setSelectedForEditFull(aff);
+    setEditFullName(aff.fullName);
+    setEditPhone(aff.phone);
+    setEditEmail(aff.email);
+    setEditReferralCode(aff.referralCode);
+    setEditNewPassword("");
+    setEditFollowers(String(aff.followersCount || 0));
+    setEditCommission(String(aff.commissionPerPcs || 5000));
+    setEditSocialUrl(aff.socialMediaUrl || "");
+    setEditBankName(aff.bankName || "");
+    setEditAccountNumber(aff.accountNumber || "");
+    setEditAccountHolder(aff.accountHolder || "");
+    setEditStatus((aff.status as "ACTIVE" | "SUSPENDED") || "ACTIVE");
+    setEditNotes(aff.notes || "");
+  };
 
-    setIsSavingEdit(true);
+  // Save Full Edit Handler
+  const handleSaveFullEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedForEditFull) return;
+
+    if (!editFullName.trim() || !editPhone.trim() || !editEmail.trim()) {
+      showErrorAlert("Data Wajib", "Nama, Nomor WhatsApp, dan Email wajib diisi.");
+      return;
+    }
+
+    setIsSavingFullEdit(true);
     try {
-      const res = await updateAffiliateAccountAction(selectedForEdit.id, {
-        commissionPerPcs: isNaN(comm) ? undefined : comm,
-        followersCount: isNaN(flw) ? undefined : flw,
+      const res = await updateAffiliateAccountAction(selectedForEditFull.id, {
+        fullName: editFullName.trim(),
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+        referralCode: editReferralCode.trim().toUpperCase(),
+        password: editNewPassword.trim() || undefined,
+        followersCount: Number(editFollowers) || 0,
+        commissionPerPcs: Number(editCommission) || 5000,
+        socialMediaUrl: editSocialUrl.trim() || undefined,
+        bankName: editBankName.trim() || undefined,
+        accountNumber: editAccountNumber.trim() || undefined,
+        accountHolder: editAccountHolder.trim() || undefined,
+        status: editStatus,
+        notes: editNotes.trim() || undefined,
       });
 
       if (res.success) {
-        showSuccessAlert("Berhasil", "Data affiliate berhasil diperbarui.");
-        setSelectedForEdit(null);
+        showSuccessAlert("Berhasil Diperbarui", res.message);
+        setSelectedForEditFull(null);
         await loadAffiliates();
       } else {
-        showErrorAlert("Gagal", res.message);
+        showErrorAlert("Gagal Update", res.message);
       }
     } catch {
       showErrorAlert("Error", "Gagal memperbarui data affiliate.");
     } finally {
-      setIsSavingEdit(false);
+      setIsSavingFullEdit(false);
+    }
+  };
+
+  // Reset Password Handler
+  const handleSaveQuickPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedForPassword) return;
+
+    if (!newPasswordInput.trim() || newPasswordInput.trim().length < 4) {
+      showErrorAlert("Password Terlalu Pendek", "Password minimal 4 karakter.");
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const res = await resetAffiliatePasswordAction(selectedForPassword.id, newPasswordInput.trim());
+      if (res.success) {
+        showSuccessAlert("Password Diperbarui", res.message);
+        setSelectedForPassword(null);
+        setNewPasswordInput("");
+        await loadAffiliates();
+      } else {
+        showErrorAlert("Gagal Reset", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal mereset password affiliate.");
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  // Delete Affiliate Handler
+  const handleDeleteAffiliate = async (aff: AffiliateItem) => {
+    const confirmed = await showConfirmAlert(
+      `Hapus Affiliate "${aff.fullName}"?`,
+      `Akun affiliate dengan kode referral ${aff.referralCode} akan dihapus permanen.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const res = await deleteAffiliateAccountAction(aff.id);
+      if (res.success) {
+        showSuccessAlert("Berhasil Dihapus", res.message);
+        await loadAffiliates();
+      } else {
+        showErrorAlert("Gagal Hapus", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghapus akun affiliate.");
     }
   };
 
@@ -220,26 +344,32 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
         fullName: newFullName.trim(),
         phone: newPhone.trim(),
         email: newEmail.trim(),
+        password: newPassword.trim() || "affiliate123",
         followersCount: Number(newFollowers) || 0,
+        commissionPerPcs: Number(newCommission) || undefined,
         socialMediaUrl: newSocialUrl.trim() || undefined,
         customReferralCode: newCustomCode.trim() || undefined,
         bankName: newBankName.trim() || undefined,
         accountNumber: newAccountNumber.trim() || undefined,
         accountHolder: newAccountHolder.trim() || undefined,
+        notes: newNotes.trim() || undefined,
       });
 
       if (res.success) {
-        showSuccessAlert("Affiliate Terdaftar", res.message);
+        showSuccessAlert("Affiliate Terdaftar 🎉", res.message);
         setIsCreateModalOpen(false);
         setNewFullName("");
         setNewPhone("");
         setNewEmail("");
+        setNewPassword("affiliate123");
         setNewFollowers("");
+        setNewCommission("");
         setNewSocialUrl("");
         setNewCustomCode("");
         setNewBankName("");
         setNewAccountNumber("");
         setNewAccountHolder("");
+        setNewNotes("");
         await loadAffiliates();
       } else {
         showErrorAlert("Gagal", res.message);
@@ -266,11 +396,14 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base sm:text-lg text-white">
-                Kelola Mitra Affiliate & Komisi
+              <h3 className="font-extrabold text-base sm:text-lg text-white flex items-center gap-2">
+                <span>Kelola Mitra Affiliate & Komisi</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                  Login 1 Pintu
+                </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Atur komisi per pcs berdasarkan followers, pantau omset referral & proses pencairan
+                Atur komisi per pcs, buat akun password login affiliate, pantau omset referral & proses pencairan
               </p>
             </div>
           </div>
@@ -278,10 +411,10 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Tambah Affiliate</span>
+              <span>Tambah Affiliate</span>
             </button>
             <button
               type="button"
@@ -357,7 +490,7 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                         {aff.fullName.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-bold text-sm text-white">{aff.fullName}</h4>
                           <span className="font-mono font-bold text-xs px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
                             {aff.referralCode}
@@ -374,7 +507,7 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                             {aff.status === "ACTIVE" ? "AKTIF" : "NONAKTIF"}
                           </button>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                        <div className="flex items-center gap-2.5 text-xs text-slate-400 mt-0.5 flex-wrap">
                           <span>{aff.phone}</span>
                           <span>•</span>
                           <span>{aff.email}</span>
@@ -387,7 +520,7 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                                 rel="noopener noreferrer"
                                 className="text-sky-400 hover:underline inline-flex items-center gap-0.5 text-[11px]"
                               >
-                                <span>Akun Medsos</span>
+                                <span>Medsos</span>
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             </>
@@ -397,30 +530,42 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
                       <a
                         href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-colors"
-                        title="Chat WhatsApp"
+                        title="Chat WhatsApp Affiliate"
                       >
                         <Phone className="w-4 h-4" />
                       </a>
 
+                      {/* Tombol Ganti / Reset Password */}
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedForEdit(aff);
-                          setEditCommission(String(aff.commissionPerPcs));
-                          setEditFollowers(String(aff.followersCount));
+                          setSelectedForPassword(aff);
+                          setNewPasswordInput("");
+                          setShowPasswordText(false);
                         }}
+                        className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
+                        title="Ubah / Reset Password Akun Login Affiliate"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
+
+                      {/* Tombol Edit Data Lengkap */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditFull(aff)}
                         className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
-                        title="Edit Tarif Komisi / Followers"
+                        title="Edit Data Lengkap Affiliate"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
 
+                      {/* Tombol Cairkan Komisi */}
                       <button
                         type="button"
                         onClick={() => {
@@ -429,10 +574,21 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                           setPayoutNotes("");
                         }}
                         disabled={aff.balance <= 0}
-                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 disabled:opacity-40 text-slate-950 font-black text-xs shadow transition-all cursor-pointer flex items-center gap-1"
+                        className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 disabled:opacity-40 text-slate-950 font-black text-xs shadow transition-all cursor-pointer flex items-center gap-1"
+                        title="Cairkan Saldo Komisi Affiliate"
                       >
                         <ArrowDownRight className="w-3.5 h-3.5" />
                         <span>Cairkan Komisi</span>
+                      </button>
+
+                      {/* Tombol Hapus */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAffiliate(aff)}
+                        className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
+                        title="Hapus Akun Affiliate"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -448,7 +604,7 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
 
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
                       <span className="text-[10px] text-slate-500 uppercase font-bold block">Tarif Komisi / Pcs</span>
-                      <span className="font-bold text-indigo-400 text-xs">
+                      <span className="font-bold text-emerald-400 text-xs">
                         Rp {aff.commissionPerPcs.toLocaleString("id-ID")} / pcs
                       </span>
                     </div>
@@ -462,8 +618,8 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
 
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
                       <span className="text-[10px] text-slate-500 uppercase font-bold block">Rekening Penarikan</span>
-                      <span className="font-bold text-slate-300 text-xs truncate block" title={`${aff.bankName || "-"} ${aff.accountNumber || ""}`}>
-                        {aff.bankName ? `${aff.bankName} ${aff.accountNumber}` : "Belum diisi"}
+                      <span className="text-slate-300 text-xs truncate block" title={`${aff.bankName || ""} ${aff.accountNumber || ""} a.n ${aff.accountHolder || ""}`}>
+                        {aff.bankName ? `${aff.bankName} - ${aff.accountNumber}` : "Belum diisi"}
                       </span>
                     </div>
                   </div>
@@ -472,274 +628,527 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
             })
           )}
         </div>
+      </div>
 
-        {/* ── EDIT COMMISSION MODAL ── */}
-        {selectedForEdit && (
-          <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <h4 className="font-extrabold text-sm text-white">Edit Komisi: {selectedForEdit.fullName}</h4>
-                <button
-                  type="button"
-                  onClick={() => setSelectedForEdit(null)}
-                  className="text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+      {/* MODAL 1: RESET / UBAH PASSWORD AFFILIATE */}
+      {selectedForPassword && (
+        <div className="fixed inset-0 z-60 p-4 bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                <KeyRound className="w-4 h-4" />
+                <span>Ubah Password Akun Affiliate</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedForPassword(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-1 text-xs">
+              <span className="text-slate-400 block font-semibold">Akun Mitra Affiliate:</span>
+              <span className="text-white font-bold text-sm block">{selectedForPassword.fullName}</span>
+              <span className="text-slate-400 block text-[11px]">Email: {selectedForPassword.email} • Kode: {selectedForPassword.referralCode}</span>
+            </div>
+
+            <form onSubmit={handleSaveQuickPassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Password Baru *</label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showPasswordText ? "text" : "password"}
+                    required
+                    minLength={4}
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="Minimal 4 karakter (misal: affiliate123)"
+                    className="w-full pl-9 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordText(!showPasswordText)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Mitra affiliate akan menggunakan email dan password ini untuk login di halaman <strong>/login</strong>.
+                </p>
               </div>
 
-              <div className="space-y-3">
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedForPassword(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPassword}
+                  className="px-5 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-black rounded-xl shadow transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSavingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Simpan Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: FULL EDIT DATA AFFILIATE */}
+      {selectedForEditFull && (
+        <div className="fixed inset-0 z-60 p-4 bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Edit2 className="w-4 h-4 text-purple-400" />
+                <span>Edit Data Lengkap Affiliate: {selectedForEditFull.fullName}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedForEditFull(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFullEdit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Jumlah Followers Medsos</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Nama Lengkap *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">No. WhatsApp Aktif *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Email Pemilik Akun *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Kode Referral Unik *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editReferralCode}
+                    onChange={(e) => setEditReferralCode(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono font-bold focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Password Baru (Kosongkan jika tidak ganti)</label>
+                  <input
+                    type="password"
+                    value={editNewPassword}
+                    onChange={(e) => setEditNewPassword(e.target.value)}
+                    placeholder="Isi untuk ganti password login"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Status Akun</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as "ACTIVE" | "SUSPENDED")}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="ACTIVE">AKTIF (Bisa login & dapat komisi)</option>
+                    <option value="SUSPENDED">NONAKTIF (Ditangguhkan)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Jumlah Followers Medsos</label>
                   <input
                     type="number"
                     value={editFollowers}
                     onChange={(e) => setEditFollowers(e.target.value)}
-                    placeholder="Contoh: 15000"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Tarif Komisi Per Pcs (Rp)</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Tarif Komisi per Pcs (Rp)</label>
                   <input
                     type="number"
                     value={editCommission}
                     onChange={(e) => setEditCommission(e.target.value)}
-                    placeholder="Contoh: 7500"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none font-mono"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-purple-500"
                   />
-                  <span className="text-[10px] text-slate-500 block mt-1">
-                    Default tier: &lt;10k: 5rb | 10k-50k: 7.5rb | &gt;50k: 10rb
-                  </span>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedForEdit(null)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveEdit}
-                  disabled={isSavingEdit}
-                  className="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
-                >
-                  {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                  <span>Simpan</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── PAYOUT COMMISSION MODAL ── */}
-        {selectedForPayout && (
-          <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-md w-full space-y-4 shadow-2xl">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <h4 className="font-extrabold text-sm text-white">Pencairan Komisi: {selectedForPayout.fullName}</h4>
-                <button
-                  type="button"
-                  onClick={() => setSelectedForPayout(null)}
-                  className="text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1">
-                <div className="flex justify-between text-slate-400">
-                  <span>Sisa Saldo Komisi:</span>
-                  <span className="font-mono font-bold text-amber-400">Rp {selectedForPayout.balance.toLocaleString("id-ID")}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Rekening Tujuan:</span>
-                  <span className="font-semibold text-white">{selectedForPayout.bankName || "Manual"} - {selectedForPayout.accountNumber || "-"} ({selectedForPayout.accountHolder || selectedForPayout.fullName})</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Nominal Dicairkan (Rp) *</label>
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-300 font-semibold mb-1">Link Profil Akun Medsos / Portofolio</label>
                   <input
-                    type="number"
-                    value={payoutAmount}
-                    onChange={(e) => setPayoutAmount(e.target.value)}
-                    placeholder="Contoh: 100000"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none font-mono"
+                    type="url"
+                    value={editSocialUrl}
+                    onChange={(e) => setEditSocialUrl(e.target.value)}
+                    placeholder="https://instagram.com/username atau tiktok.com/@username"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] text-slate-400 block mb-1">Catatan / Bukti Transfer (Opsional)</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Nama Bank / E-Wallet</label>
                   <input
                     type="text"
-                    value={payoutNotes}
-                    onChange={(e) => setPayoutNotes(e.target.value)}
-                    placeholder="Contoh: Transfer via BCA tgl 29 Sep"
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none"
+                    value={editBankName}
+                    onChange={(e) => setEditBankName(e.target.value)}
+                    placeholder="BCA / Mandiri / GoPay / Dana"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Nomor Rekening / No. E-Wallet</label>
+                  <input
+                    type="text"
+                    value={editAccountNumber}
+                    onChange={(e) => setEditAccountNumber(e.target.value)}
+                    placeholder="1234567890"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-300 font-semibold mb-1">Atas Nama Rekening</label>
+                  <input
+                    type="text"
+                    value={editAccountHolder}
+                    onChange={(e) => setEditAccountHolder(e.target.value)}
+                    placeholder="Nama pemilik rekening bank"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-300 font-semibold mb-1">Catatan Tambahan (Internal Super Admin)</label>
+                  <input
+                    type="text"
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Catatan khusus tentang mitra affiliate"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setSelectedForPayout(null)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
+                  onClick={() => setSelectedForEditFull(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
-                  type="button"
-                  onClick={handleConfirmPayout}
-                  disabled={isProcessingPayout}
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
+                  type="submit"
+                  disabled={isSavingFullEdit}
+                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  {isProcessingPayout ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <DollarSign className="w-3.5 h-3.5" />}
-                  <span>Proses Cairkan</span>
+                  {isSavingFullEdit && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Simpan Perubahan Data</span>
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: PENCAIRAN KOMISI (PAYOUT) */}
+      {selectedForPayout && (
+        <div className="fixed inset-0 z-60 p-4 bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                <ArrowDownRight className="w-4 h-4" />
+                <span>Proses Pencairan Komisi Affiliate</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedForPayout(null)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Nama Affiliate:</span>
+                <span className="text-white font-bold">{selectedForPayout.fullName}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Sisa Saldo Komisi:</span>
+                <span className="text-amber-400 font-mono font-bold">
+                  Rp {selectedForPayout.balance.toLocaleString("id-ID")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Rekening Tujuan:</span>
+                <span className="text-slate-200 font-mono">
+                  {selectedForPayout.bankName || "-"} {selectedForPayout.accountNumber || "-"} ({selectedForPayout.accountHolder || "-"})
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Nominal Pencairan (Rp) *</label>
+                <input
+                  type="number"
+                  max={selectedForPayout.balance}
+                  value={payoutAmount}
+                  onChange={(e) => setPayoutAmount(e.target.value)}
+                  placeholder="Nominal transfer"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono font-bold focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Catatan / Bukti Transfer (Opsional)</label>
+                <input
+                  type="text"
+                  value={payoutNotes}
+                  onChange={(e) => setPayoutNotes(e.target.value)}
+                  placeholder="Misal: Transfer BCA jam 14:00"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedForPayout(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPayout}
+                disabled={isProcessingPayout}
+                className="px-5 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-black rounded-xl shadow transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isProcessingPayout && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>Konfirmasi Pencairan</span>
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── CREATE NEW AFFILIATE MODAL ── */}
-        {isCreateModalOpen && (
-          <div className="fixed inset-0 z-60 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-lg w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <h4 className="font-extrabold text-sm text-white">Tambah Mitra Affiliate Baru</h4>
+      {/* MODAL 4: TAMBAH AFFILIATE BARU DENGAN PASSWORD */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-60 p-4 bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Plus className="w-4 h-4 text-emerald-400" />
+                <span>Pendaftaran Mitra Affiliate Baru (Siap Login)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAffiliate} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Nama Lengkap Mitra *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    placeholder="Nama Lengkap Affiliate"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">No. WhatsApp Aktif *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="08123456789"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Email Akun Login *</label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="affiliate@gmail.com"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Password Login *</label>
+                  <div className="relative">
+                    <input
+                      type={showNewPasswordText ? "text" : "password"}
+                      required
+                      minLength={4}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Password login akun"
+                      className="w-full px-3 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPasswordText(!showNewPasswordText)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {showNewPasswordText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Jumlah Followers Medsos</label>
+                  <input
+                    type="number"
+                    value={newFollowers}
+                    onChange={(e) => setNewFollowers(e.target.value)}
+                    placeholder="Contoh: 15000"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Tarif Komisi Khusus / Pcs (Opsional)</label>
+                  <input
+                    type="number"
+                    value={newCommission}
+                    onChange={(e) => setNewCommission(e.target.value)}
+                    placeholder="Kosongkan jika ingin auto tier"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Custom Kode Referral (Opsional)</label>
+                  <input
+                    type="text"
+                    value={newCustomCode}
+                    onChange={(e) => setNewCustomCode(e.target.value.toUpperCase())}
+                    placeholder="Otomatis jika kosong (misal: NDUT123)"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Link Akun Medsos</label>
+                  <input
+                    type="url"
+                    value={newSocialUrl}
+                    onChange={(e) => setNewSocialUrl(e.target.value)}
+                    placeholder="https://instagram.com/username"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Nama Bank / E-Wallet</label>
+                  <input
+                    type="text"
+                    value={newBankName}
+                    onChange={(e) => setNewBankName(e.target.value)}
+                    placeholder="BCA / BRI / Mandiri / Dana"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">No. Rekening / E-Wallet</label>
+                  <input
+                    type="text"
+                    value={newAccountNumber}
+                    onChange={(e) => setNewAccountNumber(e.target.value)}
+                    placeholder="1234567890"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-300 font-semibold mb-1">Atas Nama Rekening</label>
+                  <input
+                    type="text"
+                    value={newAccountHolder}
+                    onChange={(e) => setNewAccountHolder(e.target.value)}
+                    placeholder="Nama pemilik rekening bank"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="text-slate-400 hover:text-white"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingNew}
+                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSubmittingNew && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Daftarkan & Buat Akun</span>
                 </button>
               </div>
-
-              <form onSubmit={handleCreateAffiliate} className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Nama Lengkap *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newFullName}
-                      onChange={(e) => setNewFullName(e.target.value)}
-                      placeholder="Contoh: Rian Pratama"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">No. WhatsApp *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={newPhone}
-                      onChange={(e) => setNewPhone(e.target.value)}
-                      placeholder="Contoh: 08123456789"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="Contoh: rian@gmail.com"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Custom Kode Referral (Opsional)</label>
-                    <input
-                      type="text"
-                      value={newCustomCode}
-                      onChange={(e) => setNewCustomCode(e.target.value.toUpperCase())}
-                      placeholder="Auto jika kosong"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none uppercase font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Followers Medsos (TikTok/IG)</label>
-                    <input
-                      type="number"
-                      value={newFollowers}
-                      onChange={(e) => setNewFollowers(e.target.value)}
-                      placeholder="Contoh: 25000"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Link Profil Medsos</label>
-                    <input
-                      type="url"
-                      value={newSocialUrl}
-                      onChange={(e) => setNewSocialUrl(e.target.value)}
-                      placeholder="https://tiktok.com/@rian"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Nama Bank (BCA/BNI/Mandiri)</label>
-                    <input
-                      type="text"
-                      value={newBankName}
-                      onChange={(e) => setNewBankName(e.target.value)}
-                      placeholder="Contoh: BCA"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Nomor Rekening</label>
-                    <input
-                      type="text"
-                      value={newAccountNumber}
-                      onChange={(e) => setNewAccountNumber(e.target.value)}
-                      placeholder="Contoh: 1234567890"
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingNew}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5"
-                  >
-                    {isSubmittingNew ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                    <span>Daftarkan Affiliate</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

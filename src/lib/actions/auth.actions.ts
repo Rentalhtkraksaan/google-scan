@@ -24,15 +24,30 @@ export async function getLoginRedirectPath(email: string): Promise<string> {
     if (session?.user?.role) {
       if (session.user.role === Role.SUPER_ADMIN) return "/super-admin";
       if (session.user.role === Role.ADMIN) return "/admin";
+      if (session.user.role === "AFFILIATE") return "/affiliate";
       return "/portal";
     }
 
+    const clean = email.trim().toLowerCase();
     const user = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
+      where: { email: clean },
       select: { role: true },
     });
     if (user?.role === Role.SUPER_ADMIN) return "/super-admin";
     if (user?.role === Role.ADMIN) return "/admin";
+    if (user?.role === "AFFILIATE") return "/affiliate";
+
+    const affiliate = await prisma.affiliateAccount.findFirst({
+      where: {
+        OR: [
+          { email: clean },
+          { referralCode: clean.toUpperCase() },
+        ],
+      },
+      select: { id: true },
+    });
+    if (affiliate) return "/affiliate";
+
     return "/portal";
   } catch {
     return "/portal";

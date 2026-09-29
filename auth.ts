@@ -98,12 +98,60 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             } as any;
           } else {
             const { email, password } = data;
-
+            const cleanEmail = email.toLowerCase().trim();
             const user = await prisma.user.findUnique({
-              where: { email: email.toLowerCase().trim() },
+              where: { email: cleanEmail },
             });
 
-            if (!user || user.isActive === false) return null;
+            if (!user || user.isActive === false) {
+              // Cek apakah akun adalah Mitra Affiliate
+              const affiliate = await prisma.affiliateAccount.findFirst({
+                where: {
+                  OR: [
+                    { email: cleanEmail },
+                    { referralCode: cleanEmail.toUpperCase() },
+                  ],
+                },
+              });
+
+              if (affiliate && affiliate.status === "ACTIVE" && affiliate.password) {
+                const passwordMatch = await bcrypt.compare(password, affiliate.password);
+                if (passwordMatch) {
+                  resetRateLimit(rateLimitKey);
+
+                  prisma.activityLog
+                    .create({
+                      data: {
+                        userId: affiliate.id,
+                        userName: affiliate.fullName,
+                        userRole: "USER",
+                        action: "AUTH_LOGIN",
+                        title: "Login Mitra Affiliate",
+                        description: `Mitra Affiliate "${affiliate.fullName}" (${affiliate.referralCode}) berhasil masuk ke dashboard affiliate.`,
+                        targetId: affiliate.id,
+                        targetName: affiliate.referralCode,
+                      },
+                    })
+                    .catch(() => {});
+
+                  return {
+                    id: affiliate.id,
+                    email: affiliate.email,
+                    name: affiliate.fullName,
+                    role: "AFFILIATE",
+                    fullName: affiliate.fullName,
+                    isSuperAdminMaster: false,
+                    canEditLandingPage: false,
+                    canManagePrintTemplates: false,
+                    canDeleteCards: false,
+                    canViewAnalytics: false,
+                    hasAvatar: false,
+                  } as any;
+                }
+              }
+
+              return null;
+            }
 
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (!passwordMatch) return null;

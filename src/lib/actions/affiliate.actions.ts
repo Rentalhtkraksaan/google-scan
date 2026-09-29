@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
@@ -12,7 +13,6 @@ export type ActionResult<T = unknown> = {
 
 /**
  * 1. Validasi Kode Referral Affiliate & Hitung Diskon Ongkir
- * Jika kode valid: Pembeli berhak atas diskon subsidi ongkir max Rp 10.000
  */
 export async function validateAffiliateReferralCodeAction(rawCode: string) {
   try {
@@ -58,18 +58,21 @@ export async function validateAffiliateReferralCodeAction(rawCode: string) {
 }
 
 /**
- * 2. Daftar Sebagai Affiliate Baru (Publik / Dari Dashboard)
+ * 2. Daftar Sebagai Affiliate Baru (Publik / Dari Super Admin)
  */
 export async function registerAffiliateAccountAction(data: {
   fullName: string;
   phone: string;
   email: string;
+  password?: string;
   socialMediaUrl?: string;
   followersCount?: number;
+  commissionPerPcs?: number;
   customReferralCode?: string;
   bankName?: string;
   accountNumber?: string;
   accountHolder?: string;
+  notes?: string;
 }) {
   try {
     if (!data.fullName?.trim() || !data.phone?.trim() || !data.email?.trim()) {
@@ -110,19 +113,26 @@ export async function registerAffiliateAccountAction(data: {
       select: { affiliateDefaultCommission: true },
     });
 
-    // Tarif komisi berjenjang berdasarkan jumlah followers
-    let commissionPerPcs = siteSetting?.affiliateDefaultCommission ?? 5000;
-    if (followers >= 50000) {
-      commissionPerPcs = 10000;
-    } else if (followers >= 10000) {
-      commissionPerPcs = 7500;
+    // Tarif komisi: jika diisi manual pakai manual, jika tidak hitung tier followers
+    let commissionPerPcs = Number(data.commissionPerPcs) || 0;
+    if (commissionPerPcs <= 0) {
+      commissionPerPcs = siteSetting?.affiliateDefaultCommission ?? 5000;
+      if (followers >= 50000) {
+        commissionPerPcs = 10000;
+      } else if (followers >= 10000) {
+        commissionPerPcs = 7500;
+      }
     }
+
+    const plainPassword = data.password?.trim() || "affiliate123";
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const affiliate = await prisma.affiliateAccount.create({
       data: {
         fullName: data.fullName.trim(),
         phone: cleanPhone,
         email: cleanEmail,
+        password: hashedPassword,
         referralCode,
         socialMediaUrl: data.socialMediaUrl?.trim() || null,
         followersCount: followers,
@@ -130,6 +140,7 @@ export async function registerAffiliateAccountAction(data: {
         bankName: data.bankName?.trim() || null,
         accountNumber: data.accountNumber?.trim() || null,
         accountHolder: data.accountHolder?.trim() || null,
+        notes: data.notes?.trim() || null,
         status: "ACTIVE",
       },
     });
@@ -150,7 +161,7 @@ export async function registerAffiliateAccountAction(data: {
 
     return {
       success: true,
-      message: `Selamat! Akun affiliate berhasil dibuat. Kode referral Anda adalah: ${affiliate.referralCode}`,
+      message: `Selamat! Akun affiliate "${affiliate.fullName}" berhasil dibuat dengan kode: ${affiliate.referralCode}. Password login: "${plainPassword}".`,
       affiliate,
     };
   } catch (error) {
@@ -201,6 +212,7 @@ export async function getAffiliateAccountsAction() {
       const stats = statsMap.get(aff.referralCode) || { totalOrders: 0, totalCards: 0, totalSales: 0 };
       return {
         ...aff,
+        hasPassword: !!aff.password,
         totalOrders: stats.totalOrders,
         totalCards: stats.totalCards,
         totalSales: stats.totalSales,
@@ -218,13 +230,17 @@ export async function getAffiliateAccountsAction() {
 }
 
 /**
- * 4. Super Admin: Update Tarif Komisi & Status Akun Affiliate
+ * 4. Super Admin: Update Lengkap Data Akun Affiliate
  */
 export async function updateAffiliateAccountAction(
   id: string,
   data: {
     fullName?: string;
     phone?: string;
+    email?: string;
+    referralCode?: string;
+    password?: string;
+    socialMediaUrl?: string;
     followersCount?: number;
     commissionPerPcs?: number;
     status?: "ACTIVE" | "SUSPENDED";
@@ -240,22 +256,58 @@ export async function updateAffiliateAccountAction(
       return { success: false, message: "Akses ditolak: Khusus Super Admin." };
     }
 
+    const existing = await prisma.affiliateAccount.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, message: "Akun affiliate tidak ditemukan." };
+    }
+
+    // Check duplicate email if changed
+    if (data.email && data.email.trim().toLowerCase() !== existing.email.toLowerCase()) {
+      const dupEmail = await prisma.affiliateAccount.findUnique({
+        where: { email: data.email.trim().toLowerCase() },
+      });
+      if (dupEmail && dupEmail.id !== id) {
+        return { success: false, message: "Email sudah digunakan oleh affiliate lain." };
+      }
+    }
+
+    // Check duplicate referralCode if changed
+    if (data.referralCode && data.referralCode.trim().toUpperCase() !== existing.referralCode.toUpperCase()) {
+      const cleanRef = data.referralCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const dupRef = await prisma.affiliateAccount.findUnique({
+        where: { referralCode: cleanRef },
+      });
+      if (dupRef && dupRef.id !== id) {
+        return { success: false, message: "Kode referral sudah digunakan oleh affiliate lain." };
+      }
+    }
+
+    let hashedPassword: string | undefined = undefined;
+    if (data.password && data.password.trim()) {
+      hashedPassword = await bcrypt.hash(data.password.trim(), 10);
+    }
+
     const updated = await prisma.affiliateAccount.update({
       where: { id },
       data: {
-        fullName: data.fullName?.trim(),
-        phone: data.phone?.trim(),
+        fullName: data.fullName?.trim() || undefined,
+        phone: data.phone?.trim().replace(/[^0-9]/g, "") || undefined,
+        email: data.email?.trim().toLowerCase() || undefined,
+        referralCode: data.referralCode?.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") || undefined,
+        password: hashedPassword,
+        socialMediaUrl: data.socialMediaUrl !== undefined ? data.socialMediaUrl.trim() || null : undefined,
         followersCount: data.followersCount !== undefined ? Number(data.followersCount) : undefined,
         commissionPerPcs: data.commissionPerPcs !== undefined ? Number(data.commissionPerPcs) : undefined,
-        status: data.status,
-        bankName: data.bankName?.trim(),
-        accountNumber: data.accountNumber?.trim(),
-        accountHolder: data.accountHolder?.trim(),
-        notes: data.notes?.trim(),
+        status: data.status || undefined,
+        bankName: data.bankName !== undefined ? data.bankName.trim() || null : undefined,
+        accountNumber: data.accountNumber !== undefined ? data.accountNumber.trim() || null : undefined,
+        accountHolder: data.accountHolder !== undefined ? data.accountHolder.trim() || null : undefined,
+        notes: data.notes !== undefined ? data.notes.trim() || null : undefined,
       },
     });
 
     revalidatePath("/super-admin");
+    revalidatePath("/affiliate");
 
     return {
       success: true,
@@ -269,7 +321,93 @@ export async function updateAffiliateAccountAction(
 }
 
 /**
- * 5. Super Admin: Cairkan Komisi Affiliate (Payout)
+ * 5. Super Admin: Reset Password Cepat untuk Affiliate
+ */
+export async function resetAffiliatePasswordAction(id: string, newPassword: string) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak: Khusus Super Admin." };
+    }
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, message: "Password minimal 4 karakter." };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
+
+    const affiliate = await prisma.affiliateAccount.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userName: session.user.name || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "UPDATE",
+        title: "Reset Password Affiliate 🔑",
+        description: `Super Admin mereset password akun affiliate "${affiliate.fullName}" (${affiliate.email}).`,
+        targetId: affiliate.id,
+        targetName: affiliate.referralCode,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: `Password akun "${affiliate.fullName}" berhasil diperbarui menjadi "${newPassword.trim()}".`,
+    };
+  } catch (error) {
+    console.error("resetAffiliatePasswordAction error:", error);
+    return { success: false, message: "Gagal mereset password affiliate." };
+  }
+}
+
+/**
+ * 6. Super Admin: Hapus Akun Affiliate
+ */
+export async function deleteAffiliateAccountAction(id: string) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return { success: false, message: "Akses ditolak: Khusus Super Admin." };
+    }
+
+    const existing = await prisma.affiliateAccount.findUnique({ where: { id } });
+    if (!existing) {
+      return { success: false, message: "Akun affiliate tidak ditemukan." };
+    }
+
+    await prisma.affiliateAccount.delete({ where: { id } });
+
+    await prisma.activityLog.create({
+      data: {
+        userName: session.user.name || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "DELETE",
+        title: "Hapus Akun Affiliate 🗑️",
+        description: `Super Admin menghapus akun affiliate "${existing.fullName}" (Kode: ${existing.referralCode}).`,
+        targetId: existing.id,
+        targetName: existing.referralCode,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: `Akun affiliate "${existing.fullName}" berhasil dihapus.`,
+    };
+  } catch (error) {
+    console.error("deleteAffiliateAccountAction error:", error);
+    return { success: false, message: "Gagal menghapus akun affiliate." };
+  }
+}
+
+/**
+ * 7. Super Admin: Cairkan Komisi Affiliate (Payout)
  */
 export async function payoutAffiliateCommissionAction(
   id: string,
@@ -323,6 +461,7 @@ export async function payoutAffiliateCommissionAction(
     }).catch(() => {});
 
     revalidatePath("/super-admin");
+    revalidatePath("/affiliate");
 
     return {
       success: true,
@@ -336,7 +475,71 @@ export async function payoutAffiliateCommissionAction(
 }
 
 /**
- * 6. Affiliate Cek Statistik & Saldo Mandiri (Berdasarkan Kode Referral / No HP)
+ * 8. Dashboard Affiliate: Ambil Data Lengkap untuk Affiliate yang Sedang Login
+ */
+export async function getAffiliateDashboardDataAction() {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Sesi login tidak valid." };
+    }
+
+    // Temukan akun affiliate berdasarkan email atau id
+    const affiliate = await prisma.affiliateAccount.findFirst({
+      where: {
+        OR: [
+          { email: session.user.email?.toLowerCase().trim() },
+          { id: session.user.id },
+        ],
+      },
+    });
+
+    if (!affiliate) {
+      return { success: false, message: "Akun affiliate tidak ditemukan." };
+    }
+
+    // Ambil riwayat pesanan referral
+    const orders = await prisma.resellerOrder.findMany({
+      where: {
+        affiliateCode: affiliate.referralCode,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        orderNumber: true,
+        customerName: true,
+        totalQuantity: true,
+        totalAmount: true,
+        paymentStatus: true,
+        orderStatus: true,
+        affiliateCommission: true,
+        createdAt: true,
+      },
+    });
+
+    const siteSetting = await prisma.siteSetting.findUnique({
+      where: { id: "default" },
+      select: {
+        whatsappNumber: true,
+        affiliateShippingDiscount: true,
+      },
+    });
+
+    return {
+      success: true,
+      affiliate,
+      orders,
+      siteSetting,
+    };
+  } catch (error) {
+    console.error("getAffiliateDashboardDataAction error:", error);
+    return { success: false, message: "Gagal memuat data dashboard affiliate." };
+  }
+}
+
+/**
+ * 9. Affiliate Cek Statistik & Saldo Mandiri (Berdasarkan Kode Referral / No HP)
  */
 export async function checkAffiliateStatsAction(query: string) {
   try {
@@ -361,7 +564,6 @@ export async function checkAffiliateStatsAction(query: string) {
       return { success: false, message: "Data akun affiliate tidak ditemukan." };
     }
 
-    // Ambil riwayat pesanan referral
     const referralOrders = await prisma.resellerOrder.findMany({
       where: {
         affiliateCode: affiliate.referralCode,

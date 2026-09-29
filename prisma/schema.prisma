@@ -16,6 +16,7 @@ enum Role {
   SUPER_ADMIN
   ADMIN
   USER
+  AFFILIATE
 }
 
 enum CardStatus {
@@ -481,6 +482,7 @@ model AffiliateAccount {
   fullName         String
   phone            String
   email            String   @unique
+  password         String?
   referralCode     String   @unique
   socialMediaUrl   String?
   followersCount   Int      @default(0)

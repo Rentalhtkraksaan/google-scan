@@ -32,6 +32,12 @@ export const authConfig: NextAuthConfig = {
         return role === "ADMIN" || role === "SUPER_ADMIN";
       }
 
+      // Protect affiliate routes
+      if (path.startsWith("/affiliate")) {
+        if (!isLoggedIn) return false;
+        return role === "AFFILIATE" || role === "SUPER_ADMIN";
+      }
+
       // Protect portal & user routes
       if (path.startsWith("/portal") || path.startsWith("/user")) {
         return isLoggedIn;

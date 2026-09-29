@@ -19,6 +19,7 @@ export default async function LoginPage() {
   if (session?.user) {
     if (session.user.role === "SUPER_ADMIN") redirect("/super-admin");
     if (session.user.role === "ADMIN") redirect("/admin");
+    if (session.user.role === "AFFILIATE") redirect("/affiliate");
     if (session.user.role === "USER") redirect("/portal");
   }
 
