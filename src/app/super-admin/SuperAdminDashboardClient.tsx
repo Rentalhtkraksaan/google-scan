@@ -154,6 +154,7 @@ interface EditingOutletState {
   id: string;
   name: string;
   googleReviewUrl: string;
+  logoUrl?: string | null;
   owner: {
     fullName: string;
     whatsappNumber: string | null;
@@ -2323,6 +2324,7 @@ Tim Layanan Smart QR`;
                                       id: outlet.id,
                                       name: outlet.name,
                                       googleReviewUrl: outlet.googleReviewUrl,
+                                      logoUrl: outlet.logoUrl || null,
                                       owner: {
                                         fullName: outlet.owner!.fullName,
                                         whatsappNumber: outlet.owner!.whatsappNumber,
@@ -2801,6 +2803,7 @@ Tim Layanan Smart QR`;
                                             id: card.outlet!.id,
                                             name: card.outlet!.name,
                                             googleReviewUrl: card.outlet!.googleReviewUrl,
+                                            logoUrl: card.outlet!.logoUrl || null,
                                             owner: card.outlet!.owner || {
                                               fullName: "",
                                               whatsappNumber: null,
@@ -2896,6 +2899,7 @@ Tim Layanan Smart QR`;
                                             id: card.outlet!.id,
                                             name: card.outlet!.name,
                                             googleReviewUrl: card.outlet!.googleReviewUrl,
+                                            logoUrl: card.outlet!.logoUrl || null,
                                             owner: card.outlet!.owner || {
                                               fullName: "",
                                               whatsappNumber: null,
@@ -3756,6 +3760,7 @@ Tim Layanan Smart QR`;
                                       id: outlet.id,
                                       name: outlet.name,
                                       googleReviewUrl: outlet.googleReviewUrl,
+                                      logoUrl: outlet.logoUrl || null,
                                       owner: {
                                         fullName: outlet.owner!.fullName,
                                         whatsappNumber: outlet.owner!.whatsappNumber,

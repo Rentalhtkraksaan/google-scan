@@ -1144,16 +1144,22 @@ export async function updateOutletAction(
 
     const enableSmartFilterRaw = formData.get("enableSmartFilter");
     const allowSmartFilterRaw = formData.get("allowSmartFilter");
+    const logoUrlRaw = formData.get("logoUrl");
 
     const outletUpdateData: {
       name: string;
       googleReviewUrl: string;
+      logoUrl?: string | null;
       enableSmartFilter?: boolean;
       allowSmartFilter?: boolean;
     } = {
       name: name.trim(),
       googleReviewUrl: finalReviewUrl,
     };
+
+    if (logoUrlRaw !== null) {
+      outletUpdateData.logoUrl = (logoUrlRaw as string).trim() || null;
+    }
 
     if (enableSmartFilterRaw !== null) {
       outletUpdateData.enableSmartFilter = enableSmartFilterRaw === "true" || enableSmartFilterRaw === "1";

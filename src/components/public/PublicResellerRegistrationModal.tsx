@@ -72,20 +72,28 @@ export function PublicResellerRegistrationModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    // Reset screen state
+    setCreatedOrderNumber(null);
+
     let isMounted = true;
     const loadProducts = async () => {
       setIsLoadingProducts(true);
       try {
         const res = await getResellerProductsAction(true);
         if (isMounted && res.success && res.data) {
-          setProducts(res.data as ResellerProductModel[]);
-          // Default initial quantities: 8 pcs for first product
-          if (res.data.length > 0) {
-            const initialMap: Record<string, number> = {};
-            res.data.forEach((p, index) => {
-              initialMap[p.id] = index === 0 ? 8 : 0;
+          const loadedProducts = res.data as ResellerProductModel[];
+          setProducts(loadedProducts);
+          // Only initialize default if user hasn't modified quantities
+          if (loadedProducts.length > 0) {
+            setCartQuantities((prev) => {
+              const hasExisting = Object.values(prev).some((v) => Number(v) > 0);
+              if (hasExisting) return prev;
+              const initialMap: Record<string, number> = {};
+              loadedProducts.forEach((p, index) => {
+                initialMap[p.id] = index === 0 ? 8 : 0;
+              });
+              return initialMap;
             });
-            setCartQuantities(initialMap);
           }
         }
       } catch (err) {
@@ -106,8 +114,8 @@ export function PublicResellerRegistrationModal({
   // Cart calculations
   const totalQuantity = Object.values(cartQuantities).reduce((a, b) => a + (Number(b) || 0), 0);
   const subtotal = products.reduce((sum, p) => {
-    const qty = cartQuantities[p.id] || 0;
-    return sum + p.price * qty;
+    const qty = Number(cartQuantities[p.id]) || 0;
+    return sum + (p.price || 0) * qty;
   }, 0);
 
   const shippingFee = siteSetting?.resellerShippingFee || 20000;
@@ -116,7 +124,7 @@ export function PublicResellerRegistrationModal({
 
   const handleQtyChange = (productId: string, delta: number) => {
     setCartQuantities((prev) => {
-      const current = prev[productId] || 0;
+      const current = Number(prev[productId]) || 0;
       const next = Math.max(0, current + delta);
       return { ...prev, [productId]: next };
     });

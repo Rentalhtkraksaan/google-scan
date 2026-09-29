@@ -86,10 +86,16 @@ export interface OutletModel {
   id: string;
   name: string;
   googleReviewUrl: string;
+  logoUrl?: string | null;
   ownerId?: string;
   isMember?: boolean;
   membershipStartedAt?: string | Date | null;
   membershipExpiresAt?: string | Date | null;
+  customVipPrice?: number | null;
+  enableSmartFilter?: boolean;
+  allowSmartFilter?: boolean;
+  soundEffect?: string | null;
+  customGreetingText?: string | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   owner?: {
@@ -160,10 +166,6 @@ export interface OutletModel {
       } | null;
     } | null;
   } | null;
-  enableSmartFilter?: boolean;
-  allowSmartFilter?: boolean;
-  soundEffect?: string;
-  customGreetingText?: string | null;
   staffPairingToken?: string | null;
 }
 
@@ -195,6 +197,7 @@ export interface QrCardModel {
   outlet?: {
     id: string;
     name: string;
+    logoUrl?: string | null;
     googleReviewUrl: string;
     owner?: {
       id: string;
@@ -276,6 +279,7 @@ export interface OutletUserItem {
   outlet: {
     id: string;
     name: string;
+    logoUrl?: string | null;
     googleReviewUrl: string;
     isMember?: boolean;
     membershipStartedAt?: string | Date | null;

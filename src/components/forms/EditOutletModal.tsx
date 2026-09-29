@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Store, User, Phone, Mail, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Store, User, Phone, Mail, Loader2, KeyRound, Eye, EyeOff, Camera, Upload, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
 import { updateOutletAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import { GooglePlaceSearchInput } from "./GooglePlaceSearchInput";
+import { compressImageInBrowser } from "@/lib/image-compression";
 
 interface EditOutletModalProps {
   outlet: {
     id: string;
     name: string;
     googleReviewUrl: string;
+    logoUrl?: string | null;
     owner: {
       fullName: string;
       whatsappNumber: string | null;
@@ -25,6 +27,9 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState(outlet.name);
   const [googleReviewUrl, setGoogleReviewUrl] = useState(outlet.googleReviewUrl);
+  const [logoUrl, setLogoUrl] = useState<string | null>(outlet.logoUrl || null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState(outlet.owner.fullName);
   const [email, setEmail] = useState(outlet.owner.email || "");
   const [whatsappNumber, setWhatsappNumber] = useState(outlet.owner.whatsappNumber || "");
@@ -38,6 +43,51 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
     };
   }, []);
 
+  const handleLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      // 1. Kompres gambar di browser (WebP 400x400)
+      const compressed = await compressImageInBrowser(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+        outputType: "base64",
+      });
+      const compressedBase64 = compressed.base64;
+
+      // 2. Upload ke Cloudinary via API Route
+      const res = await fetch("/api/upload/cloudinary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: compressedBase64,
+          folder: "outlet_logos",
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.url) {
+        setLogoUrl(data.url);
+      } else {
+        // Fallback: simpan compressed base64 jika API Cloudinary offline
+        setLogoUrl(compressedBase64);
+      }
+    } catch (err) {
+      console.error("Error upload logo:", err);
+      showErrorAlert("Gagal Upload", "Terjadi kesalahan saat memproses logo.");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -46,6 +96,7 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
       const formData = new FormData();
       formData.set("name", name);
       formData.set("googleReviewUrl", googleReviewUrl);
+      formData.set("logoUrl", logoUrl || "");
       formData.set("fullName", fullName);
       formData.set("email", email);
       formData.set("whatsappNumber", whatsappNumber);
@@ -99,6 +150,78 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
               reviewUrl={googleReviewUrl}
               setReviewUrl={setGoogleReviewUrl}
             />
+          </div>
+
+          {/* Logo Outlet (Cloudinary Auto Compress & TiDB) */}
+          <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Logo Usaha / Outlet (VIP)</span>
+              </label>
+              <span className="text-[10px] text-amber-400/90 font-medium px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                Tampil di Rating ⭐⭐⭐⭐⭐
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/80 p-1 flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner">
+                {logoUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={logoUrl}
+                    alt="Logo Outlet"
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-500">
+                    <Store className="w-6 h-6 stroke-1" />
+                    <span className="text-[9px] mt-0.5">No Logo</span>
+                  </div>
+                )}
+                {isUploadingLogo && (
+                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                    <Loader2 className="w-5 h-5 text-sky-400 animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-semibold text-xs transition-all shadow-sm cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{isUploadingLogo ? "Mengunggah..." : logoUrl ? "Ganti Logo" : "Upload Logo"}</span>
+                  </button>
+
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      disabled={isUploadingLogo}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 text-xs transition-all border border-slate-700 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">
+                  Format PNG/JPG/WebP. Otomatis dikompres & disimpan ke Cloudinary CDN.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  className="hidden"
+                  onChange={handleLogoSelect}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Nama Pemilik & Email Login */}

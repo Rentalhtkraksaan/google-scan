@@ -868,6 +868,7 @@ export async function updateOutletVipSettingsAction(data: {
   customGreetingText?: string;
   enableSmartFilter?: boolean;
   allowSmartFilter?: boolean;
+  logoUrl?: string | null;
 }) {
   try {
     const session = await auth();
@@ -893,11 +894,13 @@ export async function updateOutletVipSettingsAction(data: {
       customGreetingText?: string | null;
       enableSmartFilter?: boolean;
       allowSmartFilter?: boolean;
+      logoUrl?: string | null;
     } = {};
 
     if (data.soundEffect !== undefined) updateData.soundEffect = data.soundEffect;
     if (data.customGreetingText !== undefined) updateData.customGreetingText = data.customGreetingText;
     if (data.enableSmartFilter !== undefined) updateData.enableSmartFilter = data.enableSmartFilter;
+    if (data.logoUrl !== undefined) updateData.logoUrl = data.logoUrl;
 
     // Izin khusus allowSmartFilter hanya bisa diatur oleh Admin atau Super Admin
     if (data.allowSmartFilter !== undefined && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN")) {

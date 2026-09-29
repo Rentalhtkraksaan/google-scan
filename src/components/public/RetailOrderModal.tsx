@@ -68,6 +68,8 @@ export function RetailOrderModal({
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   // Customer form state (Step 1)
+  const [outletName, setOutletName] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -192,8 +194,16 @@ export function RetailOrderModal({
   // Step 1 Validation & Next
   const handleGoToStep2 = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!outletName.trim()) {
+      setStep1Error("Nama Usaha / Nama Outlet wajib diisi.");
+      return;
+    }
+    if (!googleMapsUrl.trim()) {
+      setStep1Error("Link Google Maps toko wajib diisi agar kartu QR siap diprogram.");
+      return;
+    }
     if (!customerName.trim()) {
-      setStep1Error("Nama Lengkap / Nama Outlet wajib diisi.");
+      setStep1Error("Nama Lengkap Penerima wajib diisi.");
       return;
     }
     if (!customerPhone.trim()) {
@@ -273,8 +283,15 @@ export function RetailOrderModal({
       return;
     }
 
-    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim() || !shippingAddress.trim()) {
-      alert("Mohon lengkapi data penerima dan alamat pengiriman.");
+    if (
+      !outletName.trim() ||
+      !googleMapsUrl.trim() ||
+      !customerName.trim() ||
+      !customerPhone.trim() ||
+      !customerEmail.trim() ||
+      !shippingAddress.trim()
+    ) {
+      alert("Mohon lengkapi nama usaha, link Google Maps, data penerima dan alamat pengiriman.");
       setCurrentStep(1);
       return;
     }
@@ -288,6 +305,8 @@ export function RetailOrderModal({
     try {
       const res = await createRetailOrderAction({
         items,
+        outletName: outletName.trim(),
+        googleMapsUrl: googleMapsUrl.trim(),
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim(),
@@ -627,9 +646,46 @@ export function RetailOrderModal({
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Nama Usaha / Outlet */}
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
-                      Nama Lengkap / Nama Outlet <span className="text-rose-400">*</span>
+                      Nama Usaha / Nama Outlet <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={outletName}
+                      onChange={(e) => {
+                        setOutletName(e.target.value);
+                        if (step1Error) setStep1Error(null);
+                      }}
+                      placeholder="Contoh: Warung Geprek Sai / Kopi Senja"
+                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Link Google Maps */}
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      Link Google Maps / Review Usaha <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={googleMapsUrl}
+                      onChange={(e) => {
+                        setGoogleMapsUrl(e.target.value);
+                        if (step1Error) setStep1Error(null);
+                      }}
+                      placeholder="https://maps.app.goo.gl/... atau nama di Maps"
+                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono text-[11px]"
+                    />
+                  </div>
+
+                  {/* Nama Lengkap Penerima */}
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      Nama Lengkap Penerima Paket <span className="text-rose-400">*</span>
                     </label>
                     <input
                       type="text"
@@ -639,11 +695,12 @@ export function RetailOrderModal({
                         setCustomerName(e.target.value);
                         if (step1Error) setStep1Error(null);
                       }}
-                      placeholder="Contoh: Budi Santoso (Warung Berkah)"
+                      placeholder="Contoh: Budi Santoso"
                       className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
                     />
                   </div>
 
+                  {/* No WhatsApp */}
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
                       No. WhatsApp Aktif <span className="text-rose-400">*</span>
@@ -661,6 +718,7 @@ export function RetailOrderModal({
                     />
                   </div>
 
+                  {/* Email */}
                   <div className="sm:col-span-2">
                     <label className="text-[11px] text-slate-400 block mb-1">
                       Email Aktif <span className="text-rose-400">*</span>
@@ -678,6 +736,7 @@ export function RetailOrderModal({
                     />
                   </div>
 
+                  {/* Provinsi Wilayah */}
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
                       Provinsi Wilayah Pengiriman <span className="text-rose-400">*</span>
@@ -694,6 +753,7 @@ export function RetailOrderModal({
                     </select>
                   </div>
 
+                  {/* Catatan */}
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">Catatan Tambahan (Opsional)</label>
                     <input
@@ -705,6 +765,7 @@ export function RetailOrderModal({
                     />
                   </div>
 
+                  {/* Alamat Pengiriman Lengkap */}
                   <div className="sm:col-span-2">
                     <label className="text-[11px] text-slate-400 block mb-1">
                       Alamat Pengiriman Lengkap <span className="text-rose-400">*</span>
@@ -942,12 +1003,22 @@ export function RetailOrderModal({
                 {/* Brief Review Box */}
                 <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs space-y-1.5">
                   <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Penerima:</span>
+                    <span className="text-slate-400">Outlet / Usaha:</span>
+                    <span className="font-bold text-white truncate max-w-[240px]">{outletName}</span>
+                  </div>
+                  {googleMapsUrl && (
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="text-slate-400">Link Maps:</span>
+                      <span className="font-mono text-sky-400 text-[11px] truncate max-w-[240px]">{googleMapsUrl}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="text-slate-400">Penerima Paket:</span>
                     <span className="font-semibold text-white">{customerName} ({customerPhone})</span>
                   </div>
                   <div className="flex items-start justify-between text-slate-300 gap-2">
-                    <span className="text-slate-400 shrink-0">Alamat:</span>
-                    <span className="text-right text-slate-300 line-clamp-1">{shippingAddress}</span>
+                    <span className="text-slate-400 shrink-0">Alamat Kirim:</span>
+                    <span className="text-right text-slate-300 line-clamp-1">{shippingAddress} ({province})</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-slate-400">Total Pesanan:</span>

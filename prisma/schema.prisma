@@ -143,6 +143,7 @@ model Outlet {
   owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name            String
   googleReviewUrl String   @db.Text
+  logoUrl         String?  @map("logo_url") @db.LongText // URL logo outlet yang disimpan di Cloudinary/CDN
 
   // Status Member Premium
   isMember            Boolean   @default(false)

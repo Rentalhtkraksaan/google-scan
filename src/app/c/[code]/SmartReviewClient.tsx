@@ -23,6 +23,7 @@ interface SmartReviewClientProps {
     id: string;
     name: string;
     googleReviewUrl: string;
+    logoUrl?: string | null;
     whatsappNumber?: string | null;
     ownerName?: string | null;
     isMember?: boolean;
@@ -494,10 +495,22 @@ ${feedbackMessage.trim()}`;
       <main className="w-full max-w-md relative z-10 my-auto">
         {/* OUTLET BRANDING */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl shadow-black/40 mb-3 relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/30 to-indigo-500/30 rounded-2xl blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
-            <Store className="w-8 h-8 text-amber-400 relative z-10" />
-          </div>
+          {outlet.logoUrl ? (
+            <div className="inline-flex items-center justify-center p-2 rounded-3xl bg-slate-900/90 border border-slate-700/80 shadow-2xl shadow-black/50 mb-3 relative group">
+              <div className="absolute -inset-1.5 bg-gradient-to-r from-amber-500/40 via-purple-500/30 to-indigo-500/40 rounded-3xl blur-md opacity-75 group-hover:opacity-100 transition-opacity" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={outlet.logoUrl}
+                alt={outlet.name}
+                className="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-2xl relative z-10 bg-slate-950 p-1 border border-slate-800"
+              />
+            </div>
+          ) : (
+            <div className="inline-flex items-center justify-center p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl shadow-black/40 mb-3 relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/30 to-indigo-500/30 rounded-2xl blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+              <Store className="w-8 h-8 text-amber-400 relative z-10" />
+            </div>
+          )}
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white px-2">
             {outlet.name}
           </h1>

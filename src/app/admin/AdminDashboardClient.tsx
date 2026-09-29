@@ -86,6 +86,7 @@ interface EditingOutletType {
   id: string;
   name: string;
   googleReviewUrl: string;
+  logoUrl?: string | null;
   owner: {
     fullName: string;
     whatsappNumber: string | null;
@@ -1189,6 +1190,7 @@ Tim Layanan Smart QR`;
                                         id: user.outlet!.id,
                                         name: user.outlet!.name,
                                         googleReviewUrl: user.outlet!.googleReviewUrl,
+                                        logoUrl: user.outlet!.logoUrl || null,
                                         owner: {
                                           fullName: user.fullName,
                                           whatsappNumber: user.whatsappNumber,
@@ -1460,6 +1462,7 @@ Tim Layanan Smart QR`;
                                             id: user.outlet!.id,
                                             name: user.outlet!.name,
                                             googleReviewUrl: user.outlet!.googleReviewUrl,
+                                            logoUrl: user.outlet!.logoUrl || null,
                                             owner: {
                                               fullName: user.fullName,
                                               whatsappNumber: user.whatsappNumber,

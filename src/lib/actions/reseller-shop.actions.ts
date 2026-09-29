@@ -511,6 +511,8 @@ export async function createRetailOrderAction(data: {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  outletName?: string;
+  googleMapsUrl?: string;
   shippingAddress?: string;
   province?: string;
   affiliateCode?: string;
@@ -667,6 +669,12 @@ export async function createRetailOrderAction(data: {
       midtransSnapToken = snapData.token;
     }
 
+    const notesParts: string[] = [];
+    if (data.outletName?.trim()) notesParts.push(`[Outlet: ${data.outletName.trim()}]`);
+    if (data.googleMapsUrl?.trim()) notesParts.push(`[Maps/Review: ${data.googleMapsUrl.trim()}]`);
+    if (data.notes?.trim()) notesParts.push(data.notes.trim());
+    const finalNotes = notesParts.length > 0 ? notesParts.join(" ") : null;
+
     const order = await prisma.resellerOrder.create({
       data: {
         orderNumber,
@@ -679,7 +687,7 @@ export async function createRetailOrderAction(data: {
         affiliateCode: validAffiliateCode,
         affiliateCommission,
         discountAmount: shippingDiscount,
-        notes: data.notes?.trim() || null,
+        notes: finalNotes,
         paymentMethod: data.paymentMethod,
         paymentStatus: "PENDING",
         orderStatus: "PENDING",

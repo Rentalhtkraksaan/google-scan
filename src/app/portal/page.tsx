@@ -33,6 +33,7 @@ export default async function PortalPage() {
           select: {
             id: true,
             name: true,
+            logoUrl: true,
             googleReviewUrl: true,
             isMember: true,
             membershipStartedAt: true,
@@ -114,6 +115,7 @@ export default async function PortalPage() {
     ? {
         id: user.outlet.id,
         name: user.outlet.name,
+        logoUrl: user.outlet.logoUrl || null,
         googleReviewUrl: user.outlet.googleReviewUrl,
         isMember: isMemberActive,
         membershipStartedAt: user.outlet.membershipStartedAt,

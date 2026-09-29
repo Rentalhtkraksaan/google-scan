@@ -38,6 +38,10 @@ import {
   Smartphone,
   RotateCcw,
   AlertTriangle,
+  Camera,
+  Upload,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { getCardScanUrl, generateQrDataUrl } from "@/lib/qr-export";
 import { showSuccessAlert, showWelcomeAlert, showErrorAlert } from "@/lib/swal";
@@ -46,6 +50,7 @@ import {
   updateOutletVipSettingsAction,
   resetStaffPairingTokenAction,
 } from "@/lib/actions/membership.actions";
+import { compressImageInBrowser } from "@/lib/image-compression";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { UpgradeMemberModal } from "@/components/dashboard/UpgradeMemberModal";
@@ -80,6 +85,7 @@ interface PortalClientViewProps {
   outlet: {
     id: string;
     name: string;
+    logoUrl?: string | null;
     googleReviewUrl: string;
     isMember?: boolean;
     membershipStartedAt?: string | Date | null;
@@ -125,10 +131,13 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
-  // VIP Sound, Greeting, & Smart Filter Settings State
+  // VIP Sound, Greeting, Logo & Smart Filter Settings State
   const [selectedSoundEffect, setSelectedSoundEffect] = useState<string>(outlet?.soundEffect || "BELL_DOUBLE");
   const [customGreetingText, setCustomGreetingText] = useState<string>(outlet?.customGreetingText || "");
   const [enableSmartFilter, setEnableSmartFilter] = useState<boolean>(outlet?.enableSmartFilter !== false);
+  const [vipLogoUrl, setVipLogoUrl] = useState<string | null>(outlet?.logoUrl || null);
+  const [isUploadingVipLogo, setIsUploadingVipLogo] = useState(false);
+  const vipLogoInputRef = useRef<HTMLInputElement>(null);
   const [isSavingVipSettings, setIsSavingVipSettings] = useState(false);
 
   // Staff Pairing QR State
@@ -196,6 +205,68 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     speakVoiceAnnouncement(textToSpeak);
   };
 
+  const handleVipLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingVipLogo(true);
+    try {
+      // 1. Kompres gambar di browser (WebP 400x400)
+      const compressed = await compressImageInBrowser(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+        outputType: "base64",
+      });
+      const compressedBase64 = compressed.base64;
+
+      // 2. Upload ke Cloudinary
+      const res = await fetch("/api/upload/cloudinary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: compressedBase64,
+          folder: "outlet_logos",
+        }),
+      });
+
+      const data = await res.json();
+      const finalUrl = data.success && data.url ? data.url : compressedBase64;
+      setVipLogoUrl(finalUrl);
+
+      // Simpan langsung ke database TiDB jika outlet terdaftar
+      if (outlet?.id) {
+        await updateOutletVipSettingsAction({
+          outletId: outlet.id,
+          logoUrl: finalUrl,
+        });
+        showSuccessAlert("Logo Berhasil Disimpan! ⭐", "Logo outlet Anda telah diperbarui dan akan tampil di halaman rating ulasan.");
+      }
+    } catch (err) {
+      console.error("Error upload logo:", err);
+      showErrorAlert("Gagal Upload", "Terjadi kesalahan saat memproses logo.");
+    } finally {
+      setIsUploadingVipLogo(false);
+    }
+  };
+
+  const handleRemoveVipLogo = async () => {
+    setVipLogoUrl(null);
+    if (vipLogoInputRef.current) vipLogoInputRef.current.value = "";
+    if (outlet?.id) {
+      setIsSavingVipSettings(true);
+      try {
+        await updateOutletVipSettingsAction({
+          outletId: outlet.id,
+          logoUrl: null,
+        });
+        showSuccessAlert("Logo Dihapus", "Logo outlet telah dihapus dari halaman ulasan.");
+      } finally {
+        setIsSavingVipSettings(false);
+      }
+    }
+  };
+
   const handleSaveVipSettings = async (overrideFilterVal?: boolean) => {
     if (!outlet?.id) return;
     const filterToSave = overrideFilterVal !== undefined ? overrideFilterVal : enableSmartFilter;
@@ -206,9 +277,10 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         soundEffect: selectedSoundEffect,
         customGreetingText: customGreetingText.trim() || undefined,
         enableSmartFilter: filterToSave,
+        logoUrl: vipLogoUrl || undefined,
       });
       if (res.success) {
-        showSuccessAlert("Berhasil Disimpan! 🎉", "Pengaturan nada dering, suara AI, dan filter rating ulasan toko Anda telah diperbarui.");
+        showSuccessAlert("Berhasil Disimpan! 🎉", "Pengaturan nada dering, suara AI, logo ulasan, dan filter rating toko Anda telah diperbarui.");
       } else {
         showErrorAlert("Gagal Menyimpan", res.message || "Terjadi kesalahan.");
       }
@@ -1688,23 +1760,23 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5 flex flex-col justify-between">
                         <div>
                           <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">
+                            <ImageIcon className="w-4 h-4" />
+                          </div>
+                          <h4 className="text-xs font-bold text-white">Logo Outlet di Rating ⭐</h4>
+                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
+                            Logo brand tampil elegan di halaman rating bintang 5 via Cloudinary.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-1.5 flex flex-col justify-between">
+                        <div>
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">
                             <Smartphone className="w-4 h-4" />
                           </div>
                           <h4 className="text-xs font-bold text-white">Multi-Kasir Pairing</h4>
                           <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
                             Konek hingga 3-5 HP staf kasir/barista tanpa bagi-bagi password.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-indigo-500/30 space-y-1.5 flex flex-col justify-between bg-indigo-950/20">
-                        <div>
-                          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold mb-2">
-                            📢
-                          </div>
-                          <h4 className="text-xs font-bold text-white">Speaker Bluetooth</h4>
-                          <p className="text-[11px] text-slate-300 leading-relaxed mt-1">
-                            Umumkan ulasan bintang 5 ke seluruh ruangan kafe via sound system.
                           </p>
                         </div>
                       </div>
@@ -1724,7 +1796,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                   </div>
 
                   {/* PUSAT PENGATURAN FITUR VIP - Equal Height Panels */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                     {/* PANEL 1: EFEK SUARA KASIR */}
                     <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between h-full">
                       <div className="space-y-4">
@@ -1734,8 +1806,8 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                               <Volume2 className="w-4 h-4" />
                             </div>
                             <div>
-                              <h3 className="text-sm font-bold text-white">1. Pilihan Efek Suara Kasir</h3>
-                              <p className="text-[11px] text-slate-400">Pilih nada dering yang berbunyi di meja & kasir</p>
+                              <h3 className="text-sm font-bold text-white">1. Efek Suara Kasir</h3>
+                              <p className="text-[11px] text-slate-400">Pilih nada dering ulasan</p>
                             </div>
                           </div>
                         </div>
@@ -1783,7 +1855,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           onClick={() => handleSaveVipSettings()}
                           className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                         >
-                          {isSavingVipSettings ? "Menyimpan..." : "💾 Terapkan Nada Dering Kasir"}
+                          {isSavingVipSettings ? "Menyimpan..." : "💾 Terapkan Nada Dering"}
                         </button>
                       </div>
                     </div>
@@ -1797,8 +1869,8 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                               <Sparkles className="w-4 h-4" />
                             </div>
                             <div>
-                              <h3 className="text-sm font-bold text-white">2. Suara AI Menyebut Nama Toko</h3>
-                              <p className="text-[11px] text-slate-400">Diputar langsung di HP pelanggan saat ulasan 5 bintang</p>
+                              <h3 className="text-sm font-bold text-white">2. Suara AI Sebut Toko</h3>
+                              <p className="text-[11px] text-slate-400">Diputar di HP saat 5 bintang</p>
                             </div>
                           </div>
                         </div>
@@ -1815,7 +1887,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                             className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 leading-relaxed"
                           />
                           <p className="text-[10px] text-slate-400">
-                            💡 <em>Biarkan kosong untuk menggunakan teks sambutan otomatis yang sudah ramah & menyebut nama brand toko Anda.</em>
+                            💡 <em>Biarkan kosong untuk suara otomatis ramah & sebut toko.</em>
                           </p>
                         </div>
                       </div>
@@ -1826,7 +1898,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           onClick={() => handleTestVoice(customGreetingText)}
                           className="flex-1 py-2.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <span>▶️ Dengarkan AI</span>
+                          <span>▶️ Tes AI</span>
                         </button>
                         <button
                           type="button"
@@ -1834,13 +1906,104 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           onClick={() => handleSaveVipSettings()}
                           className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                         >
-                          {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Ucapan AI"}
+                          {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan AI"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* PANEL 3: LOGO OUTLET DI HALAMAN RATING BINTANG 5 */}
+                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between h-full">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
+                              <ImageIcon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">3. Logo Outlet di Rating ⭐</h3>
+                              <p className="text-[11px] text-slate-400">Tampil di atas tombol rating 5 bintang</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            VIP
+                          </span>
+                        </div>
+
+                        {/* Logo Preview & Upload Controls */}
+                        <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                          <div className="w-16 h-16 rounded-2xl bg-slate-900 border-2 border-dashed border-amber-500/40 p-1 flex items-center justify-center shrink-0 relative overflow-hidden shadow-inner group">
+                            {vipLogoUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={vipLogoUrl}
+                                alt="Logo Outlet"
+                                className="w-full h-full object-cover rounded-xl"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-slate-500 text-center p-1">
+                                <Store className="w-6 h-6 stroke-1 text-slate-600" />
+                                <span className="text-[8px] mt-0.5 text-slate-400">Belum ada</span>
+                              </div>
+                            )}
+                            {isUploadingVipLogo && (
+                              <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => vipLogoInputRef.current?.click()}
+                                disabled={isUploadingVipLogo}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 disabled:opacity-50 text-slate-950 font-black text-xs transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
+                              >
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>{isUploadingVipLogo ? "Mengunggah..." : vipLogoUrl ? "Ganti" : "Upload Logo"}</span>
+                              </button>
+
+                              {vipLogoUrl && (
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveVipLogo}
+                                  disabled={isUploadingVipLogo || isSavingVipSettings}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 text-xs font-semibold transition-all border border-slate-700 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Hapus</span>
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-tight">
+                              Format PNG/WebP. Otomatis kompres & simpan ke Cloudinary CDN.
+                            </p>
+                            <input
+                              ref={vipLogoInputRef}
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/jpg"
+                              className="hidden"
+                              onChange={handleVipLogoSelect}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          disabled={isSavingVipSettings || isUploadingVipLogo}
+                          onClick={() => handleSaveVipSettings()}
+                          className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Logo Outlet"}
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* PANEL 3: MULTI-KASIR PAIRING (QR STAF) */}
+                  {/* PANEL 4: MULTI-KASIR PAIRING (QR STAF) */}
                   <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-amber-500/30 space-y-6 shadow-2xl">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                       <div className="flex items-center gap-3">
@@ -1850,7 +2013,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-base sm:text-lg font-black text-white">
-                              3. Multi-Kasir Pairing (QR Staf & Kasir)
+                              4. Multi-Kasir Pairing (QR Staf & Kasir)
                             </h3>
                             <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
                               BEBAS BAGI PASSWORD
