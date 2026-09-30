@@ -23,6 +23,7 @@ import {
   Receipt,
   MessageCircle,
   Filter,
+  Store,
 } from "lucide-react";
 import {
   showSuccessAlert,
@@ -40,6 +41,7 @@ import {
   convertResellerOrderToAdminAction,
 } from "@/lib/actions/reseller-shop.actions";
 import { ResellerOrderModel } from "@/types/models";
+import { ActivateOutletFromOrderModal } from "./ActivateOutletFromOrderModal";
 
 interface ResellerOrdersManagerModalProps {
   isOpen: boolean;
@@ -63,6 +65,9 @@ export function ResellerOrdersManagerModal({
 
   // Modal Preview Struk
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Modal Aktivasi Akun Outlet & Pasang Kartu
+  const [activatingOutletOrder, setActivatingOutletOrder] = useState<ResellerOrderModel | null>(null);
 
   // Modal Edit Customer Data
   const [editingOrder, setEditingOrder] = useState<ResellerOrderModel | null>(null);
@@ -494,6 +499,34 @@ Tim Layanan Smart QR`
                               Catatan: &ldquo;{order.notes}&rdquo;
                             </div>
                           )}
+
+                          {/* Outlet Status Badge if Already Activated */}
+                          {order.admin?.outlet && (
+                            <div className="p-2.5 mt-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1">
+                              <div className="flex items-center justify-between text-xs text-emerald-300">
+                                <span className="font-bold flex items-center gap-1.5 text-white">
+                                  <Store className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  <span>{order.admin.outlet.name}</span>
+                                </span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                                  Portal Outlet Aktif
+                                </span>
+                              </div>
+                              {order.admin.outlet.qrCards && order.admin.outlet.qrCards.length > 0 && (
+                                <div className="flex items-center gap-1.5 flex-wrap pt-0.5 text-[11px]">
+                                  <span className="text-[10px] text-slate-400 font-semibold">Kartu Terpasang:</span>
+                                  {order.admin.outlet.qrCards.map((c) => (
+                                    <span
+                                      key={c.code}
+                                      className="px-1.5 py-0.5 rounded bg-slate-950 font-mono text-[10px] font-bold text-sky-300 border border-slate-700"
+                                    >
+                                      {c.code}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -570,16 +603,45 @@ Tim Layanan Smart QR`
 
                       {/* Approval & Delete Actions */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* Tombol Buat Akun Admin Lapangan */}
-                        <button
-                          type="button"
-                          onClick={() => handleConvertToAdmin(order)}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-                          title="Buatkan akun login Admin Lapangan untuk pemesan ini"
-                        >
-                          <User className="w-3.5 h-3.5 text-indigo-400" />
-                          <span>{order.adminId ? "Detail Akun Admin" : "Buatkan Akun Admin"}</span>
-                        </button>
+                        {/* Tombol Buat / Detail Akun Outlet (Retail) vs Akun Admin Lapangan (Grosir) */}
+                        {order.orderType === "RETAIL" || (order.notes && order.notes.includes("[Outlet:")) ? (
+                          <button
+                            type="button"
+                            onClick={() => setActivatingOutletOrder(order)}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                              order.admin?.outlet
+                                ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30"
+                                : "bg-gradient-to-r from-emerald-600/25 to-teal-600/25 hover:from-emerald-600/40 hover:to-teal-600/40 text-emerald-300 border border-emerald-500/40 font-extrabold shadow-sm"
+                            }`}
+                            title={
+                              order.admin?.outlet
+                                ? "Lihat rincian akun Portal Outlet & kartu terpasang"
+                                : "Aktifkan akun Portal Outlet & pasangkan kartu kosong"
+                            }
+                          >
+                            {order.admin?.outlet ? (
+                              <>
+                                <Store className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Detail Akun Outlet</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Aktifkan Akun Outlet</span>
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleConvertToAdmin(order)}
+                            className="px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            title="Buatkan akun login Admin Lapangan untuk pemesan ini"
+                          >
+                            <User className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>{order.adminId ? "Detail Akun Admin" : "Buatkan Akun Admin"}</span>
+                          </button>
+                        )}
 
                         {isPending && (
                           <>
@@ -749,6 +811,17 @@ Tim Layanan Smart QR`
           </div>
         </div>
       )}
+
+      {/* Modal Aktivasi Akun Outlet & Pasang Kartu Kosong */}
+      <ActivateOutletFromOrderModal
+        isOpen={Boolean(activatingOutletOrder)}
+        order={activatingOutletOrder}
+        onClose={() => setActivatingOutletOrder(null)}
+        onSuccess={() => {
+          loadOrders();
+          onRefreshData?.();
+        }}
+      />
     </div>
   );
 }

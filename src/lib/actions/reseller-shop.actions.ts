@@ -770,8 +770,22 @@ export async function getResellerOrdersAction(adminIdFilter?: string) {
             id: true,
             fullName: true,
             email: true,
+            role: true,
             whatsappNumber: true,
             avatarUrl: true,
+            outlet: {
+              select: {
+                id: true,
+                name: true,
+                googleReviewUrl: true,
+                qrCards: {
+                  select: {
+                    code: true,
+                    status: true,
+                  },
+                },
+              },
+            },
           },
         },
         items: {
@@ -1170,3 +1184,250 @@ export async function convertResellerOrderToAdminAction(orderId: string, customP
     return { success: false, message: "Gagal membuat akun Admin Lapangan dari pesanan ini." };
   }
 }
+
+/**
+ * 12. Super Admin: Ambil Seluruh Kartu Kosong (Belum Terhubung ke Outlet)
+ */
+export async function getAvailableBlankCardsAction() {
+  try {
+    const session = await auth();
+    if (!session) {
+      return { success: false, message: "Harap login terlebih dahulu.", data: [] };
+    }
+
+    const blankCards = await prisma.qrCard.findMany({
+      where: {
+        outletId: null,
+      },
+      select: {
+        code: true,
+        status: true,
+        assignedAdminId: true,
+      },
+      orderBy: { code: "asc" },
+    });
+
+    return { success: true, data: blankCards };
+  } catch (error) {
+    console.error("getAvailableBlankCardsAction error:", error);
+    return { success: false, message: "Gagal memuat daftar kartu kosong.", data: [] };
+  }
+}
+
+/**
+ * 13. Super Admin: Aktifkan Akun Outlet Pembeli Satuan / Retail & Pasangkan Kartu Kosong Sekaligus
+ */
+export async function activateRetailOrderAsOutletAction(data: {
+  orderId: string;
+  cardCodes: string[];
+  outletName: string;
+  googleReviewUrl: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  password?: string;
+  isAutoVip?: boolean;
+}) {
+  try {
+    const session = await auth();
+    if (!session || (session.user.role !== "SUPER_ADMIN" && session.user.role !== "ADMIN")) {
+      return { success: false, message: "Akses ditolak. Hanya Super Admin / Admin yang dapat mengaktifkan akun outlet." };
+    }
+
+    const order = await prisma.resellerOrder.findUnique({
+      where: { id: data.orderId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!order) {
+      return { success: false, message: "Data pesanan tidak ditemukan." };
+    }
+
+    if (!data.cardCodes || data.cardCodes.length === 0) {
+      return { success: false, message: "Pilih minimal 1 kartu kosong untuk dihubungkan ke outlet ini." };
+    }
+
+    const cleanCards = Array.from(new Set(data.cardCodes.map((c) => c.trim().toLowerCase())));
+
+    // Periksa apakah kartu-kartu yang dipilih valid dan belum terpakai oleh outlet lain
+    const targetCards = await prisma.qrCard.findMany({
+      where: {
+        code: { in: cleanCards },
+      },
+      include: {
+        outlet: {
+          select: { id: true, name: true, ownerId: true },
+        },
+      },
+    });
+
+    if (targetCards.length !== cleanCards.length) {
+      const foundCodes = new Set(targetCards.map((c) => c.code.toLowerCase()));
+      const missing = cleanCards.filter((c) => !foundCodes.has(c));
+      return { success: false, message: `Kartu ${missing.join(", ")} tidak ditemukan di sistem.` };
+    }
+
+    const targetEmail = data.email.toLowerCase().trim();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: targetEmail },
+      include: { outlet: true },
+    });
+
+    // Validasi kartu apakah sudah dipakai outlet lain
+    for (const card of targetCards) {
+      if (card.outletId && existingUser?.outlet?.id !== card.outletId) {
+        return {
+          success: false,
+          message: `Kartu "${card.code}" saat ini sudah terpasang di outlet "${card.outlet?.name || card.outletId}". Silakan pilih kartu kosong lainnya.`,
+        };
+      }
+    }
+
+    const defaultPassword = data.password?.trim() || "Outlet123!";
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    let cleanWa = data.phone.replace(/[^0-9]/g, "");
+    if (cleanWa.startsWith("08")) cleanWa = "62" + cleanWa.slice(1);
+    if (cleanWa.startsWith("8")) cleanWa = "62" + cleanWa;
+
+    // Ambil setting trial VIP
+    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    const isAutoVip = data.isAutoVip ?? (siteSetting ? (siteSetting.autoVipTrialOnActivation ?? true) : true);
+    const trialDays = siteSetting?.trialDurationDays ?? 30;
+    const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+
+    let assignedUserId = "";
+    let finalOutletId = "";
+
+    if (existingUser) {
+      assignedUserId = existingUser.id;
+      // Update data user jika perlu
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          fullName: data.fullName.trim(),
+          whatsappNumber: cleanWa,
+          isActive: true,
+        },
+      });
+
+      if (existingUser.outlet) {
+        finalOutletId = existingUser.outlet.id;
+        // Update data outlet
+        await prisma.outlet.update({
+          where: { id: existingUser.outlet.id },
+          data: {
+            name: data.outletName.trim(),
+            googleReviewUrl: data.googleReviewUrl.trim(),
+            ...(isAutoVip && !existingUser.outlet.isMember
+              ? {
+                  isMember: true,
+                  membershipStartedAt: new Date(),
+                  membershipExpiresAt: trialExpiry,
+                }
+              : {}),
+          },
+        });
+      } else {
+        // Buat outlet baru untuk user yang sudah ada
+        const newOutlet = await prisma.outlet.create({
+          data: {
+            ownerId: existingUser.id,
+            name: data.outletName.trim(),
+            googleReviewUrl: data.googleReviewUrl.trim(),
+            isMember: isAutoVip,
+            membershipStartedAt: isAutoVip ? new Date() : null,
+            membershipExpiresAt: isAutoVip ? trialExpiry : null,
+          },
+        });
+        finalOutletId = newOutlet.id;
+      }
+    } else {
+      // Buat akun User (Role: USER) baru
+      const newUser = await prisma.user.create({
+        data: {
+          email: targetEmail,
+          password: hashedPassword,
+          fullName: data.fullName.trim(),
+          whatsappNumber: cleanWa,
+          role: "USER",
+          isActive: true,
+          createdById: session.user.id,
+        },
+      });
+      assignedUserId = newUser.id;
+
+      // Buat Outlet untuk user baru
+      const newOutlet = await prisma.outlet.create({
+        data: {
+          ownerId: newUser.id,
+          name: data.outletName.trim(),
+          googleReviewUrl: data.googleReviewUrl.trim(),
+          isMember: isAutoVip,
+          membershipStartedAt: isAutoVip ? new Date() : null,
+          membershipExpiresAt: isAutoVip ? trialExpiry : null,
+        },
+      });
+      finalOutletId = newOutlet.id;
+    }
+
+    // Pasangkan semua kartu ke outlet ini
+    await prisma.qrCard.updateMany({
+      where: {
+        code: { in: cleanCards },
+      },
+      data: {
+        outletId: finalOutletId,
+        status: "ACTIVE",
+      },
+    });
+
+    // Hubungkan order ke akun user ini
+    await prisma.resellerOrder.update({
+      where: { id: data.orderId },
+      data: {
+        adminId: assignedUserId,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        userId: session.user.id,
+        userName: session.user.name || "Super Admin",
+        userRole: session.user.role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "ADMIN",
+        action: "REGISTER_OUTLET",
+        title: "Aktivasi Akun Outlet & Pemasangan Kartu 🏪",
+        description: `Super Admin mengaktifkan akun Outlet "${data.outletName.trim()}" (${targetEmail}) dan memasangkan ${cleanCards.length} kartu (${cleanCards.join(", ")}) dari Order #${order.orderNumber}.`,
+        targetId: finalOutletId,
+        targetName: data.outletName.trim(),
+        outletId: finalOutletId,
+        superAdminId: session.user.id,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/super-admin");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      message: `Akun Portal Outlet "${data.outletName}" berhasil diaktifkan dan terhubung dengan ${cleanCards.length} kartu (${cleanCards.join(", ")})!`,
+      data: {
+        outletId: finalOutletId,
+        outletName: data.outletName.trim(),
+        googleReviewUrl: data.googleReviewUrl.trim(),
+        fullName: data.fullName.trim(),
+        email: targetEmail,
+        password: defaultPassword,
+        whatsappNumber: cleanWa,
+        cardCodes: cleanCards,
+        orderNumber: order.orderNumber,
+      },
+    };
+  } catch (error) {
+    console.error("activateRetailOrderAsOutletAction error:", error);
+    return { success: false, message: "Gagal mengaktifkan akun outlet dan menghubungkan kartu." };
+  }
+}
+

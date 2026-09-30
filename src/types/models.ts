@@ -396,19 +396,30 @@ export interface ResellerOrderItemModel {
 export interface ResellerOrderModel {
   id: string;
   orderNumber: string;
+  orderType?: "RESELLER" | "RETAIL" | string;
   adminId?: string | null;
   admin?: {
     id: string;
     fullName: string;
     email: string;
+    role?: string;
     whatsappNumber?: string | null;
     avatarUrl?: string | null;
+    outlet?: {
+      id: string;
+      name: string;
+      googleReviewUrl: string;
+      qrCards?: { code: string; status?: string }[];
+    } | null;
   } | null;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
   shippingAddress?: string | null;
+  province?: string | null;
   notes?: string | null;
+  affiliateCode?: string | null;
+  affiliateCommission?: number;
   paymentMethod: string;
   paymentStatus: "PENDING" | "PAID" | "REJECTED" | "CANCELLED" | string;
   orderStatus: "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED" | string;
