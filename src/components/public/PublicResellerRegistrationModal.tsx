@@ -458,25 +458,25 @@ export function PublicResellerRegistrationModal({
         ) : (
           /* View: Registration & Shopping Form Wizard */
           <form onSubmit={handleCheckout} className="flex-1 overflow-y-auto space-y-4 pt-3.5 custom-scrollbar">
-            {/* ── STEP PROGRESS BAR (WIZARD: PAGE 1 -> PAGE 2 -> PAGE 3) ── */}
-            <div className="p-2 sm:p-2.5 bg-slate-950/80 border border-slate-800/90 rounded-2xl">
-              <div className="grid grid-cols-3 gap-2">
+            {/* ── STEP PROGRESS BAR (WIZARD: 1. Data Penerima -> 2. Pilih Produk -> 3. Usaha & Bayar) ── */}
+            <div className="py-1 shrink-0">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {/* Step 1 Tab */}
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
                     currentStep === 1
-                      ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-500/10"
+                      ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-950/30"
                       : currentStep > 1
                       ? "bg-slate-900/80 border-emerald-500/40 text-emerald-400 hover:bg-slate-800"
                       : "bg-slate-900/40 border-slate-800 text-slate-400"
                   }`}
                 >
                   <div
-                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                       currentStep === 1
-                        ? "bg-indigo-600 text-white shadow"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
                         : currentStep > 1
                         ? "bg-emerald-500 text-slate-950 font-black"
                         : "bg-slate-800 text-slate-400"
@@ -486,10 +486,10 @@ export function PublicResellerRegistrationModal({
                   </div>
                   <div className="min-w-0">
                     <span className="block text-[11px] sm:text-xs font-bold truncate">
-                      PAGE 1
+                      1. Data Penerima
                     </span>
-                    <span className="text-[9px] text-slate-400 truncate block">
-                      Data Diri & Alamat
+                    <span className="hidden sm:block text-[9px] text-slate-400 truncate">
+                      Nama & Alamat
                     </span>
                   </div>
                 </button>
@@ -500,31 +500,31 @@ export function PublicResellerRegistrationModal({
                   onClick={() => {
                     if (validateStep1()) setCurrentStep(2);
                   }}
-                  className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
                     currentStep === 2
-                      ? "bg-emerald-600/20 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                      ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-950/30"
                       : currentStep > 2
                       ? "bg-slate-900/80 border-emerald-500/40 text-emerald-400 hover:bg-slate-800"
                       : "bg-slate-900/40 border-slate-800 text-slate-400"
                   }`}
                 >
                   <div
-                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                       currentStep === 2
-                        ? "bg-emerald-600 text-white shadow"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
                         : currentStep > 2
                         ? "bg-emerald-500 text-slate-950 font-black"
-                        : "bg-slate-800 text-slate-400"
+                        : "bg-slate-800 text-sky-400 font-bold"
                     }`}
                   >
                     {currentStep > 2 ? <Check className="w-3.5 h-3.5" /> : "2"}
                   </div>
                   <div className="min-w-0">
                     <span className="block text-[11px] sm:text-xs font-bold truncate">
-                      PAGE 2
+                      2. Pilih Produk
                     </span>
-                    <span className="text-[9px] text-slate-400 truncate block">
-                      Pilih Kartu ({totalQuantity} pcs)
+                    <span className="hidden sm:block text-[9px] text-slate-400 truncate">
+                      {totalQuantity > 0 ? `${totalQuantity} pcs terpilih` : "Paket Grosir"}
                     </span>
                   </div>
                 </button>
@@ -535,27 +535,27 @@ export function PublicResellerRegistrationModal({
                   onClick={() => {
                     if (validateStep1() && validateStep2()) setCurrentStep(3);
                   }}
-                  className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                  className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
                     currentStep === 3
-                      ? "bg-amber-600/20 border-amber-500 text-white shadow-md shadow-amber-500/10"
+                      ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-950/30"
                       : "bg-slate-900/40 border-slate-800 text-slate-400"
                   }`}
                 >
                   <div
-                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                       currentStep === 3
-                        ? "bg-amber-500 text-slate-950 font-black shadow"
-                        : "bg-slate-800 text-slate-400"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30 font-black"
+                        : "bg-slate-800 text-sky-400 font-bold"
                     }`}
                   >
                     3
                   </div>
                   <div className="min-w-0">
                     <span className="block text-[11px] sm:text-xs font-bold truncate">
-                      PAGE 3
+                      3. Usaha & Bayar
                     </span>
-                    <span className="text-[9px] text-slate-400 truncate block">
-                      Pembayaran
+                    <span className="hidden sm:block text-[9px] text-slate-400 truncate">
+                      QRIS & BNI
                     </span>
                   </div>
                 </button>
@@ -571,12 +571,12 @@ export function PublicResellerRegistrationModal({
                   <div>
                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-400 text-xs font-mono font-bold">
-                        PAGE 1
+                        Langkah 1
                       </span>
-                      Isi Data Diri & Alamat Pengiriman
+                      Data Penerima & Alamat Pengiriman
                     </h4>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Lengkapi data diri pemesan untuk akun admin dan alamat pengiriman kartu
+                      Lengkapi data diri pemesan untuk akun portal dan alamat pengiriman kartu
                     </p>
                   </div>
                   <span className="text-[11px] text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-800">
@@ -674,7 +674,7 @@ export function PublicResellerRegistrationModal({
                     }}
                     className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
                   >
-                    <span>Lanjut ke Page 2: Pilih Pesanan Kartu</span>
+                    <span>Lanjut ke 2. Pilih Produk</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -682,7 +682,7 @@ export function PublicResellerRegistrationModal({
             )}
 
             {/* ───────────────────────────────────────────────────────────── */}
-            {/* PAGE 2: FORM PILIH PESANAN KARTU (MIN 8 PCS)                   */}
+            {/* STEP 2: FORM PILIH PRODUK (MIN 8 PCS)                          */}
             {/* ───────────────────────────────────────────────────────────── */}
             {currentStep === 2 && (
               <div className="space-y-4 animate-in fade-in duration-200">
@@ -690,12 +690,12 @@ export function PublicResellerRegistrationModal({
                   <div>
                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">
-                        PAGE 2
+                        Langkah 2
                       </span>
-                      Pilih Paket Kartu & Jumlah Pembelian
+                      Pilih Produk & Jumlah Kartu Grosir
                     </h4>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Minimal total pengambilan adalah <strong>8 pcs</strong> untuk mendapatkan harga grosir reseller
+                      Minimal total pesanan adalah <strong>8 pcs</strong> untuk mendapatkan harga grosir kemitraan
                     </p>
                   </div>
                   <div className="text-right">
@@ -791,7 +791,7 @@ export function PublicResellerRegistrationModal({
                     className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Kembali ke Page 1</span>
+                    <span>Kembali ke 1. Data Penerima</span>
                   </button>
                   <button
                     type="button"
@@ -801,7 +801,7 @@ export function PublicResellerRegistrationModal({
                     }}
                     className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
                   >
-                    <span>Lanjut ke Page 3: Pembayaran</span>
+                    <span>Lanjut ke 3. Usaha & Bayar</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -809,7 +809,7 @@ export function PublicResellerRegistrationModal({
             )}
 
             {/* ───────────────────────────────────────────────────────────── */}
-            {/* PAGE 3: FORM RINGKASAN & METODE PEMBAYARAN                    */}
+            {/* STEP 3: FORM RINGKASAN & METODE PEMBAYARAN                     */}
             {/* ───────────────────────────────────────────────────────────── */}
             {currentStep === 3 && (
               <div className="space-y-4 animate-in fade-in duration-200">
@@ -817,7 +817,7 @@ export function PublicResellerRegistrationModal({
                   <div>
                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-xs font-mono font-bold">
-                        PAGE 3
+                        Langkah 3
                       </span>
                       Ringkasan & Metode Pembayaran
                     </h4>
@@ -961,7 +961,7 @@ export function PublicResellerRegistrationModal({
                     className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Kembali ke Page 2</span>
+                    <span>Kembali ke 2. Pilih Produk</span>
                   </button>
                   <button
                     type="submit"
