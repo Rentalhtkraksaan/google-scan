@@ -259,35 +259,15 @@ export function ActivateOutletFromOrderModal({
     if (cleanWa.startsWith("08")) cleanWa = "62" + cleanWa.slice(1);
     if (cleanWa.startsWith("8")) cleanWa = "62" + cleanWa;
 
-    const portalUrl =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/login`
-        : "https://qr-inaja.vercel.app/login";
+    const message = `Halo *${data.fullName}*, selamat datang di kemitraan QR-INAJA 👋
+Silakan login menggunakan:
 
-    const cardsListText = data.cardCodes.map((c) => `  • Kartu: *${c}* (Aktif & Terhubung)`).join("\n");
+Link : qr-inaja.vercel.app/login
+Email: ${data.email}
+Pw : ${data.password || "Outlet123!"}
 
-    const message = `Halo Kak *${data.fullName}* dari *${data.outletName}*! 👋✨
-
-Terima kasih atas pesanan Kartu Smart QR Google Review Anda (*Order #${data.orderNumber}*).
-Kartu fisik Anda sedang kami persiapkan dan Akun Portal Outlet Anda telah *BERHASIL DIAKTIFKAN*! 🚀
-
-📌 *Detail Kartu Anda (${data.cardCodes.length} pcs)*:
-${cardsListText}
-
-🏢 *Akses Portal Outlet Anda*:
-🌐 *Link Login*: ${portalUrl}
-📧 *Email*: ${data.email}
-🔑 *Password*: ${data.password || "Outlet123!"}
-
-*Fitur Portal Outlet*:
-✅ Pantau jumlah scan ulasan secara realtime
-✅ Unduh stiker/barcode QR siap cetak
-✅ Kelola link Google Review & Smart Filter Bintang 5
-
-Kartu fisik akan segera dikirimkan ke alamat pengiriman Anda. Terima kasih atas kepercayaannya! ⭐⭐⭐⭐⭐
-
-Salam sukses,
-*Tim Layanan Smart QR Review*`;
+Segera lakukan penggantian data untuk keamanan bersama, terimakasih.
+Salam hangat`;
 
     return `https://wa.me/${cleanWa}?text=${encodeURIComponent(message)}`;
   };

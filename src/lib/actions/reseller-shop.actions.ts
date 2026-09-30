@@ -236,6 +236,57 @@ export async function deleteResellerProductAction(id: string) {
 import bcrypt from "bcryptjs";
 
 /**
+ * Sanitasi string input untuk mencegah XSS, SQLi, PHP injection, dan phishing file payload.
+ */
+export function sanitizeInputText(input?: string | null, maxLength: number = 255): string {
+  if (!input) return "";
+  let clean = input.trim();
+  // Strip PHP tags and code execution blocks
+  clean = clean.replace(/<\?php[\s\S]*?\?>/gi, "");
+  clean = clean.replace(/<\?[\s\S]*?\?>/gi, "");
+  clean = clean.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+  clean = clean.replace(/<[^>]+>/g, ""); // Strip all HTML tags
+  // Remove dangerous executable / phishing strings & php function keywords
+  clean = clean.replace(/(eval\s*\(|base64_decode|system\s*\(|exec\s*\(|passthru|shell_exec|phpinfo|popen|proc_open)/gi, "");
+  // Remove executable extensions embedded in names or suspicious URLs
+  clean = clean.replace(/\.(php|phtml|php3|php4|php5|phps|phar|exe|sh|bat|cmd|vbs|cgi|pl)\b/gi, "");
+  return clean.slice(0, maxLength).trim();
+}
+
+/**
+ * Validasi ketat foto struk bukti transfer untuk mencegah upload file PHP / script berbahaya
+ */
+export function validateReceiptImage(receiptUrlOrBase64?: string | null): boolean {
+  if (!receiptUrlOrBase64) return true; // Opsional jika belum diupload
+  const str = receiptUrlOrBase64.trim().toLowerCase();
+  
+  // Cegah injeksi ekstensi PHP atau script di nama/URL file
+  if (
+    str.includes(".php") ||
+    str.includes(".phtml") ||
+    str.includes(".exe") ||
+    str.includes(".sh") ||
+    str.includes("<script") ||
+    str.includes("<?php")
+  ) {
+    return false;
+  }
+
+  // Jika berupa data URL base64, pastikan hanya MIME image yang sah
+  if (str.startsWith("data:")) {
+    const validMime = /^data:image\/(jpeg|jpg|png|webp);base64,/i;
+    return validMime.test(receiptUrlOrBase64.trim());
+  }
+
+  // Jika berupa URL (Cloudinary / CDN), pastikan protokol valid http/https
+  if (str.startsWith("http://") || str.startsWith("https://")) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Generator Kode Unik Pesanan 6 Karakter (contoh: AP2AC6, AP8K9Z)
  * Awalan 'AP' diikuti 4 karakter alfanumerik acak
  */
@@ -275,6 +326,17 @@ export async function createResellerOrderAction(data: {
     const session = await auth();
     const isAdminUser = session && session.user && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN");
 
+    // Sanitasi input teks dari script injection / phishing PHP
+    const sanitizedName = sanitizeInputText(data.customerName, 80);
+    const sanitizedPhone = sanitizeInputText(data.customerPhone, 20).replace(/[^0-9+]/g, "");
+    const sanitizedEmail = sanitizeInputText(data.customerEmail, 100).toLowerCase();
+    const sanitizedAddress = sanitizeInputText(data.shippingAddress, 500);
+    const sanitizedNotes = sanitizeInputText(data.notes, 300);
+
+    if (data.receiptImageUrl && !validateReceiptImage(data.receiptImageUrl)) {
+      return { success: false, message: "File struk bukti transfer tidak valid atau berbahaya. Gunakan file gambar JPG, PNG, atau WEBP." };
+    }
+
     if (!data.items || data.items.length === 0) {
       return { success: false, message: "Keranjang belanja paket reseller masih kosong." };
     }
@@ -284,8 +346,8 @@ export async function createResellerOrderAction(data: {
       return { success: false, message: `Pemesanan paket reseller wajib minimal 8 pcs (saat ini ${totalQuantity} pcs).` };
     }
 
-    if (!data.customerName?.trim() || !data.customerPhone?.trim() || !data.customerEmail?.trim()) {
-      return { success: false, message: "Nama, No. WhatsApp, dan Email wajib diisi dengan lengkap." };
+    if (!sanitizedName || !sanitizedPhone || !sanitizedEmail) {
+      return { success: false, message: "Nama, No. WhatsApp, dan Email wajib diisi dengan lengkap dan valid." };
     }
 
     // Ambil produk dari database untuk kalkulasi harga akurat
@@ -542,6 +604,21 @@ export async function createRetailOrderAction(data: {
   try {
     const session = await auth();
 
+    // Sanitasi input teks dari script injection / phishing PHP
+    const sanitizedName = sanitizeInputText(data.customerName, 80);
+    const sanitizedPhone = sanitizeInputText(data.customerPhone, 20).replace(/[^0-9+]/g, "");
+    const sanitizedEmail = sanitizeInputText(data.customerEmail, 100).toLowerCase();
+    const sanitizedOutlet = sanitizeInputText(data.outletName, 100);
+    const sanitizedMaps = sanitizeInputText(data.googleMapsUrl, 300);
+    const sanitizedAddress = sanitizeInputText(data.shippingAddress, 500);
+    const sanitizedProvince = sanitizeInputText(data.province, 50);
+    const sanitizedAffiliate = sanitizeInputText(data.affiliateCode, 30).toUpperCase();
+    const sanitizedNotes = sanitizeInputText(data.notes, 300);
+
+    if (data.receiptImageUrl && !validateReceiptImage(data.receiptImageUrl)) {
+      return { success: false, message: "File struk bukti transfer tidak valid atau berbahaya. Gunakan file gambar JPG, PNG, atau WEBP." };
+    }
+
     if (!data.items || data.items.length === 0) {
       return { success: false, message: "Keranjang belanja Anda masih kosong." };
     }
@@ -551,8 +628,8 @@ export async function createRetailOrderAction(data: {
       return { success: false, message: "Pilih minimal 1 unit produk." };
     }
 
-    if (!data.customerName?.trim() || !data.customerPhone?.trim() || !data.customerEmail?.trim()) {
-      return { success: false, message: "Nama, No. WhatsApp, dan Email wajib diisi dengan lengkap." };
+    if (!sanitizedName || !sanitizedPhone || !sanitizedEmail) {
+      return { success: false, message: "Nama, No. WhatsApp, dan Email wajib diisi dengan lengkap dan valid." };
     }
 
     // Ambil produk dari database

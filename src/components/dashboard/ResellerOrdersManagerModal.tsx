@@ -351,21 +351,16 @@ export function ResellerOrdersManagerModal({
       if (res.success && res.data) {
         let cleanWa = res.data.whatsappNumber?.replace(/[^0-9]/g, "") || "";
         if (cleanWa.startsWith("08")) cleanWa = "62" + cleanWa.slice(1);
-        const loginUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
         const waMsg = encodeURIComponent(
-`Halo Kak *${res.data.fullName}*! 👋✨
+`Halo *${res.data.fullName}*, selamat datang di kemitraan QR-INAJA 👋
+Silakan login menggunakan:
 
-Pesanan paket perdana kartu QR Anda (#${order.orderNumber}) telah kami terima dan sedang diproses.
+Link : qr-inaja.vercel.app/login
+Email: ${res.data.email}
+Pw : ${res.data.password}
 
-Berikut detail akun Portal Admin Lapangan Anda:
-🌐 *Link Login*: ${loginUrl}
-📧 *Email*: ${res.data.email}
-🔑 *Password*: ${res.data.password}
-
-Silakan login ke portal untuk memantau inventaris kartu & aktivasi lisensi kemitraan.
-
-Salam sukses,
-Tim Layanan Smart QR`
+Segera lakukan penggantian data untuk keamanan bersama, terimakasih.
+Salam hangat`
         );
         const waLink = `https://wa.me/${cleanWa}?text=${waMsg}`;
 

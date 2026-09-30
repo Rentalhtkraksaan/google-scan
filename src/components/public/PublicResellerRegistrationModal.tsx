@@ -16,6 +16,7 @@ import {
   Upload,
   Clock,
   ArrowRight,
+  ArrowLeft,
   Send,
   AlertCircle,
   Package,
@@ -51,6 +52,9 @@ export function PublicResellerRegistrationModal({
 }: PublicResellerRegistrationModalProps) {
   const [products, setProducts] = useState<ResellerProductModel[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
+  // Step Wizard State: 1 = Form 1 (Data Diri), 2 = Form 2 (Pilih Kartu), 3 = Form 3 (Pembayaran)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
   // Cart Quantities state: map of productId -> quantity
   const [cartQuantities, setCartQuantities] = useState<Record<string, number>>({});
@@ -127,6 +131,7 @@ export function PublicResellerRegistrationModal({
     // Reset screen state
     setCreatedOrderNumber(null);
     setIsSubmitting(false);
+    setCurrentStep(1);
 
     if (siteSetting?.midtransEnabled === false) {
       setPaymentMethod("MANUAL_BANK_BNI");
@@ -175,7 +180,7 @@ export function PublicResellerRegistrationModal({
     return sum + (p.price || 0) * qty;
   }, 0);
 
-  const shippingFee = 0; // Bebas ongkir untuk reseller (ongkir dibebankan / diurus sendiri oleh reseller)
+  const shippingFee = 0; // Bebas ongkir untuk reseller
   const totalAmount = subtotal + shippingFee;
   const isMinOrderMet = totalQuantity >= 8;
 
@@ -190,6 +195,24 @@ export function PublicResellerRegistrationModal({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Strict validation: Reject non-images and potential PHP / script files
+    const fileName = file.name.toLowerCase();
+    if (
+      fileName.endsWith(".php") ||
+      fileName.endsWith(".phtml") ||
+      fileName.endsWith(".exe") ||
+      fileName.endsWith(".sh") ||
+      fileName.includes(".php.")
+    ) {
+      showErrorAlert("File Ditolak", "File executable/PHP dilarang. Harap upload file gambar struk yang sah (JPG, PNG, WEBP).");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      showErrorAlert("Format Tidak Didukung", "Hanya format gambar JPG, PNG, atau WEBP yang diperbolehkan.");
+      return;
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       showErrorAlert("File Terlalu Besar", "Ukuran foto struk maksimal 5MB.");
@@ -210,21 +233,41 @@ export function PublicResellerRegistrationModal({
     setTimeout(() => setCopiedBank(false), 2000);
   };
 
+  // Step 1 Validation
+  const validateStep1 = () => {
+    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
+      showErrorAlert("Data Diri Belum Lengkap", "Nama Lengkap, Nomor WhatsApp, dan Email wajib diisi.");
+      return false;
+    }
+    if (!shippingAddress.trim()) {
+      showErrorAlert("Alamat Belum Diisi", "Alamat lengkap pengiriman wajib diisi untuk pengiriman paket kartu.");
+      return false;
+    }
+    return true;
+  };
+
+  // Step 2 Validation
+  const validateStep2 = () => {
+    if (!isMinOrderMet) {
+      showErrorAlert(
+        "Minimal Pengambilan 8 Pcs",
+        `Total kartu yang dipilih saat ini ${totalQuantity} pcs. Silakan tambah menjadi minimal 8 pcs untuk harga reseller.`
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
-      showErrorAlert("Data Diri Belum Lengkap", "Nama Lengkap, Nomor WhatsApp, dan Email wajib diisi.");
+    if (!validateStep1()) {
+      setCurrentStep(1);
       return;
     }
 
-    if (!shippingAddress.trim()) {
-      showErrorAlert("Alamat Belum Diisi", "Alamat lengkap pengiriman wajib diisi untuk pengiriman paket kartu.");
-      return;
-    }
-
-    if (!isMinOrderMet) {
-      showErrorAlert("Minimal Pengambilan 8 Pcs", `Total kartu yang dipilih saat ini ${totalQuantity} pcs. Silakan tambah menjadi minimal 8 pcs.`);
+    if (!validateStep2()) {
+      setCurrentStep(2);
       return;
     }
 
@@ -247,11 +290,11 @@ export function PublicResellerRegistrationModal({
     try {
       const res = await createResellerOrderAction({
         items,
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        customerEmail: customerEmail.trim().toLowerCase(),
-        shippingAddress: shippingAddress.trim(),
-        notes: notes.trim() || undefined,
+        customerName: customerName.trim().slice(0, 80),
+        customerPhone: customerPhone.trim().replace(/[^0-9+]/g, "").slice(0, 20),
+        customerEmail: customerEmail.trim().toLowerCase().slice(0, 100),
+        shippingAddress: shippingAddress.trim().slice(0, 500),
+        notes: notes.trim() ? notes.trim().slice(0, 300) : undefined,
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
       });
@@ -333,7 +376,7 @@ export function PublicResellerRegistrationModal({
         )}
 
         {/* Header Modal */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
+        <div className="flex items-center justify-between pb-3.5 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
               <ShoppingCart className="w-5 h-5" />
@@ -346,7 +389,7 @@ export function PublicResellerRegistrationModal({
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Lengkapi data diri, tentukan jumlah kartu, dan pilih pembayaran
+                Pemesanan paket perdana fisik & pembuatan akun admin lapangan
               </p>
             </div>
           </div>
@@ -372,9 +415,9 @@ export function PublicResellerRegistrationModal({
             <div className="space-y-1.5">
               <h4 className="text-xl font-extrabold text-white">Pendaftaran & Pesanan Berhasil! 🎉</h4>
               <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
-                Terima kasih telah bergabung! Nomor pesanan Anda adalah:
+                Terima kasih telah bergabung! Nomor pesanan resmi Anda adalah:
               </p>
-              <div className="inline-block px-4 py-2 bg-slate-950 border border-emerald-500/40 rounded-2xl font-mono text-base font-black text-emerald-400 mt-2">
+              <div className="inline-block px-4 py-2 bg-slate-950 border border-emerald-500/40 rounded-2xl font-mono text-base font-black text-emerald-400 mt-2 shadow-inner">
                 #{createdOrderNumber}
               </div>
             </div>
@@ -385,9 +428,9 @@ export function PublicResellerRegistrationModal({
                 <span>Langkah Selanjutnya:</span>
               </div>
               <ul className="text-slate-400 space-y-1.5 list-disc list-inside">
-                <li>Super Admin menerima pesanan Anda dan mengemas paket kartu.</li>
-                <li>Super Admin akan membuatkan akun login <strong>Admin Lapangan</strong> untuk Anda.</li>
-                <li>Anda dapat melacak status pengiriman kapan saja menggunakan nomor pesanan di atas.</li>
+                <li>Super Admin memverifikasi pesanan Anda dan mengemas paket kartu.</li>
+                <li>Super Admin membuatkan akun <strong>Admin Lapangan</strong> untuk Anda dan mengirimkan info login resmi via WhatsApp.</li>
+                <li>Gunakan nomor pesanan di atas untuk melacak proses pengiriman barang.</li>
               </ul>
             </div>
 
@@ -413,324 +456,533 @@ export function PublicResellerRegistrationModal({
             </div>
           </div>
         ) : (
-          /* View: Registration & Shopping Form */
-          <form onSubmit={handleCheckout} className="flex-1 overflow-y-auto space-y-5 pt-4 custom-scrollbar">
-            {/* STEP 1: CUSTOMER DATA & DELIVERY ADDRESS FIRST */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-indigo-400" />
-                  1. Isi Data Diri & Alamat Pengiriman
-                </span>
-                <span className="text-[11px] text-slate-400">Langkah 1 dari 3</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
-                  <div className="relative flex items-center">
-                    <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Contoh: Budi Santoso"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
-                  <div className="relative flex items-center">
-                    <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="tel"
-                      required
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="Contoh: 081234567890"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
-                  <div className="relative flex items-center">
-                    <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="email"
-                      required
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="Contoh: budi@gmail.com"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman Paket Kartu *</label>
-                  <div className="relative">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
-                    <textarea
-                      required
-                      rows={2}
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                      placeholder="Contoh: Jl. Pahlawan No. 45, RT 02/03, Kel. Sukamaju, Kec. Cilincing, Jakarta Utara 14120"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-400">Catatan Tambahan untuk Admin (Opsional)</label>
-                  <div className="relative flex items-center">
-                    <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Contoh: Titipkan ke satpam perumahan / mohon dikemas rapi"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* STEP 2: PRODUCT SELECTION & QUANTITY */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                  <Package className="w-4 h-4 text-emerald-400" />
-                  2. Pilih Paket Kartu & Jumlah Pembelian (Min. 8 Pcs)
-                </span>
-                <span className="text-[11px] font-bold text-emerald-400">
-                  Total: {totalQuantity} pcs {isMinOrderMet ? "✅" : "⚠️ (Kurang " + (8 - totalQuantity) + ")"}
-                </span>
-              </div>
-
-              {isLoadingProducts ? (
-                <div className="py-8 text-center space-y-2">
-                  <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
-                  <p className="text-xs text-slate-400">Memuat katalog kartu...</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {products.map((product) => {
-                    const qty = cartQuantities[product.id] || 0;
-                    return (
-                      <div
-                        key={product.id}
-                        className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                          qty > 0
-                            ? "bg-slate-950 border-emerald-500/40 shadow-sm"
-                            : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          {product.imageUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={product.imageUrl}
-                              alt={product.name}
-                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-slate-800 shrink-0 shadow"
-                            />
-                          ) : (
-                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 shrink-0">
-                              <Package className="w-6 h-6" />
-                            </div>
-                          )}
-
-                          <div className="min-w-0">
-                            <h4 className="text-xs sm:text-sm font-bold text-white truncate">{product.name}</h4>
-                            <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{product.description}</p>
-                            <span className="text-xs sm:text-sm font-extrabold text-emerald-400 font-mono mt-1 block">
-                              Rp {product.price.toLocaleString("id-ID")}
-                              <span className="text-[10px] text-slate-500 font-normal"> / {product.unit}</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Quantity Controls */}
-                        <div className="flex items-center justify-end gap-2.5 shrink-0 self-end sm:self-center">
-                          <button
-                            type="button"
-                            onClick={() => handleQtyChange(product.id, -1)}
-                            disabled={qty === 0}
-                            className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 disabled:opacity-30 flex items-center justify-center cursor-pointer transition-colors"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="w-8 text-center font-bold font-mono text-sm text-white">{qty}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleQtyChange(product.id, 1)}
-                            className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer transition-colors shadow"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* STEP 3: PRICE SUMMARY & PAYMENT METHOD */}
-            <div className="space-y-3 pt-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-amber-400" />
-                3. Ringkasan & Metode Pembayaran
-              </span>
-
-              {/* Price Summary Breakdown */}
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>Subtotal Produk ({totalQuantity} pcs):</span>
-                  <span className="font-mono font-semibold text-white">Rp {subtotal.toLocaleString("id-ID")}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                    Biaya Ongkir:
-                  </span>
-                  <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Bebas Ongkir / Diurus Sendiri)</span>
-                </div>
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-white uppercase">Total Tagihan:</span>
-                  <span className="text-base font-black text-emerald-400 font-mono">
-                    Rp {totalAmount.toLocaleString("id-ID")}
-                  </span>
-                </div>
-              </div>
-
-              {/* Payment Method Selector */}
-              <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
-                {siteSetting?.midtransEnabled !== false && (
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
-                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                      paymentMethod === "MIDTRANS_QRIS"
-                        ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-950/40"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
-                    }`}
-                  >
-                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                      <QrCode className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-white">QRIS Instan (Midtrans)</span>
-                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
-                          OTOMATIS
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">
-                        Scan GoPay, OVO, Dana, ShopeePay, BCA/Mandiri/BNI
-                      </span>
-                    </div>
-                  </button>
-                )}
-
+          /* View: Registration & Shopping Form Wizard */
+          <form onSubmit={handleCheckout} className="flex-1 overflow-y-auto space-y-4 pt-3.5 custom-scrollbar">
+            {/* ── STEP PROGRESS BAR (WIZARD: PAGE 1 -> PAGE 2 -> PAGE 3) ── */}
+            <div className="p-2 sm:p-2.5 bg-slate-950/80 border border-slate-800/90 rounded-2xl">
+              <div className="grid grid-cols-3 gap-2">
+                {/* Step 1 Tab */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod("MANUAL_BANK_BNI")}
-                  className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                    paymentMethod === "MANUAL_BANK_BNI"
-                      ? "bg-amber-950/50 border-amber-500 text-white shadow-lg shadow-amber-950/40"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                  onClick={() => setCurrentStep(1)}
+                  className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                    currentStep === 1
+                      ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-500/10"
+                      : currentStep > 1
+                      ? "bg-slate-900/80 border-emerald-500/40 text-emerald-400 hover:bg-slate-800"
+                      : "bg-slate-900/40 border-slate-800 text-slate-400"
                   }`}
                 >
-                  <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
-                    <Building2 className="w-5 h-5" />
+                  <div
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                      currentStep === 1
+                        ? "bg-indigo-600 text-white shadow"
+                        : currentStep > 1
+                        ? "bg-emerald-500 text-slate-950 font-black"
+                        : "bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {currentStep > 1 ? <Check className="w-3.5 h-3.5" /> : "1"}
                   </div>
-                  <div>
-                    <span className="text-xs font-bold block text-white">Transfer Bank BNI (Manual)</span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Kirim ke rekening BNI & lampirkan foto struk
+                  <div className="min-w-0">
+                    <span className="block text-[11px] sm:text-xs font-bold truncate">
+                      PAGE 1
+                    </span>
+                    <span className="text-[9px] text-slate-400 truncate block">
+                      Data Diri & Alamat
+                    </span>
+                  </div>
+                </button>
+
+                {/* Step 2 Tab */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateStep1()) setCurrentStep(2);
+                  }}
+                  className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                    currentStep === 2
+                      ? "bg-emerald-600/20 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                      : currentStep > 2
+                      ? "bg-slate-900/80 border-emerald-500/40 text-emerald-400 hover:bg-slate-800"
+                      : "bg-slate-900/40 border-slate-800 text-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                      currentStep === 2
+                        ? "bg-emerald-600 text-white shadow"
+                        : currentStep > 2
+                        ? "bg-emerald-500 text-slate-950 font-black"
+                        : "bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {currentStep > 2 ? <Check className="w-3.5 h-3.5" /> : "2"}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block text-[11px] sm:text-xs font-bold truncate">
+                      PAGE 2
+                    </span>
+                    <span className="text-[9px] text-slate-400 truncate block">
+                      Pilih Kartu ({totalQuantity} pcs)
+                    </span>
+                  </div>
+                </button>
+
+                {/* Step 3 Tab */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateStep1() && validateStep2()) setCurrentStep(3);
+                  }}
+                  className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                    currentStep === 3
+                      ? "bg-amber-600/20 border-amber-500 text-white shadow-md shadow-amber-500/10"
+                      : "bg-slate-900/40 border-slate-800 text-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                      currentStep === 3
+                        ? "bg-amber-500 text-slate-950 font-black shadow"
+                        : "bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    3
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block text-[11px] sm:text-xs font-bold truncate">
+                      PAGE 3
+                    </span>
+                    <span className="text-[9px] text-slate-400 truncate block">
+                      Pembayaran
                     </span>
                   </div>
                 </button>
               </div>
-
-              {/* BNI Transfer Account Detail Box */}
-              {paymentMethod === "MANUAL_BANK_BNI" && (
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3 animate-in fade-in">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-amber-400 block">Nomor Rekening Tujuan</span>
-                      <span className="text-sm font-extrabold text-white font-mono">
-                        {siteSetting?.resellerAccountNumber || "1234567890"} (Bank {siteSetting?.resellerBankName || "BNI"})
-                      </span>
-                      <span className="text-[11px] text-slate-300 block">
-                        a/n {siteSetting?.resellerAccountName || "Smart QR Review"}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleCopyBank}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                    >
-                      {copiedBank ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedBank ? "Tersalin!" : "Salin Rekening"}</span>
-                    </button>
-                  </div>
-
-                  <div className="pt-2 border-t border-amber-500/20">
-                    <label className="text-[11px] font-bold text-amber-300 block mb-1">
-                      Upload Struk / Bukti Transfer BNI *
-                    </label>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-2.5 px-3 rounded-xl bg-slate-900 border border-dashed border-amber-500/40 text-amber-300 text-xs font-medium flex items-center justify-center gap-2 hover:bg-slate-850 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>{receiptImage ? "Ganti Foto Struk Bukti Bayar" : "Pilih Foto Struk Bukti Bayar"}</span>
-                    </button>
-                    {receiptImage && (
-                      <span className="text-[11px] text-emerald-400 font-medium block mt-1">
-                        ✓ Foto struk siap dikirim
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting || !isMinOrderMet}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-50 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memproses Transaksi...</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Lanjutkan Pembayaran (Rp {totalAmount.toLocaleString("id-ID")})</span>
-                </>
-              )}
-            </button>
+            {/* ───────────────────────────────────────────────────────────── */}
+            {/* PAGE 1: FORM DATA DIRI & ALAMAT PENGIRIMAN                     */}
+            {/* ───────────────────────────────────────────────────────────── */}
+            {currentStep === 1 && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-1">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-400 text-xs font-mono font-bold">
+                        PAGE 1
+                      </span>
+                      Isi Data Diri & Alamat Pengiriman
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Lengkapi data diri pemesan untuk akun admin dan alamat pengiriman kartu
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-800">
+                    Langkah 1 dari 3
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
+                    <div className="relative flex items-center">
+                      <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        required
+                        maxLength={80}
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value.replace(/<[^>]*>?/gm, ""))}
+                        placeholder="Contoh: Budi Santoso"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
+                    <div className="relative flex items-center">
+                      <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                      <input
+                        type="tel"
+                        required
+                        maxLength={20}
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9+]/g, ""))}
+                        placeholder="Contoh: 081234567890"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
+                    <div className="relative flex items-center">
+                      <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                      <input
+                        type="email"
+                        required
+                        maxLength={100}
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value.replace(/<[^>]*>?/gm, ""))}
+                        placeholder="Contoh: budi@gmail.com"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman Paket Kartu *</label>
+                    <div className="relative">
+                      <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                      <textarea
+                        required
+                        rows={3}
+                        maxLength={500}
+                        value={shippingAddress}
+                        onChange={(e) => setShippingAddress(e.target.value.replace(/<[^>]*>?/gm, ""))}
+                        placeholder="Contoh: Jl. Pahlawan No. 45, RT 02/03, Kel. Sukamaju, Kec. Cilincing, Jakarta Utara 14120"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-400">Catatan Tambahan untuk Admin (Opsional)</label>
+                    <div className="relative flex items-center">
+                      <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                      <input
+                        type="text"
+                        maxLength={300}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value.replace(/<[^>]*>?/gm, ""))}
+                        placeholder="Contoh: Titipkan ke satpam perumahan / mohon dikemas rapi"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Page 1 Footer Navigation */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (validateStep1()) setCurrentStep(2);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
+                  >
+                    <span>Lanjut ke Page 2: Pilih Pesanan Kartu</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ───────────────────────────────────────────────────────────── */}
+            {/* PAGE 2: FORM PILIH PESANAN KARTU (MIN 8 PCS)                   */}
+            {/* ───────────────────────────────────────────────────────────── */}
+            {currentStep === 2 && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-1">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">
+                        PAGE 2
+                      </span>
+                      Pilih Paket Kartu & Jumlah Pembelian
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Minimal total pengambilan adalah <strong>8 pcs</strong> untuk mendapatkan harga grosir reseller
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Total Item:</span>
+                    <span className={`font-mono font-bold text-xs ${isMinOrderMet ? "text-emerald-400" : "text-amber-400"}`}>
+                      {totalQuantity} pcs {isMinOrderMet ? "✅" : `(Kurang ${8 - totalQuantity})`}
+                    </span>
+                  </div>
+                </div>
+
+                {isLoadingProducts ? (
+                  <div className="py-8 text-center space-y-2">
+                    <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
+                    <p className="text-xs text-slate-400">Memuat katalog kartu...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {products.map((product) => {
+                      const qty = cartQuantities[product.id] || 0;
+                      return (
+                        <div
+                          key={product.id}
+                          className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                            qty > 0
+                              ? "bg-slate-950 border-emerald-500/40 shadow-sm"
+                              : "bg-slate-950/50 border-slate-800/80 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            {product.imageUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-slate-800 shrink-0 shadow"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 shrink-0">
+                                <Package className="w-6 h-6" />
+                              </div>
+                            )}
+
+                            <div className="min-w-0">
+                              <h4 className="text-xs sm:text-sm font-bold text-white truncate">{product.name}</h4>
+                              <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{product.description}</p>
+                              <span className="text-xs sm:text-sm font-extrabold text-emerald-400 font-mono mt-1 block">
+                                Rp {product.price.toLocaleString("id-ID")}
+                                <span className="text-[10px] text-slate-500 font-normal"> / {product.unit}</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quantity Controls */}
+                          <div className="flex items-center justify-end gap-2.5 shrink-0 self-end sm:self-center">
+                            <button
+                              type="button"
+                              onClick={() => handleQtyChange(product.id, -1)}
+                              disabled={qty === 0}
+                              className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 disabled:opacity-30 flex items-center justify-center cursor-pointer transition-colors"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="w-8 text-center font-bold font-mono text-sm text-white">{qty}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleQtyChange(product.id, 1)}
+                              className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer transition-colors shadow"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Warning if min order not met */}
+                {!isMinOrderMet && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>
+                      Minimal total pesanan adalah <strong className="text-white">8 pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{8 - totalQuantity} pcs</strong> lagi untuk melanjutkan.
+                    </span>
+                  </div>
+                )}
+
+                {/* Page 2 Footer Navigation */}
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Kembali ke Page 1</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!isMinOrderMet}
+                    onClick={() => {
+                      if (validateStep2()) setCurrentStep(3);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                  >
+                    <span>Lanjut ke Page 3: Pembayaran</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ───────────────────────────────────────────────────────────── */}
+            {/* PAGE 3: FORM RINGKASAN & METODE PEMBAYARAN                    */}
+            {/* ───────────────────────────────────────────────────────────── */}
+            {currentStep === 3 && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between pb-1">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-xs font-mono font-bold">
+                        PAGE 3
+                      </span>
+                      Ringkasan & Metode Pembayaran
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Pilih metode pembayaran (Midtrans QRIS / Transfer Bank BNI) dan selesaikan pesanan
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-800">
+                    Langkah 3 dari 3
+                  </span>
+                </div>
+
+                {/* Price Summary Breakdown */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>Subtotal Produk ({totalQuantity} pcs):</span>
+                    <span className="font-mono font-semibold text-white">Rp {subtotal.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                      Biaya Ongkir:
+                    </span>
+                    <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Bebas Ongkir / Diurus Sendiri)</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                    <span className="text-xs font-bold text-white uppercase">Total Tagihan Pembayaran:</span>
+                    <span className="text-base font-black text-emerald-400 font-mono">
+                      Rp {totalAmount.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Method Selector */}
+                <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
+                  {siteSetting?.midtransEnabled !== false && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
+                      className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                        paymentMethod === "MIDTRANS_QRIS"
+                          ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-950/40"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-white">QRIS Instan (Midtrans)</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
+                            OTOMATIS
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          Scan GoPay, OVO, Dana, ShopeePay, BCA/Mandiri/BNI
+                        </span>
+                      </div>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("MANUAL_BANK_BNI")}
+                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      paymentMethod === "MANUAL_BANK_BNI"
+                        ? "bg-amber-950/50 border-amber-500 text-white shadow-lg shadow-amber-950/40"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold block text-white">Transfer Bank BNI (Manual)</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Kirim ke rekening BNI & lampirkan foto struk
+                      </span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* BNI Transfer Account Detail Box */}
+                {paymentMethod === "MANUAL_BANK_BNI" && (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-amber-400 block">Nomor Rekening Tujuan</span>
+                        <span className="text-sm font-extrabold text-white font-mono">
+                          {siteSetting?.resellerAccountNumber || "1234567890"} (Bank {siteSetting?.resellerBankName || "BNI"})
+                        </span>
+                        <span className="text-[11px] text-slate-300 block">
+                          a/n {siteSetting?.resellerAccountName || "Smart QR Review"}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyBank}
+                        className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        {copiedBank ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedBank ? "Tersalin!" : "Salin Rekening"}</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-amber-500/20">
+                      <label className="text-[11px] font-bold text-amber-300 block mb-1">
+                        Upload Struk / Bukti Transfer BNI *
+                      </label>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full py-2.5 px-3 rounded-xl bg-slate-900 border border-dashed border-amber-500/40 text-amber-300 text-xs font-medium flex items-center justify-center gap-2 hover:bg-slate-850 cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{receiptImage ? "Ganti Foto Struk Bukti Bayar" : "Pilih Foto Struk Bukti Bayar"}</span>
+                      </button>
+                      {receiptImage && (
+                        <span className="text-[11px] text-emerald-400 font-medium block mt-1">
+                          ✓ Foto struk siap dikirim
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Page 3 Footer Navigation & Submit */}
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Kembali ke Page 2</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !isMinOrderMet}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Memproses Transaksi...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Kirim & Bayar Sekarang (Rp {totalAmount.toLocaleString("id-ID")})</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
         )}
       </div>

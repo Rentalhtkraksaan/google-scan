@@ -115,26 +115,15 @@ export function RegisterOutletModal({
     if (clean.startsWith("08")) clean = "62" + clean.slice(1);
     if (clean.startsWith("8")) clean = "62" + clean;
 
-    const portalUrl =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/login`
-        : "https://qr-inaja.vercel.app/login";
+    const text = `Halo *${data.fullName}*, selamat datang di kemitraan QR-INAJA 👋
+Silakan login menggunakan:
 
-    const text = `Halo Kak *${data.fullName}* dari *${data.outletName}*! 👋✨
+Link : qr-inaja.vercel.app/login
+Email: ${data.email}
+Pw : ${data.password || "Admin123!"}
 
-Terima kasih telah bergabung dengan kami! Kartu Smart QR Google Review toko Anda telah *BERHASIL DIAKTIFKAN* dan siap digunakan.
-
-Berikut detail akun Portal Mitra Anda untuk melihat analitik & kelola review:
-🌐 *Link Login*: ${portalUrl}
-
-📧 *Email*: ${data.email}
-
-🔑 *Password*: ${data.password || "Admin123!"}
-
-Simpan pesan ini untuk kemudahan akses di masa mendatang. Semoga review bintang 5 bisnis Anda semakin melesat! 🚀⭐
-
-Salam sukses,
-Tim Layanan Smart QR`;
+Segera lakukan penggantian data untuk keamanan bersama, terimakasih.
+Salam hangat`;
 
     return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
   };
