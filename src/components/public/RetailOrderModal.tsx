@@ -312,8 +312,8 @@ export function RetailOrderModal({
   };
 
   const handleCopyBankNumber = () => {
-    const bniNumber = siteSetting?.manualBniAccountNumber || "1826435348";
-    navigator.clipboard.writeText(bniNumber);
+    const accNum = siteSetting?.membershipAccountNumber || siteSetting?.resellerAccountNumber || "1234567890";
+    navigator.clipboard.writeText(accNum);
     setCopiedBank(true);
     setTimeout(() => setCopiedBank(false), 2000);
   };
@@ -437,8 +437,9 @@ export function RetailOrderModal({
     }
   };
 
-  const bniNumber = siteSetting?.manualBniAccountNumber || "1826435348";
-  const bniHolder = siteSetting?.manualBniAccountHolder || "PT SMART REVIEW DIGITAL";
+  const bniNumber = siteSetting?.membershipAccountNumber || siteSetting?.resellerAccountNumber || "1234567890";
+  const bniHolder = siteSetting?.membershipAccountName || siteSetting?.resellerAccountName || "Smart QR Review";
+  const bniBankName = siteSetting?.membershipBankName || siteSetting?.resellerBankName || "BNI";
   const adminWa = siteSetting?.whatsappNumber || "6281234567890";
 
   return (
@@ -1130,7 +1131,7 @@ export function RetailOrderModal({
                         <div>
                           <span className="text-slate-400 block text-[10px]">Nomor Rekening Tujuan:</span>
                           <span className="font-mono font-bold text-sm text-amber-400">{bniNumber}</span>
-                          <span className="text-[11px] text-slate-400 block">Bank BNI a.n. {bniHolder}</span>
+                          <span className="text-[11px] text-slate-400 block">Bank {bniBankName} a.n. {bniHolder}</span>
                         </div>
                         <button
                           type="button"

@@ -103,8 +103,8 @@ model SiteSetting {
 
   // Membership & Pricing Settings (Dikelola Super Admin)
   membershipPrice          Int      @default(45000)
-  membershipBankName       String   @default("BCA")
-  membershipAccountNumber  String   @default("0885172288")
+  membershipBankName       String   @default("BNI")
+  membershipAccountNumber  String   @default("1234567890")
   membershipAccountName    String   @default("Smart QR Review")
   membershipNotes          String?  @db.Text
   membershipTrialNotice    String?  @db.Text

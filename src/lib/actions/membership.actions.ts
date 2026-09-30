@@ -401,13 +401,20 @@ export async function updateMembershipSettingsAction(
       };
     }
 
+    const finalBankName = bankName?.trim() || "BNI";
+    const finalAccountNumber = accountNumber?.trim() || "1234567890";
+    const finalAccountName = accountName?.trim() || "Smart QR Review";
+
     await prisma.siteSetting.upsert({
       where: { id: "default" },
       update: {
         membershipPrice: price || 45000,
-        membershipBankName: bankName || "BCA",
-        membershipAccountNumber: accountNumber || "0885172288",
-        membershipAccountName: accountName || "Smart QR Review",
+        membershipBankName: finalBankName,
+        membershipAccountNumber: finalAccountNumber,
+        membershipAccountName: finalAccountName,
+        resellerBankName: finalBankName,
+        resellerAccountNumber: finalAccountNumber,
+        resellerAccountName: finalAccountName,
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
         midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
@@ -420,9 +427,12 @@ export async function updateMembershipSettingsAction(
       create: {
         id: "default",
         membershipPrice: price || 45000,
-        membershipBankName: bankName || "BCA",
-        membershipAccountNumber: accountNumber || "0885172288",
-        membershipAccountName: accountName || "Smart QR Review",
+        membershipBankName: finalBankName,
+        membershipAccountNumber: finalAccountNumber,
+        membershipAccountName: finalAccountName,
+        resellerBankName: finalBankName,
+        resellerAccountNumber: finalAccountNumber,
+        resellerAccountName: finalAccountName,
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
         midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
@@ -435,7 +445,10 @@ export async function updateMembershipSettingsAction(
     });
 
     revalidatePath("/super-admin");
+    revalidatePath("/admin");
     revalidatePath("/portal");
+    revalidatePath("/reseller");
+    revalidatePath("/");
 
     return {
       success: true,

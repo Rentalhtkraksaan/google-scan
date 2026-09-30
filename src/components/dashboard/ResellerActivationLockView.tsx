@@ -363,10 +363,10 @@ export function ResellerActivationLockView({
                   <span className="text-[11px] text-slate-400 uppercase font-semibold block">Transfer ke Rekening Resmi:</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-base font-black text-amber-300 font-mono">
-                      {siteSetting?.membershipBankName || "BCA"} - {siteSetting?.membershipAccountNumber || "0885172288"}
+                      {siteSetting?.resellerBankName || siteSetting?.membershipBankName || "BNI"} - {siteSetting?.resellerAccountNumber || siteSetting?.membershipAccountNumber || "1234567890"}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-300 block">a.n. {siteSetting?.membershipAccountName || "Smart QR Review"}</span>
+                  <span className="text-xs text-slate-300 block">a.n. {siteSetting?.resellerAccountName || siteSetting?.membershipAccountName || "Smart QR Review"}</span>
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-[11px] text-slate-400 block">Nominal Transfer Tepat:</span>

@@ -84,8 +84,8 @@ export function UpgradeMemberModal({
   const price = isCustomPrice ? (outlet.customVipPrice as number) : (siteSetting?.membershipPrice || 45000);
   const masterPrice = siteSetting?.membershipPrice || 45000;
 
-  const bankName = siteSetting?.membershipBankName || "BCA";
-  const accountNumber = siteSetting?.membershipAccountNumber || "0885172288";
+  const bankName = siteSetting?.membershipBankName || "BNI";
+  const accountNumber = siteSetting?.membershipAccountNumber || "1234567890";
   const accountName = siteSetting?.membershipAccountName || "Smart QR Review";
   const notes = siteSetting?.membershipNotes || "Harap transfer tepat sesuai nominal dan lampirkan bukti foto transfer.";
   const adminWa = siteSetting?.whatsappNumber || "6281234567890";

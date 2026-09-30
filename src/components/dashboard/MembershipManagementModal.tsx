@@ -114,9 +114,9 @@ export function MembershipManagementModal({
   const [price, setPrice] = useState(siteSetting?.membershipPrice || 45000);
   const [trialDurationDays, setTrialDurationDays] = useState(siteSetting?.trialDurationDays ?? 30);
   const [autoVipTrialOnActivation, setAutoVipTrialOnActivation] = useState(siteSetting?.autoVipTrialOnActivation ?? true);
-  const [bankName, setBankName] = useState(siteSetting?.membershipBankName || "BCA");
-  const [accountNumber, setAccountNumber] = useState(siteSetting?.membershipAccountNumber || "0885172288");
-  const [accountName, setAccountName] = useState(siteSetting?.membershipAccountName || "Smart QR Review");
+  const [bankName, setBankName] = useState(siteSetting?.membershipBankName || siteSetting?.resellerBankName || "BNI");
+  const [accountNumber, setAccountNumber] = useState(siteSetting?.membershipAccountNumber || siteSetting?.resellerAccountNumber || "1234567890");
+  const [accountName, setAccountName] = useState(siteSetting?.membershipAccountName || siteSetting?.resellerAccountName || "Smart QR Review");
   const [notes, setNotes] = useState(siteSetting?.membershipNotes || "Harap transfer tepat sesuai nominal dan lampirkan bukti foto transfer.");
   const [trialNotice, setTrialNotice] = useState(siteSetting?.membershipTrialNotice || "");
   const [midtransEnabled, setMidtransEnabled] = useState(siteSetting?.midtransEnabled ?? true);
@@ -1754,11 +1754,20 @@ export function MembershipManagementModal({
                 </div>
               </div>
 
-              {/* Section: Manual Bank Transfer */}
-              <div className="p-5 rounded-2xl bg-slate-850 border border-slate-800 space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-                  <CreditCard className="w-4 h-4 text-slate-400" />
-                  <h4 className="text-sm font-bold text-white">Rekening Bank Manual (Opsi Sekunder)</h4>
+              {/* Section: Rekening Resmi Pembayaran Master (1 Pintu) */}
+              <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-850 to-slate-900 border border-slate-700/80 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-sm font-bold text-white">Rekening Resmi Pembayaran Master (Bank BNI)</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-black">
+                    1 PINTU UNIVERSAL
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
+                  🏦 <strong>Satu Rekening Universal</strong>: Rekening ini berlaku terpadu untuk seluruh transaksi platform (Perpanjangan VIP Outlet, Biaya Modul Reseller, Pembelian Grosir Kartu, dan Eceran). Cukup ubah di sini, seluruh menu transaksi otomatis tersinkronisasi.
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1770,9 +1779,9 @@ export function MembershipManagementModal({
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      placeholder="BCA / Mandiri / BRI / DANA"
+                      placeholder="BNI / BCA / Mandiri / BRI"
                       required
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs uppercase focus:outline-none focus:border-amber-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs uppercase focus:outline-none focus:border-amber-500 font-bold"
                     />
                   </div>
                   <div>
@@ -1783,9 +1792,9 @@ export function MembershipManagementModal({
                       type="text"
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value)}
-                      placeholder="0885172288"
+                      placeholder="1234567890"
                       required
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono font-black focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -1800,18 +1809,19 @@ export function MembershipManagementModal({
                     onChange={(e) => setAccountName(e.target.value)}
                     placeholder="Smart QR Review"
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-semibold focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-200 mb-1">
-                    Catatan Transfer untuk Outlet (Instruksi)
+                    Catatan Instruksi Transfer
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
+                    placeholder="Harap transfer tepat sesuai nominal dan lampirkan bukti foto transfer."
                     className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1824,7 +1834,7 @@ export function MembershipManagementModal({
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{isSavingSettings ? "Menyimpan..." : "Simpan Pengaturan Tarif & Midtrans"}</span>
+                  <span>{isSavingSettings ? "Menyimpan..." : "Simpan Semua Pengaturan Master (1 Pintu)"}</span>
                 </button>
               </div>
             </form>
