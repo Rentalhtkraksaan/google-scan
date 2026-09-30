@@ -362,6 +362,13 @@ export async function createResellerOrderAction(data: {
     // Handle Midtrans QRIS
     let midtransSnapToken: string | null = null;
     if (data.paymentMethod === "MIDTRANS_QRIS") {
+      if (siteSetting?.midtransEnabled === false) {
+        return {
+          success: false,
+          message: "Gateway pembayaran Midtrans QRIS sedang dinonaktifkan oleh Super Admin. Silakan pilih metode Transfer Bank BNI.",
+        };
+      }
+
       const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
       const isProduction = siteSetting?.midtransIsProduction ?? (process.env.MIDTRANS_IS_PRODUCTION === "true");
 
@@ -616,6 +623,13 @@ export async function createRetailOrderAction(data: {
     // Handle Midtrans QRIS
     let midtransSnapToken: string | null = null;
     if (data.paymentMethod === "MIDTRANS_QRIS") {
+      if (siteSetting?.midtransEnabled === false) {
+        return {
+          success: false,
+          message: "Gateway pembayaran Midtrans QRIS sedang dinonaktifkan. Silakan pilih metode Transfer Bank BNI.",
+        };
+      }
+
       const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
       const isProduction = siteSetting?.midtransIsProduction ?? (process.env.MIDTRANS_IS_PRODUCTION === "true");
 

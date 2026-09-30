@@ -119,6 +119,7 @@ export function MembershipManagementModal({
   const [accountName, setAccountName] = useState(siteSetting?.membershipAccountName || "Smart QR Review");
   const [notes, setNotes] = useState(siteSetting?.membershipNotes || "Harap transfer tepat sesuai nominal dan lampirkan bukti foto transfer.");
   const [trialNotice, setTrialNotice] = useState(siteSetting?.membershipTrialNotice || "");
+  const [midtransEnabled, setMidtransEnabled] = useState(siteSetting?.midtransEnabled ?? true);
   const [midtransServerKey, setMidtransServerKey] = useState(siteSetting?.midtransServerKey || "");
   const [midtransClientKey, setMidtransClientKey] = useState(siteSetting?.midtransClientKey || "");
   const [midtransIsProduction, setMidtransIsProduction] = useState(siteSetting?.midtransIsProduction || false);
@@ -535,7 +536,8 @@ export function MembershipManagementModal({
           midtransClientKey.trim() || undefined,
           midtransIsProduction,
           Number(trialDurationDays) || 30,
-          autoVipTrialOnActivation
+          autoVipTrialOnActivation,
+          midtransEnabled
         ),
         updateResellerModuleSettingsAction({
           resellerModulePrice: Number(resellerModulePrice) || 150000,
@@ -1478,6 +1480,49 @@ export function MembershipManagementModal({
                   <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-black">
                     INSTANT CHECKOUT
                   </span>
+                </div>
+
+                {/* Master Switch ON/OFF Gateway Midtrans */}
+                <div
+                  className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    midtransEnabled
+                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      : "bg-slate-900/90 border-slate-700/80"
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider text-white">
+                        Tombol Master: {midtransEnabled ? "Gateway Midtrans AKTIF (ON)" : "Gateway Midtrans NONAKTIF (OFF)"}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          midtransEnabled ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        }`}
+                      >
+                        {midtransEnabled ? "DUAL (MIDTRANS + BNI)" : "MANUAL BNI SAJA"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      {midtransEnabled
+                        ? "✅ Gateway Midtrans aktif. Pembeli & Outlet bebas memilih Midtrans QRIS otomatis atau Transfer Bank BNI manual."
+                        : "🚫 Gateway Midtrans nonaktif. Opsi Midtrans QRIS disembunyikan di semua checkout, pembayaran otomatis dialihkan hanya ke Transfer Manual Bank BNI."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMidtransEnabled(!midtransEnabled)}
+                    className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      midtransEnabled ? "bg-emerald-600 shadow-md shadow-emerald-600/30" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        midtransEnabled ? "translate-x-7" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-200 leading-relaxed">

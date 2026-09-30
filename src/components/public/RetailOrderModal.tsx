@@ -93,10 +93,13 @@ export function RetailOrderModal({
   } | null>(null);
 
   // Business & Payment state (Step 3)
+  const isMidtransEnabled = siteSetting?.midtransEnabled !== false;
   const [outletName, setOutletName] = useState("");
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">("MIDTRANS_QRIS");
+  const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">(
+    siteSetting?.midtransEnabled === false ? "MANUAL_BANK_BNI" : "MIDTRANS_QRIS"
+  );
   const [receiptImageUrl, setReceiptImageUrl] = useState("");
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1076,26 +1079,28 @@ export function RetailOrderModal({
                     Pilih Metode Pembayaran:
                   </label>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
-                      className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                        paymentMethod === "MIDTRANS_QRIS"
-                          ? "bg-indigo-950/40 border-indigo-500 shadow-md"
-                          : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-xs text-white block">Midtrans QRIS Instan</span>
-                        <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                          GoPay, OVO, Dana, ShopeePay & M-Banking (Otomatis)
-                        </span>
-                      </div>
-                    </button>
+                  <div className={`grid ${isMidtransEnabled ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2`}>
+                    {isMidtransEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
+                        className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                          paymentMethod === "MIDTRANS_QRIS"
+                            ? "bg-indigo-950/40 border-indigo-500 shadow-md"
+                            : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                          <CreditCard className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs text-white block">Midtrans QRIS Instan</span>
+                          <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
+                            GoPay, OVO, Dana, ShopeePay & M-Banking (Otomatis)
+                          </span>
+                        </div>
+                      </button>
+                    )}
 
                     <button
                       type="button"

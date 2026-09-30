@@ -164,6 +164,13 @@ export async function createResellerMidtransQrisAction() {
       where: { id: "default" },
     });
 
+    if (siteSetting?.midtransEnabled === false) {
+      return {
+        success: false,
+        message: "Metode pembayaran Midtrans QRIS sedang dinonaktifkan oleh Super Admin. Silakan gunakan metode Transfer Bank BNI.",
+      };
+    }
+
     const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
     const isProduction = siteSetting?.midtransIsProduction ?? (process.env.MIDTRANS_IS_PRODUCTION === "true");
 

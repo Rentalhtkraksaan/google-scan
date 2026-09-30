@@ -45,6 +45,7 @@ export interface SiteSettingModel {
   membershipAccountName?: string;
   membershipNotes?: string | null;
   membershipTrialNotice?: string | null;
+  midtransEnabled?: boolean;
   midtransServerKey?: string | null;
   midtransClientKey?: string | null;
   midtransIsProduction?: boolean;

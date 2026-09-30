@@ -110,6 +110,7 @@ model SiteSetting {
   membershipTrialNotice    String?  @db.Text
 
   // Midtrans Payment Gateway Configuration
+  midtransEnabled          Boolean  @default(true) // Master Switch ON/OFF Midtrans Payment Gateway
   midtransServerKey        String?  @db.Text
   midtransClientKey        String?  @db.Text
   midtransIsProduction     Boolean  @default(false)

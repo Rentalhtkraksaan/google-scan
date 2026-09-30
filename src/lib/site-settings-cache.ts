@@ -44,6 +44,7 @@ export const getCachedSiteSetting = unstable_cache(
         membershipAccountName: true,
         membershipNotes: true,
         membershipTrialNotice: true,
+        midtransEnabled: true,
         midtransServerKey: true,
         midtransClientKey: true,
         midtransIsProduction: true,

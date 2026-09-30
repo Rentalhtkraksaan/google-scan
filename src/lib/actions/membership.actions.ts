@@ -379,7 +379,8 @@ export async function updateMembershipSettingsAction(
   midtransClientKey?: string,
   midtransIsProduction?: boolean,
   trialDurationDays?: number,
-  autoVipTrialOnActivation?: boolean
+  autoVipTrialOnActivation?: boolean,
+  midtransEnabled?: boolean
 ) {
   try {
     const session = await auth();
@@ -409,6 +410,7 @@ export async function updateMembershipSettingsAction(
         membershipAccountName: accountName || "Smart QR Review",
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
+        midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
         midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : undefined,
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : undefined,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
@@ -423,6 +425,7 @@ export async function updateMembershipSettingsAction(
         membershipAccountName: accountName || "Smart QR Review",
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
+        midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
         midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : null,
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : null,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
@@ -536,6 +539,13 @@ export async function createMidtransVipTransactionAction(outletId: string) {
     const siteSetting = await prisma.siteSetting.findUnique({
       where: { id: "default" },
     });
+
+    if (siteSetting?.midtransEnabled === false) {
+      return {
+        success: false,
+        message: "Metode pembayaran Midtrans QRIS sedang dinonaktifkan oleh Super Admin. Silakan gunakan metode Transfer Bank Manual BNI.",
+      };
+    }
 
     const serverKey = siteSetting?.midtransServerKey || process.env.MIDTRANS_SERVER_KEY || "";
     const clientKey = siteSetting?.midtransClientKey || process.env.MIDTRANS_CLIENT_KEY || "";

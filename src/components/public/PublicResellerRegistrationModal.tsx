@@ -60,7 +60,9 @@ export function PublicResellerRegistrationModal({
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">("MIDTRANS_QRIS");
+  const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">(
+    siteSetting?.midtransEnabled === false ? "MANUAL_BANK_BNI" : "MIDTRANS_QRIS"
+  );
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -470,24 +472,26 @@ export function PublicResellerRegistrationModal({
                 3. Pilih Metode Pembayaran
               </span>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
-                  className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                    paymentMethod === "MIDTRANS_QRIS"
-                      ? "bg-indigo-950/40 border-indigo-500/50 text-white shadow-md shadow-indigo-950/30"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
-                  }`}
-                >
-                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                    <QrCode className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold block text-white">QRIS Instan (Midtrans)</span>
-                    <span className="text-[10px] text-slate-400">Verifikasi otomatis 24 jam</span>
-                  </div>
-                </button>
+              <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
+                {siteSetting?.midtransEnabled !== false && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
+                    className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                      paymentMethod === "MIDTRANS_QRIS"
+                        ? "bg-indigo-950/40 border-indigo-500/50 text-white shadow-md shadow-indigo-950/30"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                      <QrCode className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold block text-white">QRIS Instan (Midtrans)</span>
+                      <span className="text-[10px] text-slate-400">Verifikasi otomatis 24 jam</span>
+                    </div>
+                  </button>
+                )}
 
                 <button
                   type="button"

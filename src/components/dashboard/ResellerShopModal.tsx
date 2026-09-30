@@ -733,29 +733,31 @@ export function ResellerShopModal({
                       Pilih Metode Pembayaran
                     </h4>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
                       {/* Midtrans QRIS */}
-                      <div
-                        onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
-                        className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                          paymentMethod === "MIDTRANS_QRIS"
-                            ? "bg-indigo-950/40 border-indigo-500 text-white shadow-lg shadow-indigo-500/10"
-                            : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
-                        }`}
-                      >
-                        <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
-                          <QrCode className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white">QRIS Otomatis (Midtrans)</span>
-                            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
-                              INSTAN
-                            </span>
+                      {siteSetting?.midtransEnabled !== false && (
+                        <div
+                          onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                            paymentMethod === "MIDTRANS_QRIS"
+                              ? "bg-indigo-950/40 border-indigo-500 text-white shadow-lg shadow-indigo-500/10"
+                              : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
+                            <QrCode className="w-5 h-5" />
                           </div>
-                          <p className="text-[11px] text-slate-400 truncate">GoPay, OVO, Dana, ShopeePay, BCA/Mandiri</p>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white">QRIS Otomatis (Midtrans)</span>
+                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                                INSTAN
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 truncate">GoPay, OVO, Dana, ShopeePay, BCA/Mandiri</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Manual Transfer BNI */}
                       <div

@@ -54,7 +54,10 @@ export function ResellerActivationLockView({
   superAdminContact,
 }: ResellerActivationLockViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"QRIS" | "MANUAL">("QRIS");
+  const midtransActive = siteSetting?.midtransEnabled !== false;
+  const [activeTab, setActiveTab] = useState<"QRIS" | "MANUAL">(
+    siteSetting?.midtransEnabled === false ? "MANUAL" : "QRIS"
+  );
   const [isProcessingMidtrans, setIsProcessingMidtrans] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [senderName, setSenderName] = useState(user.fullName || "");
@@ -273,40 +276,50 @@ export function ResellerActivationLockView({
 
         {/* Pilihan Metode Pembayaran */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
             <div>
               <h3 className="text-lg font-bold text-white">Metode Pembayaran Aktivasi</h3>
-              <p className="text-xs text-slate-400">Pilih pembayaran instan QRIS otomatis atau transfer bank manual</p>
+              <p className="text-xs text-slate-400">
+                {midtransActive
+                  ? "Pilih pembayaran instan QRIS otomatis atau transfer bank manual"
+                  : "Pembayaran via Transfer Bank Manual (BNI)"}
+              </p>
             </div>
 
-            <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
-              <button
-                type="button"
-                onClick={() => setActiveTab("QRIS")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "QRIS"
-                    ? "bg-amber-500 text-slate-950 shadow-md"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                QRIS Midtrans (Instan)
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("MANUAL")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "MANUAL"
-                    ? "bg-amber-500 text-slate-950 shadow-md"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Transfer Manual
-              </button>
-            </div>
+            {midtransActive ? (
+              <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("QRIS")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "QRIS"
+                      ? "bg-amber-500 text-slate-950 shadow-md"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  QRIS Midtrans (Instan)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("MANUAL")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === "MANUAL"
+                      ? "bg-amber-500 text-slate-950 shadow-md"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Transfer Manual
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-amber-400 font-bold">
+                <span>Transfer Manual BNI Only</span>
+              </div>
+            )}
           </div>
 
           {/* TAB 1: QRIS MIDTRANS */}
-          {activeTab === "QRIS" && (
+          {midtransActive && activeTab === "QRIS" && (
             <div className="p-6 rounded-2xl bg-slate-950/70 border border-slate-800 text-center space-y-4">
               <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
                 <Zap className="w-8 h-8" />
