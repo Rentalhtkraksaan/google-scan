@@ -42,6 +42,7 @@ import {
 } from "@/lib/actions/reseller-shop.actions";
 import { ResellerOrderModel } from "@/types/models";
 import { ActivateOutletFromOrderModal } from "./ActivateOutletFromOrderModal";
+import { ShippingLabelModal } from "./ShippingLabelModal";
 
 interface ResellerOrdersManagerModalProps {
   isOpen: boolean;
@@ -68,6 +69,9 @@ export function ResellerOrdersManagerModal({
 
   // Modal Aktivasi Akun Outlet & Pasang Kartu
   const [activatingOutletOrder, setActivatingOutletOrder] = useState<ResellerOrderModel | null>(null);
+
+  // Modal Label Pengiriman Paket (Ekspedisi)
+  const [shippingLabelOrder, setShippingLabelOrder] = useState<ResellerOrderModel | null>(null);
 
   // Modal Edit Customer Data
   const [editingOrder, setEditingOrder] = useState<ResellerOrderModel | null>(null);
@@ -707,6 +711,17 @@ Salam hangat`
 
                       {/* Approval & Delete Actions */}
                       <div className="flex items-center gap-2 flex-wrap">
+                        {/* Tombol Cetak / Download Label Pengiriman Ekspedisi */}
+                        <button
+                          type="button"
+                          onClick={() => setShippingLabelOrder(order)}
+                          className="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                          title="Download gambar atau cetak label resi pengiriman untuk ekspedisi"
+                        >
+                          <Truck className="w-3.5 h-3.5 text-sky-400" />
+                          <span>Label Pengiriman</span>
+                        </button>
+
                         {/* Tombol Buat / Detail Akun Outlet (Retail) vs Akun Admin Lapangan (Grosir) */}
                         {order.orderType === "RETAIL" || (order.notes && order.notes.includes("[Outlet:")) ? (
                           <button
@@ -931,6 +946,13 @@ Salam hangat`
           loadOrders();
           onRefreshData?.();
         }}
+      />
+
+      {/* Modal Label Pengiriman Paket Siap Tempel Ekspedisi */}
+      <ShippingLabelModal
+        isOpen={Boolean(shippingLabelOrder)}
+        order={shippingLabelOrder}
+        onClose={() => setShippingLabelOrder(null)}
       />
     </div>
   );
