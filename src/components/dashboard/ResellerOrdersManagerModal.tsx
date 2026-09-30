@@ -78,20 +78,25 @@ export function ResellerOrdersManagerModal({
   const [editNotes, setEditNotes] = useState("");
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
-  const loadOrders = () => {
-    setIsLoading(true);
+  // State ID pesanan yang sedang diupdate statusnya (untuk micro-loading inline)
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
+  const loadOrders = (showSpinner = false) => {
+    if (showSpinner) setIsLoading(true);
     getResellerOrdersAction()
       .then((res) => {
         if (res.success && res.data) {
           setOrders(res.data as ResellerOrderModel[]);
         }
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (showSpinner) setIsLoading(false);
+      });
   };
 
   useEffect(() => {
     if (isOpen) {
-      loadOrders();
+      loadOrders(true);
     }
   }, [isOpen]);
 
@@ -131,6 +136,22 @@ export function ResellerOrdersManagerModal({
     }
 
     setIsSavingCustomer(true);
+    // Optimistic local state update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === editingOrder.id
+          ? {
+              ...o,
+              customerName: editCustomerName.trim(),
+              customerPhone: editCustomerPhone.trim(),
+              customerEmail: editCustomerEmail.trim(),
+              shippingAddress: editShippingAddress.trim() || null,
+              notes: editNotes.trim() || null,
+            }
+          : o
+      )
+    );
+
     try {
       const res = await updateResellerOrderCustomerDataAction(editingOrder.id, {
         customerName: editCustomerName.trim(),
@@ -141,15 +162,17 @@ export function ResellerOrdersManagerModal({
       });
 
       if (res.success) {
-        showSuccessAlert("Data Diperbarui", res.message || "Data pembeli berhasil diperbarui.", 1500);
+        showSuccessAlert("Data Diperbarui", res.message || "Data pembeli berhasil diperbarui.", 1200);
         setEditingOrder(null);
-        loadOrders();
+        loadOrders(false);
       } else {
         showErrorAlert("Gagal", res.message || "Gagal memperbarui data pemesan.");
+        loadOrders(false);
       }
     } catch (err) {
       console.error("Save customer data error:", err);
       showErrorAlert("Kesalahan", "Terjadi kesalahan saat menyimpan data pemesan.");
+      loadOrders(false);
     } finally {
       setIsSavingCustomer(false);
     }
@@ -164,16 +187,44 @@ export function ResellerOrdersManagerModal({
     );
     if (!result.isConfirmed) return;
 
+    // Optimistic Update: Langsung ubah di layar seketika tanpa layar loading hilang
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === order.id
+          ? { ...o, paymentStatus: "PAID", orderStatus: o.orderStatus === "PENDING" ? "PROCESSING" : o.orderStatus }
+          : o
+      )
+    );
+    setUpdatingOrderId(order.id);
+
     try {
       const res = await approveResellerOrderAction(order.id);
       if (res.success) {
-        showSuccessAlert("Pembayaran Disetujui", res.message || "Pesanan berhasil disetujui.", 1500);
-        loadOrders();
+        showSuccessAlert("Pembayaran Disetujui", res.message || "Pesanan berhasil disetujui.", 1200);
+        loadOrders(false);
+        onRefreshData?.();
       } else {
+        // Rollback jika gagal
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === order.id
+              ? { ...o, paymentStatus: order.paymentStatus, orderStatus: order.orderStatus }
+              : o
+          )
+        );
         showErrorAlert("Gagal", res.message || "Gagal menyetujui pesanan.");
       }
     } catch {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? { ...o, paymentStatus: order.paymentStatus, orderStatus: order.orderStatus }
+            : o
+        )
+      );
       showErrorAlert("Kesalahan", "Gagal menyetujui pesanan.");
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -186,16 +237,43 @@ export function ResellerOrdersManagerModal({
     );
     if (!result.isConfirmed) return;
 
+    // Optimistic Update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === order.id
+          ? { ...o, paymentStatus: "REJECTED", orderStatus: "CANCELLED" }
+          : o
+      )
+    );
+    setUpdatingOrderId(order.id);
+
     try {
       const res = await rejectResellerOrderAction(order.id, "Struk tidak valid / dana belum masuk");
       if (res.success) {
-        showSuccessAlert("Pesanan Ditolak", res.message || "Pesanan berhasil ditolak.", 1500);
-        loadOrders();
+        showSuccessAlert("Pesanan Ditolak", res.message || "Pesanan berhasil ditolak.", 1200);
+        loadOrders(false);
+        onRefreshData?.();
       } else {
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === order.id
+              ? { ...o, paymentStatus: order.paymentStatus, orderStatus: order.orderStatus }
+              : o
+          )
+        );
         showErrorAlert("Gagal", res.message || "Gagal menolak pesanan.");
       }
     } catch {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? { ...o, paymentStatus: order.paymentStatus, orderStatus: order.orderStatus }
+            : o
+        )
+      );
       showErrorAlert("Kesalahan", "Gagal menolak pesanan.");
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -203,16 +281,31 @@ export function ResellerOrdersManagerModal({
     order: ResellerOrderModel,
     newStatus: "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED"
   ) => {
+    // Optimistic update: ganti status langsung di layar tanpa me-reset UI atau scroll
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, orderStatus: newStatus } : o))
+    );
+    setUpdatingOrderId(order.id);
+
     try {
       const res = await updateResellerOrderStatusAction(order.id, newStatus);
       if (res.success) {
-        showSuccessAlert("Status Diperbarui", res.message || "Status berhasil diubah.", 1200);
-        loadOrders();
+        showSuccessAlert("Status Diperbarui", res.message || "Status berhasil diubah.", 1000);
+        loadOrders(false); // Background silent sync
       } else {
+        // Rollback
+        setOrders((prev) =>
+          prev.map((o) => (o.id === order.id ? { ...o, orderStatus: order.orderStatus } : o))
+        );
         showErrorAlert("Gagal", res.message || "Gagal memperbarui status pesanan.");
       }
     } catch {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, orderStatus: order.orderStatus } : o))
+      );
       showErrorAlert("Kesalahan", "Gagal memperbarui status.");
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -225,16 +318,22 @@ export function ResellerOrdersManagerModal({
     );
     if (!confirmed) return;
 
+    // Optimistic deletion
+    setOrders((prev) => prev.filter((o) => o.id !== order.id));
+
     try {
       const res = await deleteResellerOrderRecordAction(order.id);
       if (res.success) {
-        showSuccessAlert("Record Dihapus", res.message || "Pesanan berhasil dihapus.", 1500);
-        loadOrders();
+        showSuccessAlert("Record Dihapus", res.message || "Pesanan berhasil dihapus.", 1200);
+        loadOrders(false);
+        onRefreshData?.();
       } else {
         showErrorAlert("Gagal", res.message || "Gagal menghapus pesanan.");
+        loadOrders(false);
       }
     } catch {
       showErrorAlert("Kesalahan", "Gagal menghapus pesanan.");
+      loadOrders(false);
     }
   };
 
@@ -583,22 +682,28 @@ Tim Layanan Smart QR`
                       {/* Order Status Badge / Selector */}
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] text-slate-400 font-semibold">Status Pengiriman:</span>
-                        <select
-                          value={order.orderStatus}
-                          onChange={(e) =>
-                            handleUpdateOrderStatus(
-                              order,
-                              e.target.value as "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED"
-                            )
-                          }
-                          className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
-                        >
-                          <option value="PENDING">⏳ Menunggu (Pending)</option>
-                          <option value="PROCESSING">📦 Diproses (Processing)</option>
-                          <option value="SHIPPED">🚚 Dikirim (Shipped)</option>
-                          <option value="COMPLETED">✅ Selesai (Completed)</option>
-                          <option value="CANCELLED">❌ Dibatalkan (Cancelled)</option>
-                        </select>
+                        <div className="relative flex items-center">
+                          <select
+                            value={order.orderStatus}
+                            disabled={updatingOrderId === order.id}
+                            onChange={(e) =>
+                              handleUpdateOrderStatus(
+                                order,
+                                e.target.value as "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED"
+                              )
+                            }
+                            className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer disabled:opacity-60"
+                          >
+                            <option value="PENDING">⏳ Menunggu (Pending)</option>
+                            <option value="PROCESSING">📦 Diproses (Processing)</option>
+                            <option value="SHIPPED">🚚 Dikirim (Shipped)</option>
+                            <option value="COMPLETED">✅ Selesai (Completed)</option>
+                            <option value="CANCELLED">❌ Dibatalkan (Cancelled)</option>
+                          </select>
+                          {updatingOrderId === order.id && (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400 ml-1.5" />
+                          )}
+                        </div>
                       </div>
 
                       {/* Approval & Delete Actions */}
@@ -647,17 +752,23 @@ Tim Layanan Smart QR`
                           <>
                             <button
                               type="button"
+                              disabled={updatingOrderId === order.id}
                               onClick={() => handleReject(order)}
-                              className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer"
+                              className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
                             >
                               Tolak
                             </button>
                             <button
                               type="button"
+                              disabled={updatingOrderId === order.id}
                               onClick={() => handleApprove(order)}
-                              className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-md transition-all flex items-center gap-1 cursor-pointer"
+                              className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {updatingOrderId === order.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              )}
                               <span>Setujui Pembayaran</span>
                             </button>
                           </>
