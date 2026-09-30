@@ -206,9 +206,13 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
             Halaman Utama (Eceran)
           </Link>
           <span>•</span>
-          <Link href="/login" className="hover:text-white transition-colors">
-            Login Portal
-          </Link>
+          <button
+            type="button"
+            onClick={() => setIsTrackModalOpen(true)}
+            className="hover:text-white transition-colors cursor-pointer"
+          >
+            Lacak Pesanan
+          </button>
           <span>•</span>
           <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
             WhatsApp CS
