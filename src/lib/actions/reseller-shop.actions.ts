@@ -385,20 +385,24 @@ export async function createResellerOrderAction(data: {
 
       const authHeader = "Basic " + Buffer.from(serverKey + ":").toString("base64");
 
-      const midtransPayload: Record<string, unknown> = {
-        transaction_details: {
-          order_id: orderNumber,
-          gross_amount: finalTotalAmount,
-        },
-        customer_details: {
-          first_name: data.customerName.trim(),
-          email: data.customerEmail.trim(),
-          phone: data.customerPhone.trim(),
-        },
-        item_details: [
+      // Prepare valid Midtrans item_details (All prices must be positive and total sum must match gross_amount exactly)
+      let itemDetails: Array<{ id: string; price: number; quantity: number; name: string }> = [];
+
+      if (discountAmount > 0) {
+        // If there is a VIP discount, provide a single clean package line item to ensure Midtrans sum matches gross_amount exactly
+        itemDetails = [
+          {
+            id: `RESELLER-${orderNumber}`,
+            price: Math.round(finalTotalAmount),
+            quantity: 1,
+            name: `Paket ${totalQuantity} Kartu Reseller (${orderNumber})`.slice(0, 50),
+          },
+        ];
+      } else {
+        itemDetails = [
           ...orderItemsData.map((item) => ({
-            id: item.productId,
-            price: item.productPrice,
+            id: item.productId.slice(0, 45),
+            price: Math.round(item.productPrice),
             quantity: item.quantity,
             name: item.productName.slice(0, 50),
           })),
@@ -406,23 +410,27 @@ export async function createResellerOrderAction(data: {
             ? [
                 {
                   id: "SHIPPING-FEE",
-                  price: shippingFee,
+                  price: Math.round(shippingFee),
                   quantity: 1,
                   name: "Biaya Ongkir & Packing",
                 },
               ]
             : []),
-        ],
-      };
-
-      if (discountAmount > 0) {
-        (midtransPayload.item_details as Array<Record<string, unknown>>).push({
-          id: "DISCOUNT-VIP",
-          price: -discountAmount,
-          quantity: 1,
-          name: "Diskon Reward Outlet VIP Berbayar",
-        });
+        ];
       }
+
+      const midtransPayload: Record<string, unknown> = {
+        transaction_details: {
+          order_id: orderNumber,
+          gross_amount: Math.round(finalTotalAmount),
+        },
+        customer_details: {
+          first_name: data.customerName.trim(),
+          email: data.customerEmail.trim(),
+          phone: data.customerPhone.trim(),
+        },
+        item_details: itemDetails,
+      };
 
       const midtransRes = await fetch(snapEndpoint, {
         method: "POST",

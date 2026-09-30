@@ -27,6 +27,7 @@ import {
   FileText,
   Truck,
   Check,
+  ShieldCheck,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import {
@@ -66,9 +67,58 @@ export function PublicResellerRegistrationModal({
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingStatus, setSubmittingStatus] = useState("Memproses Pesanan...");
   const [createdOrderNumber, setCreatedOrderNumber] = useState<string | null>(null);
   const [copiedBank, setCopiedBank] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper load Midtrans Snap Script
+  const ensureSnapScript = (isProd: boolean, clientKey: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (typeof window === "undefined") return reject(new Error("No window"));
+      const scriptId = "midtrans-snap-script";
+      const targetUrl = isProd
+        ? "https://app.midtrans.com/snap/snap.js"
+        : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+      const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (existingScript && (window as any).snap) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return resolve((window as any).snap);
+      }
+
+      if (existingScript) existingScript.remove();
+
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = targetUrl;
+      if (clientKey) {
+        script.setAttribute("data-client-key", clientKey);
+      }
+      script.async = true;
+      script.onload = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).snap) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          resolve((window as any).snap);
+        } else {
+          reject(new Error("Midtrans Snap object not available"));
+        }
+      };
+      script.onerror = () => reject(new Error("Gagal memuat modul Midtrans Snap"));
+      document.body.appendChild(script);
+    });
+  };
+
+  // Preload Midtrans script when modal opens
+  useEffect(() => {
+    if (isOpen && siteSetting?.midtransEnabled !== false && typeof window !== "undefined") {
+      const isProd = siteSetting?.midtransIsProduction ?? true;
+      const clientKey = siteSetting?.midtransClientKey || "";
+      ensureSnapScript(isProd, clientKey).catch(() => {});
+    }
+  }, [isOpen, siteSetting?.midtransClientKey, siteSetting?.midtransIsProduction, siteSetting?.midtransEnabled]);
 
   // Load products when modal opens
   useEffect(() => {
@@ -76,6 +126,11 @@ export function PublicResellerRegistrationModal({
 
     // Reset screen state
     setCreatedOrderNumber(null);
+    setIsSubmitting(false);
+
+    if (siteSetting?.midtransEnabled === false) {
+      setPaymentMethod("MANUAL_BANK_BNI");
+    }
 
     let isMounted = true;
     const loadProducts = async () => {
@@ -109,7 +164,7 @@ export function PublicResellerRegistrationModal({
     return () => {
       isMounted = false;
     };
-  }, [isOpen]);
+  }, [isOpen, siteSetting?.midtransEnabled]);
 
   if (!isOpen) return null;
 
@@ -158,23 +213,23 @@ export function PublicResellerRegistrationModal({
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
+      showErrorAlert("Data Diri Belum Lengkap", "Nama Lengkap, Nomor WhatsApp, dan Email wajib diisi.");
+      return;
+    }
+
+    if (!shippingAddress.trim()) {
+      showErrorAlert("Alamat Belum Diisi", "Alamat lengkap pengiriman wajib diisi untuk pengiriman paket kartu.");
+      return;
+    }
+
     if (!isMinOrderMet) {
       showErrorAlert("Minimal Pengambilan 8 Pcs", `Total kartu yang dipilih saat ini ${totalQuantity} pcs. Silakan tambah menjadi minimal 8 pcs.`);
       return;
     }
 
-    if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
-      showErrorAlert("Data Belum Lengkap", "Nama, Nomor WhatsApp, dan Email wajib diisi dengan lengkap.");
-      return;
-    }
-
-    if (!shippingAddress.trim()) {
-      showErrorAlert("Alamat Belum Diisi", "Alamat lengkap pengiriman wajib diisi untuk pengiriman paket kartu fisik.");
-      return;
-    }
-
     if (paymentMethod === "MANUAL_BANK_BNI" && !receiptImage) {
-      showErrorAlert("Bukti Transfer Belum Diupload", "Silakan unggah foto struk / tangkapan layar bukti transfer Bank BNI.");
+      showErrorAlert("Bukti Transfer Belum Diupload", "Silakan unggah foto struk bukti transfer Bank BNI.");
       return;
     }
 
@@ -183,6 +238,12 @@ export function PublicResellerRegistrationModal({
       .map(([productId, quantity]) => ({ productId, quantity }));
 
     setIsSubmitting(true);
+    setSubmittingStatus(
+      paymentMethod === "MIDTRANS_QRIS"
+        ? "Sedang Menyiapkan QRIS Midtrans (Layar Terkunci)..."
+        : "Sedang Mengirim Pesanan ke Server..."
+    );
+
     try {
       const res = await createResellerOrderAction({
         items,
@@ -190,7 +251,7 @@ export function PublicResellerRegistrationModal({
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim().toLowerCase(),
         shippingAddress: shippingAddress.trim(),
-        notes: notes.trim(),
+        notes: notes.trim() || undefined,
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
       });
@@ -204,22 +265,35 @@ export function PublicResellerRegistrationModal({
       setCreatedOrderNumber(res.order.orderNumber);
 
       // Jika Midtrans QRIS, panggil popup Snap Midtrans
-      if (paymentMethod === "MIDTRANS_QRIS" && res.snapToken && typeof window !== "undefined") {
-        const snap = (window as any).snap;
-        if (snap) {
+      if (paymentMethod === "MIDTRANS_QRIS" && res.snapToken) {
+        const isProd = siteSetting?.midtransIsProduction ?? true;
+        const clientKey = siteSetting?.midtransClientKey || "";
+
+        try {
+          const snap = await ensureSnapScript(isProd, clientKey);
+          setIsSubmitting(false);
+
           snap.pay(res.snapToken, {
             onSuccess: () => {
               showSuccessAlert("Pembayaran Berhasil! 🎉", "Pesanan Anda telah otomatis terverifikasi dan masuk ke antrean pengemasan.");
             },
             onPending: () => {
-              showSuccessAlert("Menunggu Pembayaran", "Silakan selesaikan scan QRIS Anda.");
+              showSuccessAlert("Menunggu Pembayaran", "Silakan selesaikan scan QRIS Anda di aplikasi mobile banking / e-wallet.");
             },
             onError: () => {
               showErrorAlert("Gagal Bayar", "Transaksi pembayaran QRIS gagal atau dibatalkan.");
             },
+            onClose: () => {
+              // User menutup popup midtrans
+            },
           });
+        } catch (snapErr) {
+          console.error("Snap load error:", snapErr);
+          setIsSubmitting(false);
+          showErrorAlert("Kesalahan Midtrans", "Gagal memuat popup pembayaran Midtrans. Pesanan tetap tercatat.");
         }
       } else {
+        setIsSubmitting(false);
         showSuccessAlert(
           "Pendaftaran Reseller Berhasil! 🎉",
           `Pesanan #${res.order.orderNumber} telah diterima. Super Admin akan segera memproses akun dan pengiriman kartu Anda.`
@@ -228,7 +302,6 @@ export function PublicResellerRegistrationModal({
     } catch (err) {
       console.error("Checkout error:", err);
       showErrorAlert("Kesalahan Teknis", "Gagal menghubungkan ke server.");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -236,11 +309,29 @@ export function PublicResellerRegistrationModal({
   return (
     <div
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (!isSubmitting && e.target === e.currentTarget) onClose();
       }}
       className="fixed inset-0 z-50 p-3 sm:p-4 bg-black/80 backdrop-blur-md flex items-center justify-center animate-in fade-in"
     >
       <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-6 max-h-[92vh] overflow-y-auto custom-scrollbar flex flex-col">
+        {/* FREEZE LOADING OVERLAY */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in rounded-3xl">
+            <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-4 shadow-2xl shadow-emerald-500/20">
+              <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+            </div>
+            <h4 className="text-base sm:text-lg font-black text-white mb-1.5 tracking-tight">
+              {paymentMethod === "MIDTRANS_QRIS" ? "Membuka QRIS Midtrans..." : "Mengirim Pesanan..."}
+            </h4>
+            <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
+              {submittingStatus}
+            </p>
+            <div className="mt-4 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] text-slate-400 font-mono">
+              🔒 Layar terkunci otomatis untuk keamanan transaksi
+            </div>
+          </div>
+        )}
+
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
@@ -248,25 +339,34 @@ export function PublicResellerRegistrationModal({
               <ShoppingCart className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base sm:text-lg text-white">Daftar Jadi Mitra Reseller</h3>
-              <p className="text-xs text-slate-400">Pesan paket kartu perdana & bergabung sebagai Admin Lapangan</p>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                <span>Form Pendaftaran & Pesan Kartu</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                  Mitra Reseller
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Lengkapi data diri, tentukan jumlah kartu, dan pilih pembayaran
+              </p>
             </div>
           </div>
+
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Tutup Modal"
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors cursor-pointer disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* View: Success Registration Screen */}
+        {/* Modal Body */}
         {createdOrderNumber ? (
-          <div className="py-8 space-y-5 text-center animate-in zoom-in-95">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/10">
-              <CheckCircle2 className="w-10 h-10 animate-bounce" />
+          /* View: Success Screen */
+          <div className="py-8 text-center space-y-4 animate-in fade-in">
+            <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div className="space-y-1.5">
@@ -314,13 +414,100 @@ export function PublicResellerRegistrationModal({
           </div>
         ) : (
           /* View: Registration & Shopping Form */
-          <form onSubmit={handleCheckout} className="flex-1 overflow-y-auto space-y-5 pt-4">
-            {/* Step 1: Product Selection (Shopee Style) */}
+          <form onSubmit={handleCheckout} className="flex-1 overflow-y-auto space-y-5 pt-4 custom-scrollbar">
+            {/* STEP 1: CUSTOMER DATA & DELIVERY ADDRESS FIRST */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-emerald-400" />
-                  1. Pilih Paket Kartu Perdana (Min. 8 Pcs)
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-indigo-400" />
+                  1. Isi Data Diri & Alamat Pengiriman
+                </span>
+                <span className="text-[11px] text-slate-400">Langkah 1 dari 3</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
+                  <div className="relative flex items-center">
+                    <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Contoh: Budi Santoso"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
+                  <div className="relative flex items-center">
+                    <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="tel"
+                      required
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
+                  <div className="relative flex items-center">
+                    <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="Contoh: budi@gmail.com"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman Paket Kartu *</label>
+                  <div className="relative">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                    <textarea
+                      required
+                      rows={2}
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder="Contoh: Jl. Pahlawan No. 45, RT 02/03, Kel. Sukamaju, Kec. Cilincing, Jakarta Utara 14120"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-400">Catatan Tambahan untuk Admin (Opsional)</label>
+                  <div className="relative flex items-center">
+                    <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Contoh: Titipkan ke satpam perumahan / mohon dikemas rapi"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* STEP 2: PRODUCT SELECTION & QUANTITY */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-emerald-400" />
+                  2. Pilih Paket Kartu & Jumlah Pembelian (Min. 8 Pcs)
                 </span>
                 <span className="text-[11px] font-bold text-emerald-400">
                   Total: {totalQuantity} pcs {isMinOrderMet ? "✅" : "⚠️ (Kurang " + (8 - totalQuantity) + ")"}
@@ -375,7 +562,7 @@ export function PublicResellerRegistrationModal({
                             type="button"
                             onClick={() => handleQtyChange(product.id, -1)}
                             disabled={qty === 0}
-                            className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 disabled:opacity-30 flex items-center justify-center cursor-pointer transition-colors"
+                            className="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 disabled:opacity-30 flex items-center justify-center cursor-pointer transition-colors"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
@@ -383,7 +570,7 @@ export function PublicResellerRegistrationModal({
                           <button
                             type="button"
                             onClick={() => handleQtyChange(product.id, 1)}
-                            className="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer transition-colors shadow"
+                            className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center cursor-pointer transition-colors shadow"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
@@ -395,83 +582,35 @@ export function PublicResellerRegistrationModal({
               )}
             </div>
 
-            {/* Step 2: Customer Delivery Data Form */}
+            {/* STEP 3: PRICE SUMMARY & PAYMENT METHOD */}
             <div className="space-y-3 pt-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-indigo-400" />
-                2. Data Pemesan & Alamat Pengiriman
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-amber-400" />
+                3. Ringkasan & Metode Pembayaran
               </span>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
-                  <div className="relative flex items-center">
-                    <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Contoh: Budi Santoso"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none"
-                    />
-                  </div>
+              {/* Price Summary Breakdown */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span>Subtotal Produk ({totalQuantity} pcs):</span>
+                  <span className="font-mono font-semibold text-white">Rp {subtotal.toLocaleString("id-ID")}</span>
                 </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
-                  <div className="relative flex items-center">
-                    <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="tel"
-                      required
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="Contoh: 081234567890"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none"
-                    />
-                  </div>
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                    Biaya Ongkir:
+                  </span>
+                  <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Bebas Ongkir / Diurus Sendiri)</span>
                 </div>
-
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
-                  <div className="relative flex items-center">
-                    <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                    <input
-                      type="email"
-                      required
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="Contoh: budi@gmail.com"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman (Jalan, RT/RW, Kec, Kota, Kode Pos) *</label>
-                  <div className="relative">
-                    <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
-                    <textarea
-                      required
-                      rows={2}
-                      value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                      placeholder="Contoh: Jl. Pahlawan No. 45, RT 02/03, Kel. Sukamaju, Kec. Cilincing, Jakarta Utara 14120"
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar"
-                    />
-                  </div>
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs font-bold text-white uppercase">Total Tagihan:</span>
+                  <span className="text-base font-black text-emerald-400 font-mono">
+                    Rp {totalAmount.toLocaleString("id-ID")}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            {/* Step 3: Payment Method Selector */}
-            <div className="space-y-3 pt-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-amber-400" />
-                3. Pilih Metode Pembayaran
-              </span>
-
+              {/* Payment Method Selector */}
               <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
                 {siteSetting?.midtransEnabled !== false && (
                   <button
@@ -479,7 +618,7 @@ export function PublicResellerRegistrationModal({
                     onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
                     className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                       paymentMethod === "MIDTRANS_QRIS"
-                        ? "bg-indigo-950/40 border-indigo-500/50 text-white shadow-md shadow-indigo-950/30"
+                        ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-950/40"
                         : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
                     }`}
                   >
@@ -487,8 +626,15 @@ export function PublicResellerRegistrationModal({
                       <QrCode className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-xs font-bold block text-white">QRIS Instan (Midtrans)</span>
-                      <span className="text-[10px] text-slate-400">Verifikasi otomatis 24 jam</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-white">QRIS Instan (Midtrans)</span>
+                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
+                          OTOMATIS
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Scan GoPay, OVO, Dana, ShopeePay, BCA/Mandiri/BNI
+                      </span>
                     </div>
                   </button>
                 )}
@@ -498,7 +644,7 @@ export function PublicResellerRegistrationModal({
                   onClick={() => setPaymentMethod("MANUAL_BANK_BNI")}
                   className={`p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                     paymentMethod === "MANUAL_BANK_BNI"
-                      ? "bg-amber-950/40 border-amber-500/50 text-white shadow-md shadow-amber-950/30"
+                      ? "bg-amber-950/50 border-amber-500 text-white shadow-lg shadow-amber-950/40"
                       : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
                   }`}
                 >
@@ -507,7 +653,9 @@ export function PublicResellerRegistrationModal({
                   </div>
                   <div>
                     <span className="text-xs font-bold block text-white">Transfer Bank BNI (Manual)</span>
-                    <span className="text-[10px] text-slate-400">Upload bukti transfer struk</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                      Kirim ke rekening BNI & lampirkan foto struk
+                    </span>
                   </div>
                 </button>
               </div>
@@ -565,42 +713,21 @@ export function PublicResellerRegistrationModal({
               )}
             </div>
 
-            {/* Price Summary Breakdown */}
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Subtotal Produk ({totalQuantity} pcs):</span>
-                <span className="font-mono font-semibold text-white">Rp {subtotal.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                  Biaya Ongkir:
-                </span>
-                <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Dibebankan / Diurus Sendiri)</span>
-              </div>
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-bold text-white uppercase">Total Tagihan:</span>
-                <span className="text-base font-extrabold text-emerald-400 font-mono">
-                  Rp {totalAmount.toLocaleString("id-ID")}
-                </span>
-              </div>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting || !isMinOrderMet}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-50 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Memproses Pesanan...</span>
+                  <span>Memproses Transaksi...</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4" />
-                  <span>Daftar & Checkout Sekarang (Rp {totalAmount.toLocaleString("id-ID")})</span>
+                  <span>Lanjutkan Pembayaran (Rp {totalAmount.toLocaleString("id-ID")})</span>
                 </>
               )}
             </button>
