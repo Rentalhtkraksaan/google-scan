@@ -326,7 +326,7 @@ export async function createResellerOrderAction(data: {
     }
 
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    const shippingFee = siteSetting?.resellerShippingFee ?? 20000;
+    const shippingFee = 0; // Bebas ongkir untuk pesanan grosir reseller (ongkir dibebankan / diurus sendiri oleh reseller)
     const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard ?? 5000;
 
     // Hitung diskon reward VIP jika reseller login
@@ -395,12 +395,16 @@ export async function createResellerOrderAction(data: {
             quantity: item.quantity,
             name: item.productName.slice(0, 50),
           })),
-          {
-            id: "SHIPPING-FEE",
-            price: shippingFee,
-            quantity: 1,
-            name: "Biaya Ongkir & Packing Tetap",
-          },
+          ...(shippingFee > 0
+            ? [
+                {
+                  id: "SHIPPING-FEE",
+                  price: shippingFee,
+                  quantity: 1,
+                  name: "Biaya Ongkir & Packing",
+                },
+              ]
+            : []),
         ],
       };
 
@@ -452,7 +456,7 @@ export async function createResellerOrderAction(data: {
         totalQuantity,
         subtotal: calculatedSubtotal,
         discountAmount,
-        shippingFee,
+        shippingFee: 0,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,

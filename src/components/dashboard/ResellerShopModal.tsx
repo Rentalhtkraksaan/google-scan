@@ -128,7 +128,7 @@ export function ResellerShopModal({
   const eligibleDiscountUnits = Math.max(0, vipOutletsCount - claimedVipRewards);
   const discountedCardsCount = Math.min(totalQuantity, eligibleDiscountUnits);
   const discountAmount = discountedCardsCount * vipDiscountPerCard;
-  const shippingFee = siteSetting?.resellerShippingFee || 20000;
+  const shippingFee = 0; // Bebas ongkir untuk reseller (ongkir dibebankan / diurus sendiri oleh reseller)
   const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
 
   const isMinOrderMet = totalQuantity >= 8;
@@ -714,9 +714,9 @@ export function ResellerShopModal({
                     <div className="flex items-center justify-between text-slate-400">
                       <span className="flex items-center gap-1">
                         <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                        Biaya Ongkir & Packing (Tetap):
+                        Biaya Ongkir:
                       </span>
-                      <span className="font-mono font-bold text-slate-200">Rp {shippingFee.toLocaleString("id-ID")}</span>
+                      <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Dibebankan / Diurus Sendiri)</span>
                     </div>
 
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">

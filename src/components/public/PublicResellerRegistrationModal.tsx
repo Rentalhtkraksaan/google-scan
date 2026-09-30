@@ -118,7 +118,7 @@ export function PublicResellerRegistrationModal({
     return sum + (p.price || 0) * qty;
   }, 0);
 
-  const shippingFee = siteSetting?.resellerShippingFee || 20000;
+  const shippingFee = 0; // Bebas ongkir untuk reseller (ongkir dibebankan / diurus sendiri oleh reseller)
   const totalAmount = subtotal + shippingFee;
   const isMinOrderMet = totalQuantity >= 8;
 
@@ -570,9 +570,9 @@ export function PublicResellerRegistrationModal({
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span className="flex items-center gap-1">
                   <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                  Biaya Ongkir & Packing (Tetap):
+                  Biaya Ongkir:
                 </span>
-                <span className="font-mono font-semibold text-white">Rp {shippingFee.toLocaleString("id-ID")}</span>
+                <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Dibebankan / Diurus Sendiri)</span>
               </div>
               <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                 <span className="text-xs font-bold text-white uppercase">Total Tagihan:</span>
