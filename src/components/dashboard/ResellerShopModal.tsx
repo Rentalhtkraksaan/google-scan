@@ -18,6 +18,7 @@ import {
   Upload,
   Clock,
   ArrowRight,
+  ArrowLeft,
   Send,
   AlertCircle,
   HelpCircle,
@@ -77,6 +78,9 @@ export function ResellerShopModal({
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [submittingStatus, setSubmittingStatus] = useState("Memproses Pesanan...");
+
+  // Step Wizard State: 1 = Form 1 (Data Diri & Alamat), 2 = Form 2 (Rincian Paket Kartu), 3 = Form 3 (Pembayaran)
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
 
   // Form Pembeli / Pengiriman
   const [customerName, setCustomerName] = useState(user.fullName || "");
@@ -255,6 +259,39 @@ export function ResellerShopModal({
       setCopiedAmount(true);
       setTimeout(() => setCopiedAmount(false), 2000);
     }
+  };
+
+  // Step 1 Validator
+  const validateStep1 = () => {
+    const finalName = user.fullName?.trim() || customerName.trim();
+    const finalPhone = user.whatsappNumber?.trim() || customerPhone.trim();
+    const finalEmail = user.email?.trim() || customerEmail.trim();
+
+    if (!finalName || !finalPhone || !finalEmail) {
+      showErrorAlert("Data Diri Belum Lengkap", "Nama Lengkap, Nomor WhatsApp, dan Email wajib diisi.");
+      return false;
+    }
+    if (!shippingAddress.trim()) {
+      showErrorAlert("Alamat Pengiriman Belum Diisi", "Alamat lengkap pengiriman paket kartu fisik wajib diisi.");
+      return false;
+    }
+    return true;
+  };
+
+  // Step 2 Validator
+  const validateStep2 = () => {
+    if (cart.length === 0) {
+      showErrorAlert("Keranjang Kosong", "Silakan pilih minimal 1 produk kartu dari katalog terlebih dahulu.");
+      return false;
+    }
+    if (!isMinOrderMet) {
+      showErrorAlert(
+        "Minimal Order Belum Terpenuhi",
+        `Minimal total pengambilan kartu adalah 8 pcs untuk mendapatkan harga reseller. Silakan tambahkan ${missingQty} pcs lagi pada Form 2.`
+      );
+      return false;
+    }
+    return true;
   };
 
   // Checkout submission
@@ -574,9 +611,9 @@ export function ResellerShopModal({
             </div>
           )}
 
-          {/* TAB 2: SHOPPING CART & CHECKOUT */}
+          {/* TAB 2: SHOPPING CART & CHECKOUT (3-STEP FORM WIZARD) */}
           {activeTab === "CART" && (
-            <form onSubmit={handleCheckout} className="space-y-6">
+            <form onSubmit={handleCheckout} className="space-y-4">
               {cart.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
                   <ShoppingCart className="w-12 h-12 mx-auto text-slate-600 mb-2" />
@@ -592,361 +629,576 @@ export function ResellerShopModal({
                 </div>
               ) : (
                 <>
-                  {/* STEP 1: FORM DATA DIRI & ALAMAT PENGIRIMAN DULU */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-indigo-400" />
-                        1. Data Pemesan & Alamat Pengiriman
-                      </span>
-                      <span className="text-[11px] text-slate-400">Langkah 1 dari 3</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 sm:p-5 bg-slate-950/80 border border-slate-800 rounded-2xl">
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
-                        <div className="relative flex items-center">
-                          <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                          <input
-                            type="text"
-                            required
-                            value={customerName}
-                            onChange={(e) => setCustomerName(e.target.value)}
-                            placeholder="Nama Lengkap Reseller"
-                            className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                          />
+                  {/* ── STEP PROGRESS BAR (WIZARD: FORM 1 -> FORM 2 -> FORM 3) ── */}
+                  <div className="p-2 sm:p-3 bg-slate-950/80 border border-slate-800/90 rounded-2xl">
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Step 1 Tab */}
+                      <button
+                        type="button"
+                        onClick={() => setCheckoutStep(1)}
+                        className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                          checkoutStep === 1
+                            ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-500/10"
+                            : checkoutStep > 1
+                            ? "bg-slate-900/80 border-emerald-500/40 text-emerald-400 hover:bg-slate-800"
+                            : "bg-slate-900/40 border-slate-800 text-slate-400"
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                            checkoutStep === 1
+                              ? "bg-indigo-600 text-white shadow"
+                              : checkoutStep > 1
+                              ? "bg-emerald-500 text-slate-950 font-black"
+                              : "bg-slate-800 text-slate-400"
+                          }`}
+                        >
+                          {checkoutStep > 1 ? <Check className="w-3.5 h-3.5" /> : "1"}
                         </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
-                        <div className="relative flex items-center">
-                          <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                          <input
-                            type="tel"
-                            required
-                            value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
-                            placeholder="081234567890"
-                            className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                          />
+                        <div className="min-w-0">
+                          <span className="block text-[11px] sm:text-xs font-bold truncate">
+                            FORM 1
+                          </span>
+                          <span className="text-[9px] text-slate-400 truncate block">
+                            Data Diri & Alamat
+                          </span>
                         </div>
-                      </div>
+                      </button>
 
-                      <div className="sm:col-span-2 space-y-1">
-                        <label className="text-[11px] font-semibold text-slate-300">Email Akun Reseller *</label>
-                        <div className="relative flex items-center">
-                          <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                          <input
-                            type="email"
-                            required
-                            value={customerEmail}
-                            onChange={(e) => setCustomerEmail(e.target.value)}
-                            placeholder="email@reseller.com"
-                            className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                          />
+                      {/* Step 2 Tab */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (validateStep1()) setCheckoutStep(2);
+                        }}
+                        className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                          checkoutStep === 2
+                            ? "bg-emerald-600/20 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                            : checkoutStep > 2
+                            ? "bg-slate-900/80 border-emerald-500/40 text-emerald-400 hover:bg-slate-800"
+                            : "bg-slate-900/40 border-slate-800 text-slate-400"
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                            checkoutStep === 2
+                              ? "bg-emerald-600 text-white shadow"
+                              : checkoutStep > 2
+                              ? "bg-emerald-500 text-slate-950 font-black"
+                              : "bg-slate-800 text-slate-400"
+                          }`}
+                        >
+                          {checkoutStep > 2 ? <Check className="w-3.5 h-3.5" /> : "2"}
                         </div>
-                      </div>
+                        <div className="min-w-0">
+                          <span className="block text-[11px] sm:text-xs font-bold truncate">
+                            FORM 2
+                          </span>
+                          <span className="text-[9px] text-slate-400 truncate block">
+                            Rincian Kartu ({totalQuantity} pcs)
+                          </span>
+                        </div>
+                      </button>
 
-                      <div className="sm:col-span-2 space-y-1">
-                        <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman Paket Kartu *</label>
-                        <div className="relative">
-                          <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
-                          <textarea
-                            required
-                            rows={2}
-                            value={shippingAddress}
-                            onChange={(e) => setShippingAddress(e.target.value)}
-                            placeholder="Alamat lengkap penerima kartu (Jalan, No Rumah, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Kode Pos)"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
-                          />
+                      {/* Step 3 Tab */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (validateStep1() && validateStep2()) setCheckoutStep(3);
+                        }}
+                        className={`p-2 sm:p-2.5 rounded-xl text-left border transition-all cursor-pointer flex items-center gap-2 sm:gap-2.5 ${
+                          checkoutStep === 3
+                            ? "bg-amber-600/20 border-amber-500 text-white shadow-md shadow-amber-500/10"
+                            : "bg-slate-900/40 border-slate-800 text-slate-400"
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                            checkoutStep === 3
+                              ? "bg-amber-500 text-slate-950 font-black shadow"
+                              : "bg-slate-800 text-slate-400"
+                          }`}
+                        >
+                          3
                         </div>
-                      </div>
-
-                      <div className="sm:col-span-2 space-y-1">
-                        <label className="text-[11px] font-semibold text-slate-400">Catatan Tambahan untuk Super Admin (Opsional)</label>
-                        <div className="relative flex items-center">
-                          <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
-                          <input
-                            type="text"
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Misal: Mohon prioritaskan pengiriman sebelum akhir pekan"
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
-                          />
+                        <div className="min-w-0">
+                          <span className="block text-[11px] sm:text-xs font-bold truncate">
+                            FORM 3
+                          </span>
+                          <span className="text-[9px] text-slate-400 truncate block">
+                            Pembayaran
+                          </span>
                         </div>
-                      </div>
+                      </button>
                     </div>
                   </div>
 
-                  {/* STEP 2: CART ITEMS & QUANTITIES */}
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                        <Package className="w-4 h-4 text-emerald-400" />
-                        2. Rincian Paket Kartu & Jumlah Pembelian (Min. 8 Pcs)
-                      </span>
-                      <span className="text-[11px] font-bold text-emerald-400">
-                        Total: {totalQuantity} pcs {isMinOrderMet ? "✅" : "⚠️ (Kurang " + missingQty + ")"}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {cart.map((item) => (
-                        <div
-                          key={item.product.id}
-                          className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-3"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-12 h-12 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-800">
-                              {item.product.imageUrl ? (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img
-                                  src={item.product.imageUrl}
-                                  alt={item.product.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                  <QrCode className="w-5 h-5" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <h5 className="text-xs font-bold text-white truncate">{item.product.name}</h5>
-                              <p className="text-[11px] text-slate-400">
-                                Rp {item.product.price.toLocaleString("id-ID")} x {item.quantity} {item.product.unit}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0">
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1">
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateQuantity(item.product.id, -1)}
-                                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="font-mono font-bold text-xs text-white px-2">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateQuantity(item.product.id, 1)}
-                                className="p-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-
-                            <span className="font-mono font-bold text-xs text-white min-w-[75px] text-right">
-                              Rp {(item.product.price * item.quantity).toLocaleString("id-ID")}
+                  {/* ───────────────────────────────────────────────────────────── */}
+                  {/* FORM 1: DATA PEMESAN & ALAMAT PENGIRIMAN                      */}
+                  {/* ───────────────────────────────────────────────────────────── */}
+                  {checkoutStep === 1 && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between pb-1">
+                        <div>
+                          <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-400 text-xs font-mono font-bold">
+                              FORM 1
                             </span>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveFromCart(item.product.id)}
-                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                              title="Hapus item"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                            Data Diri Reseller & Alamat Pengiriman
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Isi data diri pemesan dan alamat lengkap penerima paket kartu fisik
+                          </p>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Minimum Order Warning Banner */}
-                    {!isMinOrderMet && (
-                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
-                        <span>
-                          Minimal total pesanan adalah <strong className="text-white">8 pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{missingQty} pcs</strong> lagi untuk checkout.
+                        <span className="text-[11px] text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-800">
+                          Langkah 1 dari 3
                         </span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* STEP 3: SUMMARY & PAYMENT METHOD */}
-                  <div className="space-y-3 pt-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                      <CreditCard className="w-4 h-4 text-amber-400" />
-                      3. Ringkasan & Metode Pembayaran
-                    </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-4 sm:p-5 bg-slate-950/80 border border-slate-800 rounded-2xl">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-300">
+                            Nama Lengkap Pemesan *
+                          </label>
+                          <div className="relative flex items-center">
+                            <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                            <input
+                              type="text"
+                              required
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              placeholder="Nama Lengkap Reseller"
+                              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                            />
+                          </div>
+                        </div>
 
-                    {/* Summary & Diskon VIP */}
-                    <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2 text-xs">
-                      <div className="flex items-center justify-between text-slate-400">
-                        <span>Subtotal Produk ({totalQuantity} pcs)</span>
-                        <span className="font-mono font-bold text-slate-200">Rp {subtotal.toLocaleString("id-ID")}</span>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-300">
+                            Nomor WhatsApp Aktif *
+                          </label>
+                          <div className="relative flex items-center">
+                            <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                            <input
+                              type="tel"
+                              required
+                              value={customerPhone}
+                              onChange={(e) => setCustomerPhone(e.target.value)}
+                              placeholder="081234567890"
+                              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-300">
+                            Email Akun Reseller *
+                          </label>
+                          <div className="relative flex items-center">
+                            <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                            <input
+                              type="email"
+                              required
+                              value={customerEmail}
+                              onChange={(e) => setCustomerEmail(e.target.value)}
+                              placeholder="email@reseller.com"
+                              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-300">
+                            Alamat Lengkap Pengiriman Paket Kartu *
+                          </label>
+                          <div className="relative">
+                            <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+                            <textarea
+                              required
+                              rows={3}
+                              value={shippingAddress}
+                              onChange={(e) => setShippingAddress(e.target.value)}
+                              placeholder="Alamat lengkap penerima paket kartu (Jalan, No Rumah, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Kode Pos)"
+                              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-400">
+                            Catatan Tambahan untuk Super Admin (Opsional)
+                          </label>
+                          <div className="relative flex items-center">
+                            <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
+                            <input
+                              type="text"
+                              value={notes}
+                              onChange={(e) => setNotes(e.target.value)}
+                              placeholder="Misal: Mohon prioritaskan pengiriman sebelum akhir pekan"
+                              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
+                            />
+                          </div>
+                        </div>
                       </div>
 
-                      {discountAmount > 0 && (
-                        <div className="flex items-center justify-between text-emerald-400">
-                          <span className="flex items-center gap-1">
-                            <Crown className="w-3.5 h-3.5" />
-                            Potongan Reward Outlet VIP ({discountedCardsCount} kartu x Rp {vipDiscountPerCard.toLocaleString("id-ID")})
+                      {/* Navigation Form 1 */}
+                      <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("CATALOG")}
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Lihat Katalog Produk
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (validateStep1()) setCheckoutStep(2);
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/25 transition-all cursor-pointer active:scale-95"
+                        >
+                          <span>Lanjut ke Form 2: Rincian Kartu</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ───────────────────────────────────────────────────────────── */}
+                  {/* FORM 2: RINCIAN PAKET KARTU & JUMLAH (MIN 8 PCS)              */}
+                  {/* ───────────────────────────────────────────────────────────── */}
+                  {checkoutStep === 2 && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between pb-1">
+                        <div>
+                          <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-xs font-mono font-bold">
+                              FORM 2
+                            </span>
+                            Rincian Paket Kartu & Jumlah Pembelian
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Minimal total pengambilan adalah <strong>8 pcs</strong> kartu untuk mendapatkan harga grosir reseller
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 block">Total Item:</span>
+                          <span className={`font-mono font-bold text-xs ${isMinOrderMet ? "text-emerald-400" : "text-amber-400"}`}>
+                            {totalQuantity} pcs {isMinOrderMet ? "✅" : `(Kurang ${missingQty})`}
                           </span>
-                          <span className="font-mono font-bold">- Rp {discountAmount.toLocaleString("id-ID")}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        {cart.map((item) => (
+                          <div
+                            key={item.product.id}
+                            className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-2xl flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-12 h-12 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-800">
+                                {item.product.imageUrl ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={item.product.imageUrl}
+                                    alt={item.product.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-slate-600">
+                                    <QrCode className="w-5 h-5" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <h5 className="text-xs font-bold text-white truncate">{item.product.name}</h5>
+                                <p className="text-[11px] text-slate-400">
+                                  Rp {item.product.price.toLocaleString("id-ID")} x {item.quantity} {item.product.unit}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              {/* Quantity Controls */}
+                              <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.product.id, -1)}
+                                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="font-mono font-bold text-xs text-white px-2">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQuantity(item.product.id, 1)}
+                                  className="p-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              <span className="font-mono font-bold text-xs text-white min-w-[75px] text-right">
+                                Rp {(item.product.price * item.quantity).toLocaleString("id-ID")}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFromCart(item.product.id)}
+                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                title="Hapus item"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Minimum Order Warning Banner */}
+                      {!isMinOrderMet && (
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                          <span>
+                            Minimal total pesanan adalah <strong className="text-white">8 pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{missingQty} pcs</strong> lagi untuk melanjutkan ke pembayaran.
+                          </span>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                          Biaya Ongkir:
-                        </span>
-                        <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Bebas Ongkir / Diurus Sendiri)</span>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">
-                        <span className="font-bold text-white uppercase">Total Tagihan Pembayaran:</span>
-                        <span className="font-mono font-black text-lg text-emerald-400">
-                          Rp {finalTotalAmount.toLocaleString("id-ID")}
-                        </span>
+                      {/* Navigation Form 2 */}
+                      <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutStep(1)}
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Kembali ke Form 1</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!isMinOrderMet}
+                          onClick={() => {
+                            if (validateStep2()) setCheckoutStep(3);
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                        >
+                          <span>Lanjut ke Form 3: Pembayaran</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
+                  )}
 
-                    {/* Metode Pembayaran */}
-                    <div className="space-y-2.5">
-                      <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
-                        {/* Midtrans QRIS */}
-                        {siteSetting?.midtransEnabled !== false && (
-                          <div
-                            onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
-                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                              paymentMethod === "MIDTRANS_QRIS"
-                                ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                                : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
-                            }`}
-                          >
-                            <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
-                              <QrCode className="w-5 h-5" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold text-white">QRIS Otomatis (Midtrans)</span>
-                                <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
-                                  INSTAN
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-slate-400 truncate">GoPay, OVO, Dana, ShopeePay, BCA/Mandiri/BNI</p>
-                            </div>
+                  {/* ───────────────────────────────────────────────────────────── */}
+                  {/* FORM 3: RINGKASAN TOTAL & METODE PEMBAYARAN                   */}
+                  {/* ───────────────────────────────────────────────────────────── */}
+                  {checkoutStep === 3 && (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between pb-1">
+                        <div>
+                          <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-xs font-mono font-bold">
+                              FORM 3
+                            </span>
+                            Ringkasan Total & Metode Pembayaran
+                          </h4>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Pilih metode bayar dan selesaikan transaksi pesanan Anda
+                          </p>
+                        </div>
+                        <span className="text-[11px] text-slate-400 bg-slate-800/60 px-2.5 py-1 rounded-lg border border-slate-800">
+                          Langkah 3 dari 3
+                        </span>
+                      </div>
+
+                      {/* Summary & Diskon VIP */}
+                      <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span>Subtotal Produk ({totalQuantity} pcs)</span>
+                          <span className="font-mono font-bold text-slate-200">
+                            Rp {subtotal.toLocaleString("id-ID")}
+                          </span>
+                        </div>
+
+                        {discountAmount > 0 && (
+                          <div className="flex items-center justify-between text-emerald-400">
+                            <span className="flex items-center gap-1">
+                              <Crown className="w-3.5 h-3.5" />
+                              Potongan Reward Outlet VIP ({discountedCardsCount} kartu x Rp {vipDiscountPerCard.toLocaleString("id-ID")})
+                            </span>
+                            <span className="font-mono font-bold">
+                              - Rp {discountAmount.toLocaleString("id-ID")}
+                            </span>
                           </div>
                         )}
 
-                        {/* Manual Transfer BNI */}
-                        <div
-                          onClick={() => setPaymentMethod("MANUAL_BANK_BNI")}
-                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                            paymentMethod === "MANUAL_BANK_BNI"
-                              ? "bg-amber-950/50 border-amber-500 text-white shadow-lg shadow-amber-500/20"
-                              : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
-                          }`}
-                        >
-                          <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
-                            <Building2 className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-xs font-bold text-white">Transfer Bank {bankName} (Manual)</span>
-                            <p className="text-[11px] text-slate-400 truncate">Rekening Resmi Super Admin</p>
-                          </div>
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Truck className="w-3.5 h-3.5 text-indigo-400" />
+                            Biaya Ongkir:
+                          </span>
+                          <span className="font-semibold text-emerald-400 text-xs">
+                            Rp 0 (Bebas Ongkir / Diurus Sendiri)
+                          </span>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">
+                          <span className="font-bold text-white uppercase">Total Tagihan Pembayaran:</span>
+                          <span className="font-mono font-black text-lg text-emerald-400">
+                            Rp {finalTotalAmount.toLocaleString("id-ID")}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Rincian Rekening BNI jika manual */}
-                      {paymentMethod === "MANUAL_BANK_BNI" && (
-                        <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 text-xs animate-in fade-in">
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                            <span className="text-slate-400 font-semibold">Tujuan Transfer Bank Resmi:</span>
-                            <span className="font-bold text-white">{bankName}</span>
-                          </div>
-
-                          <div className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800">
-                            <div>
-                              <span className="text-[10px] text-slate-500 block">Nomor Rekening ({bankName}):</span>
-                              <span className="font-mono font-extrabold text-sm text-amber-300">{accountNumber}</span>
-                              <span className="text-[10px] text-slate-400 block mt-0.5">a.n {accountName}</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(accountNumber, "bank")}
-                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                      {/* Pilihan Metode Pembayaran */}
+                      <div className="space-y-2.5">
+                        <div className={`grid ${siteSetting?.midtransEnabled !== false ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} gap-2.5`}>
+                          {/* Midtrans QRIS */}
+                          {siteSetting?.midtransEnabled !== false && (
+                            <div
+                              onClick={() => setPaymentMethod("MIDTRANS_QRIS")}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                                paymentMethod === "MIDTRANS_QRIS"
+                                  ? "bg-indigo-950/50 border-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                                  : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                              }`}
                             >
-                              <Copy className="w-3 h-3 text-amber-400" />
-                              <span>{copiedBank ? "Disalin!" : "Salin No. Rek"}</span>
-                            </button>
-                          </div>
-
-                          {/* Upload Struk Bukti Transfer */}
-                          <div>
-                            <label className="block text-slate-300 font-semibold mb-1.5">
-                              Unggah Foto Bukti Transfer Struk BNI *
-                            </label>
-
-                            <input
-                              type="file"
-                              ref={fileInputRef}
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              className="hidden"
-                            />
-
-                            {receiptImage ? (
-                              <div className="relative rounded-xl overflow-hidden border border-emerald-500/40 p-2 bg-slate-900 flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={receiptImage} alt="Bukti" className="w-12 h-12 object-cover rounded-lg shrink-0 border" />
-                                  <span className="text-xs text-emerald-400 font-semibold truncate">Foto Struk Siap Dikirim</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setReceiptImage(null)}
-                                  className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
+                                <QrCode className="w-5 h-5" />
                               </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full py-4 px-3 border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl bg-slate-900/60 hover:bg-slate-900 text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                <Upload className="w-5 h-5 text-emerald-400" />
-                                <span className="font-semibold text-xs text-slate-200">Klik untuk upload bukti struk transfer</span>
-                                <span className="text-[10px] text-slate-500">JPG, PNG, WEBP (Maks 5MB)</span>
-                              </button>
-                            )}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-white">QRIS Otomatis (Midtrans)</span>
+                                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300">
+                                    INSTAN
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">GoPay, OVO, Dana, ShopeePay, BCA/Mandiri/BNI</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Manual Transfer BNI */}
+                          <div
+                            onClick={() => setPaymentMethod("MANUAL_BANK_BNI")}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                              paymentMethod === "MANUAL_BANK_BNI"
+                                ? "bg-amber-950/50 border-amber-500 text-white shadow-lg shadow-amber-500/20"
+                                : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                            }`}
+                          >
+                            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                              <Building2 className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-white">Transfer Bank {bankName} (Manual)</span>
+                              <p className="text-[11px] text-slate-400 truncate">Rekening Resmi Super Admin</p>
+                            </div>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Submit Button */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={isSubmittingOrder || !isMinOrderMet}
-                      className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
-                    >
-                      {isSubmittingOrder ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin text-white" />
-                          <span>Memproses Pesanan...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>Lanjutkan Pembayaran (Rp {finalTotalAmount.toLocaleString("id-ID")})</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                        {/* Rincian Rekening BNI jika manual */}
+                        {paymentMethod === "MANUAL_BANK_BNI" && (
+                          <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 text-xs animate-in fade-in">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                              <span className="text-slate-400 font-semibold">Tujuan Transfer Bank Resmi:</span>
+                              <span className="font-bold text-white">{bankName}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between p-2.5 bg-slate-900 rounded-xl border border-slate-800">
+                              <div>
+                                <span className="text-[10px] text-slate-500 block">Nomor Rekening ({bankName}):</span>
+                                <span className="font-mono font-extrabold text-sm text-amber-300">{accountNumber}</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">a.n {accountName}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(accountNumber, "bank")}
+                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                              >
+                                <Copy className="w-3 h-3 text-amber-400" />
+                                <span>{copiedBank ? "Disalin!" : "Salin No. Rek"}</span>
+                              </button>
+                            </div>
+
+                            {/* Upload Struk Bukti Transfer */}
+                            <div>
+                              <label className="block text-slate-300 font-semibold mb-1.5">
+                                Unggah Foto Bukti Transfer Struk BNI *
+                              </label>
+
+                              <input
+                                type="file"
+                                ref={fileInputRef}
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                className="hidden"
+                              />
+
+                              {receiptImage ? (
+                                <div className="relative rounded-xl overflow-hidden border border-emerald-500/40 p-2 bg-slate-900 flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={receiptImage} alt="Bukti" className="w-12 h-12 object-cover rounded-lg shrink-0 border" />
+                                    <span className="text-xs text-emerald-400 font-semibold truncate">Foto Struk Siap Dikirim</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setReceiptImage(null)}
+                                    className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="w-full py-4 px-3 border-2 border-dashed border-slate-700 hover:border-emerald-500/50 rounded-xl bg-slate-900/60 hover:bg-slate-900 text-slate-400 hover:text-slate-200 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  <Upload className="w-5 h-5 text-emerald-400" />
+                                  <span className="font-semibold text-xs text-slate-200">Klik untuk upload bukti struk transfer</span>
+                                  <span className="text-[10px] text-slate-500">JPG, PNG, WEBP (Maks 5MB)</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Navigation Form 3 & Submit */}
+                      <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutStep(2)}
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Kembali ke Form 2</span>
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSubmittingOrder || !isMinOrderMet}
+                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-emerald-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+                        >
+                          {isSubmittingOrder ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              <span>Memproses Transaksi...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4" />
+                              <span>Bayar Sekarang (Rp {finalTotalAmount.toLocaleString("id-ID")})</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </form>
