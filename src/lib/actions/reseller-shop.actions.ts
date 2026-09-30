@@ -472,7 +472,7 @@ export async function createResellerOrderAction(data: {
         userName: session?.user?.name || data.customerName,
         userRole: (session?.user?.role as any) || "USER",
         action: "CREATE",
-        title: "Pesanan Paket Reseller Masuk 🛒",
+        title: "Pesanan Paket Reseller Masuk (Grosir) 📦",
         description: `Pesanan grosir baru #${order.orderNumber} oleh "${data.customerName}" (${data.customerPhone}) sebanyak ${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")}.`,
         targetId: order.id,
         targetName: order.orderNumber,
@@ -481,7 +481,7 @@ export async function createResellerOrderAction(data: {
 
     // Kirim Web Push Notification Realtime ke Super Admin
     await sendWebPushToSuperAdmins({
-      title: "🛍️ Pesanan Reseller Baru Masuk!",
+      title: "📦 Pesanan Paket Reseller Masuk (Grosir)!",
       body: `Pesanan #${order.orderNumber} dari "${data.customerName}" (${totalQuantity} pcs • Rp ${finalTotalAmount.toLocaleString("id-ID")}) via ${data.paymentMethod === "MIDTRANS_QRIS" ? "Midtrans QRIS" : "Transfer Bank BNI"}.`,
       url: "/super-admin",
       tag: `order-${order.id}`,
@@ -591,8 +591,15 @@ export async function createRetailOrderAction(data: {
 
       if (affiliate && affiliate.status === "ACTIVE") {
         validAffiliateCode = affiliate.referralCode;
-        // Hitung komisi affiliate per unit
-        affiliateCommission = totalQuantity * (affiliate.commissionPerPcs || 5000);
+        const rate = affiliate.commissionPerPcs || 10;
+        // Hitung komisi affiliate murni dari Subtotal Produk (kartu), TANPA melibatkan ongkos kirim
+        if (rate <= 100) {
+          // Jika rate <= 100 dianggap persentase (contoh: 10% atau 15% dari subtotal kartu)
+          affiliateCommission = Math.round((calculatedSubtotal * rate) / 100);
+        } else {
+          // Jika rate > 100 dianggap nominal flat rupiah per pcs (contoh: Rp 5.000 / pcs)
+          affiliateCommission = totalQuantity * rate;
+        }
         // Potongan subsidi ongkir untuk pembeli max Rp 10.000
         shippingDiscount = Math.min(baseShippingFee, shippingDiscountLimit);
       }
@@ -712,7 +719,7 @@ export async function createRetailOrderAction(data: {
         userName: data.customerName,
         userRole: "USER",
         action: "CREATE",
-        title: "Pesanan Pembeli Baru Masuk 🛒",
+        title: "Pesanan Pembeli Baru Masuk (Retail) 🛒",
         description: `Pesanan retail #${order.orderNumber} oleh "${data.customerName}" (${totalQuantity} pcs total Rp ${finalTotalAmount.toLocaleString("id-ID")})${validAffiliateCode ? ` via Referral Affiliate [${validAffiliateCode}]` : ""}.`,
         targetId: order.id,
         targetName: order.orderNumber,
@@ -721,8 +728,8 @@ export async function createRetailOrderAction(data: {
 
     // Kirim Web Push Notification Realtime ke Super Admin
     await sendWebPushToSuperAdmins({
-      title: "🛍️ Pesanan Pembeli Baru Masuk!",
-      body: `Pesanan #${order.orderNumber} dari "${data.customerName}" (${totalQuantity} pcs • Rp ${finalTotalAmount.toLocaleString("id-ID")})${validAffiliateCode ? ` [Ref: ${validAffiliateCode}]` : ""}.`,
+      title: "🛒 Pesanan Pembeli Baru Masuk (Retail)!",
+      body: `Pesanan #${order.orderNumber} dari "${data.customerName}" (${totalQuantity} pcs • Subtotal Rp ${calculatedSubtotal.toLocaleString("id-ID")} • Total Rp ${finalTotalAmount.toLocaleString("id-ID")})${validAffiliateCode ? ` [Ref: ${validAffiliateCode}]` : ""}.`,
       url: "/super-admin",
       tag: `order-${order.id}`,
       action: "NEW_ORDER",

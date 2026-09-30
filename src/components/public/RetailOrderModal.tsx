@@ -23,9 +23,15 @@ import {
   User,
   Package,
   MapPin,
+  UploadCloud,
+  ImageIcon,
+  Trash2,
+  Store,
+  Globe,
 } from "lucide-react";
 import { getResellerProductsAction, createRetailOrderAction } from "@/lib/actions/reseller-shop.actions";
 import { validateAffiliateReferralCodeAction } from "@/lib/actions/affiliate.actions";
+import { compressImageInBrowser } from "@/lib/image-compression";
 import { ResellerProductModel, SiteSettingModel } from "@/types/models";
 
 declare global {
@@ -59,23 +65,21 @@ export function RetailOrderModal({
   onOpenTracking,
   defaultReferralCode = "",
 }: RetailOrderModalProps) {
-  // Step wizard state: 1 = Data Pembeli, 2 = Produk & Referral, 3 = Pembayaran
+  // Step wizard state: 1 = Data Pembeli, 2 = Produk & Referral, 3 = Usaha & Pembayaran
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [step1Error, setStep1Error] = useState<string | null>(null);
+  const [step3Error, setStep3Error] = useState<string | null>(null);
 
   const [products, setProducts] = useState<ResellerProductModel[]>([]);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   // Customer form state (Step 1)
-  const [outletName, setOutletName] = useState("");
-  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
   const [province, setProvince] = useState("Jawa Timur");
-  const [notes, setNotes] = useState("");
 
   // Referral code state (Step 2)
   const [referralCode, setReferralCode] = useState(defaultReferralCode);
@@ -88,9 +92,13 @@ export function RetailOrderModal({
     message?: string;
   } | null>(null);
 
-  // Payment state (Step 3)
+  // Business & Payment state (Step 3)
+  const [outletName, setOutletName] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">("MIDTRANS_QRIS");
   const [receiptImageUrl, setReceiptImageUrl] = useState("");
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedBank, setCopiedBank] = useState(false);
 
@@ -111,6 +119,7 @@ export function RetailOrderModal({
     setOrderSuccessData(null);
     setCurrentStep(1);
     setStep1Error(null);
+    setStep3Error(null);
 
     const loadData = async () => {
       setIsLoadingProducts(true);
@@ -194,14 +203,6 @@ export function RetailOrderModal({
   // Step 1 Validation & Next
   const handleGoToStep2 = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!outletName.trim()) {
-      setStep1Error("Nama Usaha / Nama Outlet wajib diisi.");
-      return;
-    }
-    if (!googleMapsUrl.trim()) {
-      setStep1Error("Link Google Maps toko wajib diisi agar kartu QR siap diprogram.");
-      return;
-    }
     if (!customerName.trim()) {
       setStep1Error("Nama Lengkap Penerima wajib diisi.");
       return;
@@ -267,6 +268,46 @@ export function RetailOrderModal({
     }
   };
 
+  // Receipt image uploader handler with browser WebP compression
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingReceipt(true);
+    try {
+      // 1. Kompres gambar di browser (WebP max 1200px)
+      const compressed = await compressImageInBrowser(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.85,
+        outputType: "base64",
+      });
+
+      // 2. Upload ke Cloudinary via API Route
+      const res = await fetch("/api/upload/cloudinary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: compressed.base64,
+          folder: "order_receipts",
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.url) {
+        setReceiptImageUrl(data.url);
+      } else {
+        // Fallback: simpan base64 jika API offline
+        setReceiptImageUrl(compressed.base64);
+      }
+    } catch (err) {
+      console.error("Error upload bukti transfer:", err);
+      alert("Gagal memproses gambar bukti transfer.");
+    } finally {
+      setIsUploadingReceipt(false);
+    }
+  };
+
   const handleCopyBankNumber = () => {
     const bniNumber = siteSetting?.manualBniAccountNumber || "1826435348";
     navigator.clipboard.writeText(bniNumber);
@@ -284,17 +325,27 @@ export function RetailOrderModal({
     }
 
     if (
-      !outletName.trim() ||
-      !googleMapsUrl.trim() ||
       !customerName.trim() ||
       !customerPhone.trim() ||
       !customerEmail.trim() ||
       !shippingAddress.trim()
     ) {
-      alert("Mohon lengkapi nama usaha, link Google Maps, data penerima dan alamat pengiriman.");
+      alert("Mohon lengkapi data penerima dan alamat pengiriman di Langkah 1.");
       setCurrentStep(1);
       return;
     }
+
+    if (!outletName.trim()) {
+      setStep3Error("Nama Usaha / Nama Outlet wajib diisi.");
+      return;
+    }
+
+    if (!googleMapsUrl.trim()) {
+      setStep3Error("Link Google Maps usaha wajib diisi agar kartu QR dapat diprogram.");
+      return;
+    }
+
+    setStep3Error(null);
 
     const items = Object.entries(quantities)
       .filter(([_, qty]) => qty > 0)
@@ -525,10 +576,10 @@ export function RetailOrderModal({
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[11px] sm:text-xs font-bold truncate">
-                    3. Pembayaran
+                    3. Usaha & Bayar
                   </span>
                   <span className="hidden sm:block text-[9px] text-slate-400 truncate">
-                    QRIS & Konfirmasi
+                    Nama Toko & Bukti TF
                   </span>
                 </div>
               </button>
@@ -629,13 +680,13 @@ export function RetailOrderModal({
           /* ── 3-STEP ORDER WIZARD ── */
           <div className="pt-3 flex-1 flex flex-col justify-between">
             {/* ═══════════════════════════════════════════════════════ */}
-            {/* STEP 1: DATA PENERIMA & ALAMAT PENGIRIMAN ("ISI NAMA") */}
+            {/* STEP 1: DATA PENERIMA & ALAMAT PENGIRIMAN ("DATA PENERIMA") */}
             {/* ═══════════════════════════════════════════════════════ */}
             {currentStep === 1 && (
               <form onSubmit={handleGoToStep2} className="space-y-4 animate-in fade-in">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 pb-1">
                   <User className="w-4 h-4" />
-                  <span>1. Isi Data Penerima & Pengiriman</span>
+                  <span>1. Isi Data Penerima & Alamat Pengiriman</span>
                 </div>
 
                 {step1Error && (
@@ -646,42 +697,6 @@ export function RetailOrderModal({
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Nama Usaha / Outlet */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Nama Usaha / Nama Outlet <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={outletName}
-                      onChange={(e) => {
-                        setOutletName(e.target.value);
-                        if (step1Error) setStep1Error(null);
-                      }}
-                      placeholder="Contoh: Warung Geprek Sai / Kopi Senja"
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
-                    />
-                  </div>
-
-                  {/* Link Google Maps */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Link Google Maps / Review Usaha <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={googleMapsUrl}
-                      onChange={(e) => {
-                        setGoogleMapsUrl(e.target.value);
-                        if (step1Error) setStep1Error(null);
-                      }}
-                      placeholder="https://maps.app.goo.gl/... atau nama di Maps"
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono text-[11px]"
-                    />
-                  </div>
-
                   {/* Nama Lengkap Penerima */}
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
@@ -719,7 +734,7 @@ export function RetailOrderModal({
                   </div>
 
                   {/* Email */}
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
                       Email Aktif <span className="text-rose-400">*</span>
                     </label>
@@ -746,23 +761,11 @@ export function RetailOrderModal({
                       onChange={(e) => setProvince(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
                     >
-                      <option value="Jawa Timur">Jawa Timur (Subsidi Ongkir 10rb)</option>
+                      <option value="Jawa Timur">Jawa Timur (Ongkir Terjangkau / Diskon)</option>
                       <option value="Jawa Tengah">Jawa Tengah / DIY</option>
                       <option value="Jawa Barat / DKI">Jawa Barat / DKI Jakarta / Banten</option>
                       <option value="Luar Jawa">Luar Pulau Jawa</option>
                     </select>
-                  </div>
-
-                  {/* Catatan */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Catatan Tambahan (Opsional)</label>
-                    <input
-                      type="text"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Warna, nomor meja, instruksi kurir..."
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
-                    />
                   </div>
 
                   {/* Alamat Pengiriman Lengkap */}
@@ -790,7 +793,7 @@ export function RetailOrderModal({
                     type="submit"
                     className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-sky-600 to-indigo-600 hover:from-indigo-500 hover:to-sky-500 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-indigo-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
                   >
-                    <span>Lanjut: Pilih Produk</span>
+                    <span>Lanjut: Pilih Produk & Jumlah</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -798,7 +801,7 @@ export function RetailOrderModal({
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* STEP 2: PESAN YANG APA, TOTALNYA & REFERRAL ("PILIH PRODUK & REF") */}
+            {/* STEP 2: PILIH PRODUK & REFERRAL ("PILIH PRODUK")                   */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {currentStep === 2 && (
               <form onSubmit={handleGoToStep3} className="space-y-4 animate-in fade-in">
@@ -983,7 +986,7 @@ export function RetailOrderModal({
                     disabled={totalQuantity < 1}
                     className="py-3 px-4 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>Lanjut: Pembayaran</span>
+                    <span>Lanjut: Data Usaha & Bayar</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -991,45 +994,86 @@ export function RetailOrderModal({
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* STEP 3: PILIH PEMBAYARAN & SUBMIT ("PEMBAYARAN")                   */}
+            {/* STEP 3: DATA USAHA, MAPS & PEMBAYARAN + BUKTI TRANSFER             */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {currentStep === 3 && (
               <form onSubmit={handleSubmitFinalOrder} className="space-y-4 animate-in fade-in">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 pb-1">
-                  <CreditCard className="w-4 h-4" />
-                  <span>3. Konfirmasi & Metode Pembayaran</span>
+                  <Store className="w-4 h-4" />
+                  <span>3. Data Usaha, Google Maps & Pembayaran</span>
                 </div>
 
-                {/* Brief Review Box */}
-                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Outlet / Usaha:</span>
-                    <span className="font-bold text-white truncate max-w-[240px]">{outletName}</span>
+                {step3Error && (
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{step3Error}</span>
                   </div>
-                  {googleMapsUrl && (
-                    <div className="flex items-center justify-between text-slate-300">
-                      <span className="text-slate-400">Link Maps:</span>
-                      <span className="font-mono text-sky-400 text-[11px] truncate max-w-[240px]">{googleMapsUrl}</span>
+                )}
+
+                {/* Form Data Usaha & Google Maps */}
+                <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Profil Usaha yang Akan Diprogram ke Kartu QR</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Nama Usaha / Outlet */}
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">
+                        Nama Usaha / Nama Outlet <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={outletName}
+                        onChange={(e) => {
+                          setOutletName(e.target.value);
+                          if (step3Error) setStep3Error(null);
+                        }}
+                        placeholder="Contoh: Warung Kopi Senja / Barber Shop"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                      />
                     </div>
-                  )}
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Penerima Paket:</span>
-                    <span className="font-semibold text-white">{customerName} ({customerPhone})</span>
-                  </div>
-                  <div className="flex items-start justify-between text-slate-300 gap-2">
-                    <span className="text-slate-400 shrink-0">Alamat Kirim:</span>
-                    <span className="text-right text-slate-300 line-clamp-1">{shippingAddress} ({province})</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-300">
-                    <span className="text-slate-400">Total Pesanan:</span>
-                    <span className="font-semibold text-indigo-300">{totalQuantity} pcs kartu Smart QR</span>
+
+                    {/* Link Google Maps */}
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">
+                        Link Google Maps / Ulasan Usaha <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={googleMapsUrl}
+                        onChange={(e) => {
+                          setGoogleMapsUrl(e.target.value);
+                          if (step3Error) setStep3Error(null);
+                        }}
+                        placeholder="https://maps.app.goo.gl/... atau nama di Maps"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono text-[11px]"
+                      />
+                    </div>
+
+                    {/* Catatan Tambahan */}
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] text-slate-400 block mb-1">
+                        Catatan Tambahan (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Contoh: Nomor meja kasir, request warna akrilik, atau instruksi kurir..."
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Payment Method Selector */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-300 block">
-                    Pilih Cara Bayar:
+                    Pilih Metode Pembayaran:
                   </label>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1048,7 +1092,7 @@ export function RetailOrderModal({
                       <div>
                         <span className="font-bold text-xs text-white block">Midtrans QRIS Instan</span>
                         <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                          GoPay, OVO, Dana, ShopeePay & M-Banking
+                          GoPay, OVO, Dana, ShopeePay & M-Banking (Otomatis)
                         </span>
                       </div>
                     </button>
@@ -1068,20 +1112,20 @@ export function RetailOrderModal({
                       <div>
                         <span className="font-bold text-xs text-white block">Transfer Manual BNI</span>
                         <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                          Verifikasi rekening BNI resmi
+                          Transfer & Upload Bukti Pembayaran
                         </span>
                       </div>
                     </button>
                   </div>
 
-                  {/* BNI Details info if selected */}
+                  {/* BNI Details & Bukti Transfer Upload if MANUAL_BANK_BNI */}
                   {paymentMethod === "MANUAL_BANK_BNI" && (
-                    <div className="p-3 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-2 animate-in fade-in">
-                      <div className="flex items-center justify-between text-xs">
+                    <div className="p-3.5 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-3 animate-in fade-in">
+                      <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
                         <div>
-                          <span className="text-slate-400 block text-[10px]">Nomor Rekening BNI:</span>
+                          <span className="text-slate-400 block text-[10px]">Nomor Rekening Tujuan:</span>
                           <span className="font-mono font-bold text-sm text-amber-400">{bniNumber}</span>
-                          <span className="text-[11px] text-slate-400 block">a.n. {bniHolder}</span>
+                          <span className="text-[11px] text-slate-400 block">Bank BNI a.n. {bniHolder}</span>
                         </div>
                         <button
                           type="button"
@@ -1092,6 +1136,77 @@ export function RetailOrderModal({
                           <span className="text-[10px]">{copiedBank ? "Tersalin" : "Salin"}</span>
                         </button>
                       </div>
+
+                      {/* Upload Bukti Transfer Form */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <UploadCloud className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Upload Bukti Transfer Bank (Opsional)</span>
+                          </span>
+                          {receiptImageUrl && (
+                            <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Bukti Terupload
+                            </span>
+                          )}
+                        </label>
+
+                        {receiptImageUrl ? (
+                          <div className="p-2.5 bg-slate-900 rounded-xl border border-emerald-500/30 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={receiptImageUrl}
+                                alt="Bukti Transfer"
+                                className="w-12 h-12 rounded-lg object-cover border border-slate-800 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <span className="text-xs font-bold text-white block truncate">
+                                  Bukti_Transfer_BNI.webp
+                                </span>
+                                <span className="text-[10px] text-emerald-400 block">
+                                  Siap dikonfirmasi admin
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setReceiptImageUrl("")}
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
+                              title="Hapus / Ganti Bukti Transfer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="border-2 border-dashed border-slate-800 hover:border-amber-500/50 bg-slate-900/60 hover:bg-slate-900 rounded-xl p-3.5 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors text-center">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleReceiptUpload}
+                              disabled={isUploadingReceipt}
+                              className="hidden"
+                            />
+                            {isUploadingReceipt ? (
+                              <div className="flex items-center gap-2 text-amber-400 text-xs">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Mengompresi & mengupload bukti transfer...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <ImageIcon className="w-6 h-6 text-slate-500" />
+                                <span className="text-xs text-slate-300 font-medium">
+                                  Klik untuk memilih struk / tangkapan layar transfer
+                                </span>
+                                <span className="text-[10px] text-slate-500">
+                                  Format JPG, PNG, atau WebP (Otomatis dikompres)
+                                </span>
+                              </>
+                            )}
+                          </label>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1099,7 +1214,7 @@ export function RetailOrderModal({
                 {/* Final Breakdown */}
                 <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Subtotal ({totalQuantity} pcs):</span>
+                    <span>Subtotal Produk ({totalQuantity} pcs):</span>
                     <span className="font-mono text-white font-semibold">
                       Rp {calculatedSubtotal.toLocaleString("id-ID")}
                     </span>
@@ -1145,13 +1260,13 @@ export function RetailOrderModal({
 
                   <button
                     type="submit"
-                    disabled={isSubmitting || totalQuantity < 1}
+                    disabled={isSubmitting || isUploadingReceipt || totalQuantity < 1}
                     className="col-span-2 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 disabled:opacity-50 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-emerald-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Memproses...</span>
+                        <span>Memproses Pesanan...</span>
                       </>
                     ) : (
                       <>
@@ -1169,3 +1284,4 @@ export function RetailOrderModal({
     </div>
   );
 }
+

@@ -58,6 +58,9 @@ interface AffiliateDashboardClientProps {
     orderNumber: string;
     customerName: string;
     totalQuantity: number;
+    subtotal?: number;
+    shippingFee?: number;
+    discountAmount?: number;
     totalAmount: number;
     paymentStatus: string;
     orderStatus: string;
@@ -326,12 +329,17 @@ export function AffiliateDashboardClient({
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Program Komisi Resmi Mitra Affiliate</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white">
-                Bagikan Link & Dapatkan <span className="text-emerald-400">Rp {affiliate.commissionPerPcs.toLocaleString("id-ID")}</span> / Kartu
+                     <h1 className="text-2xl sm:text-3xl font-black text-white">
+                Bagikan Link & Dapatkan{" "}
+                <span className="text-emerald-400">
+                  {affiliate.commissionPerPcs <= 100
+                    ? `${affiliate.commissionPerPcs}% Komisi`
+                    : `Rp ${affiliate.commissionPerPcs.toLocaleString("id-ID")}`}
+                </span>{" "}
+                {affiliate.commissionPerPcs <= 100 ? "dari Subtotal Kartu" : "/ Kartu"}
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Setiap pembeli yang checkout menggunakan link atau kode referral Anda akan mendapatkan <strong>subsidi potongan ongkir Rp {(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}</strong> dan komisi otomatis masuk ke saldo Anda!
+                Setiap pembeli yang checkout menggunakan link atau kode referral Anda akan mendapatkan <strong>subsidi potongan ongkir Rp {(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}</strong> dan komisi dihitung murni dari total belanja kartu (tidak dipotong ongkir) langsung masuk ke saldo Anda!
               </p>
             </div>
 
@@ -443,14 +451,24 @@ export function AffiliateDashboardClient({
 
           <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2">
             <div className="flex items-center justify-between text-purple-400">
-              <span className="text-xs font-bold uppercase tracking-wider">Tarif Komisi per Unit</span>
+              <span className="text-xs font-bold uppercase tracking-wider">Tarif Komisi</span>
               <Sparkles className="w-5 h-5" />
             </div>
             <div className="text-2xl font-black text-purple-300 font-mono">
-              Rp {affiliate.commissionPerPcs.toLocaleString("id-ID")} <span className="text-xs text-slate-400 font-normal">/ pcs</span>
+              {affiliate.commissionPerPcs <= 100 ? (
+                <>
+                  {affiliate.commissionPerPcs}% <span className="text-xs text-slate-400 font-normal">dari total kartu</span>
+                </>
+              ) : (
+                <>
+                  Rp {affiliate.commissionPerPcs.toLocaleString("id-ID")} <span className="text-xs text-slate-400 font-normal">/ pcs</span>
+                </>
+              )}
             </div>
             <p className="text-[11px] text-slate-400 pt-1">
-              Tier: {affiliate.followersCount.toLocaleString("id-ID")} Followers
+              {affiliate.commissionPerPcs <= 100
+                ? "Dihitung dari subtotal kartu (tanpa ongkir)"
+                : `Tier: ${affiliate.followersCount.toLocaleString("id-ID")} Followers`}
             </p>
           </div>
         </div>
@@ -462,8 +480,11 @@ export function AffiliateDashboardClient({
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2 font-extrabold text-sm text-white">
                 <Package className="w-4 h-4 text-purple-400" />
-                <span>Riwayat Pesanan dari Kode Referral Anda ({orders.length})</span>
+                <span>Riwayat Pesanan Referral ({orders.length})</span>
               </div>
+              <span className="text-[11px] text-slate-400">
+                Komisi transparan per transaksi
+              </span>
             </div>
 
             {orders.length === 0 ? (
@@ -475,50 +496,74 @@ export function AffiliateDashboardClient({
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
-                      <th className="pb-2.5 font-bold">No. Pesanan</th>
-                      <th className="pb-2.5 font-bold">Pembeli</th>
-                      <th className="pb-2.5 font-bold text-center">Jumlah</th>
-                      <th className="pb-2.5 font-bold text-right">Komisi Anda</th>
-                      <th className="pb-2.5 font-bold text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {orders.map((ord) => (
-                      <tr key={ord.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="py-3 font-mono font-bold text-white">
-                          #{ord.orderNumber}
-                        </td>
-                        <td className="py-3 text-slate-300 font-medium">
-                          {ord.customerName}
-                        </td>
-                        <td className="py-3 text-center text-slate-300 font-mono">
-                          {ord.totalQuantity} pcs
-                        </td>
-                        <td className="py-3 text-right font-mono font-bold text-emerald-400">
-                          + Rp {ord.affiliateCommission.toLocaleString("id-ID")}
-                        </td>
-                        <td className="py-3 text-center">
-                          {ord.paymentStatus === "PAID" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                              LUNAS
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              MENUNGGU
-                            </span>
-                          )}
-                        </td>
+              <div className="space-y-3">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
+                        <th className="pb-2.5 font-bold">No. Pesanan</th>
+                        <th className="pb-2.5 font-bold">Pembeli</th>
+                        <th className="pb-2.5 font-bold text-center">Jumlah</th>
+                        <th className="pb-2.5 font-bold text-right">Subtotal Produk</th>
+                        <th className="pb-2.5 font-bold text-center">Tarif</th>
+                        <th className="pb-2.5 font-bold text-right">Komisi Anda</th>
+                        <th className="pb-2.5 font-bold text-center">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {orders.map((ord) => {
+                        const productSubtotal = ord.subtotal || Math.max(0, ord.totalAmount - (ord.shippingFee || 0));
+                        const rateDisplay = affiliate.commissionPerPcs <= 100
+                          ? `${affiliate.commissionPerPcs}%`
+                          : `Rp ${affiliate.commissionPerPcs.toLocaleString("id-ID")}/pcs`;
+
+                        return (
+                          <tr key={ord.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3 font-mono font-bold text-white">
+                              #{ord.orderNumber}
+                            </td>
+                            <td className="py-3 text-slate-300 font-medium">
+                              {ord.customerName}
+                            </td>
+                            <td className="py-3 text-center text-slate-300 font-mono">
+                              {ord.totalQuantity} pcs
+                            </td>
+                            <td className="py-3 text-right font-mono font-bold text-slate-200">
+                              Rp {productSubtotal.toLocaleString("id-ID")}
+                            </td>
+                            <td className="py-3 text-center font-mono text-[11px] text-purple-300">
+                              {rateDisplay}
+                            </td>
+                            <td className="py-3 text-right font-mono font-bold text-emerald-400">
+                              + Rp {ord.affiliateCommission.toLocaleString("id-ID")}
+                            </td>
+                            <td className="py-3 text-center">
+                              {ord.paymentStatus === "PAID" ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  LUNAS
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                  MENUNGGU
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-purple-950/20 border border-purple-500/20 text-[11px] text-slate-400 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Transparansi Penuh:</strong> Komisi Anda dihitung murni dari total subtotal produk kartu yang dibeli oleh pelanggan dan tidak dipotong/dikenakan dari biaya ongkos kirim.
+                  </span>
+                </div>
               </div>
             )}
-          </div>
+          </div>        </div>
 
           {/* Info Rekening & Hubungi Admin */}
           <div className="space-y-6">

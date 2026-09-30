@@ -603,9 +603,11 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                     </div>
 
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Tarif Komisi / Pcs</span>
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Tarif Komisi</span>
                       <span className="font-bold text-emerald-400 text-xs">
-                        Rp {aff.commissionPerPcs.toLocaleString("id-ID")} / pcs
+                        {aff.commissionPerPcs <= 100
+                          ? `${aff.commissionPerPcs}% dari Subtotal Kartu`
+                          : `Rp ${aff.commissionPerPcs.toLocaleString("id-ID")} / pcs`}
                       </span>
                     </div>
 
@@ -801,13 +803,46 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Tarif Komisi per Pcs (Rp)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-300 font-semibold">Tarif Komisi (% atau Rp)</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditCommission("10")}
+                        className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold hover:bg-purple-500/30 cursor-pointer"
+                      >
+                        10%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditCommission("15")}
+                        className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold hover:bg-purple-500/30 cursor-pointer"
+                      >
+                        15%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditCommission("20")}
+                        className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold hover:bg-purple-500/30 cursor-pointer"
+                      >
+                        20%
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="number"
                     value={editCommission}
                     onChange={(e) => setEditCommission(e.target.value)}
+                    placeholder="Contoh: 10 untuk 10%, 15 untuk 15%"
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-purple-500"
                   />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    {Number(editCommission) <= 100 && Number(editCommission) > 0
+                      ? `💡 Berlaku ${editCommission}% dari subtotal belanja kartu pembeli.`
+                      : Number(editCommission) > 100
+                      ? `💡 Berlaku flat Rp ${Number(editCommission).toLocaleString("id-ID")} per pcs kartu.`
+                      : "Ketik 10 untuk 10%, 15 untuk 15%, atau nominal rupiah."}
+                  </span>
                 </div>
 
                 <div className="sm:col-span-2">
@@ -1062,14 +1097,46 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Tarif Komisi Khusus / Pcs (Opsional)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-300 font-semibold">Tarif Komisi (% atau Rp)</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setNewCommission("10")}
+                        className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30 cursor-pointer"
+                      >
+                        10%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewCommission("15")}
+                        className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30 cursor-pointer"
+                      >
+                        15%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewCommission("20")}
+                        className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30 cursor-pointer"
+                      >
+                        20%
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="number"
                     value={newCommission}
                     onChange={(e) => setNewCommission(e.target.value)}
-                    placeholder="Kosongkan jika ingin auto tier"
+                    placeholder="Misal: 10 untuk 10%, 15 untuk 15%"
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-emerald-500"
                   />
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">
+                    {Number(newCommission) <= 100 && Number(newCommission) > 0
+                      ? `💡 Berlaku ${newCommission}% dari subtotal belanja kartu pembeli.`
+                      : Number(newCommission) > 100
+                      ? `💡 Berlaku flat Rp ${Number(newCommission).toLocaleString("id-ID")} per pcs kartu.`
+                      : "Default: 10% (atau tier followers jika kosong)."}
+                  </span>
                 </div>
 
                 <div>
