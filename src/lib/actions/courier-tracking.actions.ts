@@ -81,11 +81,11 @@ async function fetchCourierApiData(courierCode: string, trackingNumber: string):
   
   try {
     // 1. Coba koneksi ke public tracking API (Binderbyte / CekResi API gateway) jika tersedia
-    const binderbyteKey = process.env.BINDERBYTE_API_KEY || "";
+    const binderbyteKey = process.env.BINDERBYTE_API_KEY || "sk_tc2p1fnrhikcc5bkf2abraykpzeqewsmgmymkzbgbbv01s6k8qmhtpep1ylhcity";
     if (binderbyteKey) {
       const apiCourier = courierCode === "jet" ? "jnt" : courierCode;
       const res = await fetch(`https://api.binderbyte.com/v1/track?api_key=${binderbyteKey}&courier=${apiCourier}&awb=${cleanAwb}`, {
-        next: { revalidate: 60 },
+        cache: "no-store", // Selalu fetch data terbaru secara live
         headers: { "Accept": "application/json" },
       });
       if (res.ok) {
