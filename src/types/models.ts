@@ -424,6 +424,11 @@ export interface ResellerOrderModel {
   paymentMethod: string;
   paymentStatus: "PENDING" | "PAID" | "REJECTED" | "CANCELLED" | string;
   orderStatus: "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED" | string;
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  courierStatus?: "ON_PROCESS" | "DELIVERED" | "ON_DELIVERY" | "NOT_FOUND" | string | null;
+  courierHistory?: any;
+  deliveredAt?: string | Date | null;
   totalQuantity: number;
   subtotal: number;
   discountAmount: number;

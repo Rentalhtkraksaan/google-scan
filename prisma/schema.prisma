@@ -436,6 +436,11 @@ model ResellerOrder {
   paymentMethod         String              @default("MANUAL_BANK_BNI") // "MIDTRANS_QRIS" | "MANUAL_BANK_BNI"
   paymentStatus         String              @default("PENDING") // "PENDING" | "PAID" | "REJECTED" | "CANCELLED"
   orderStatus           String              @default("PENDING") // "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED"
+  courierName           String?             @default("J&T Express") // "J&T Express" | "JNE" | "SiCepat" | "Anteraja" | "POS Indonesia"
+  trackingNumber        String?             // Nomor Resi Pengiriman (AWB)
+  courierStatus         String?             // "ON_PROCESS" | "DELIVERED" | "ON_DELIVERY" | "NOT_FOUND"
+  courierHistory        Json?               // Linimasa perjalanan dari server kurir
+  deliveredAt           DateTime?           // Tanggal paket sampai/diterima
   totalQuantity         Int
   subtotal              Int
   discountAmount        Int                 @default(0)
@@ -451,6 +456,8 @@ model ResellerOrder {
   updatedAt             DateTime            @updatedAt
 
   @@index([orderType])
+  @@index([trackingNumber])
+  @@index([courierStatus])
   @@index([affiliateCode])
   @@index([adminId])
   @@index([paymentStatus])

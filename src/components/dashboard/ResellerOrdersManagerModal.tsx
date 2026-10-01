@@ -40,6 +40,11 @@ import {
   deleteResellerOrderRecordAction,
   convertResellerOrderToAdminAction,
 } from "@/lib/actions/reseller-shop.actions";
+import {
+  updateOrderTrackingNumberAction,
+  getLiveOrderTrackingAction,
+  LiveTrackingResult,
+} from "@/lib/actions/courier-tracking.actions";
 import { ResellerOrderModel } from "@/types/models";
 import { ActivateOutletFromOrderModal } from "./ActivateOutletFromOrderModal";
 import { ShippingLabelModal } from "./ShippingLabelModal";
@@ -72,6 +77,14 @@ export function ResellerOrdersManagerModal({
 
   // Modal Label Pengiriman Paket (Ekspedisi)
   const [shippingLabelOrder, setShippingLabelOrder] = useState<ResellerOrderModel | null>(null);
+
+  // Modal Input / Detail Resi Ekspedisi Realtime (J&T, JNE, SiCepat)
+  const [trackingModalOrder, setTrackingModalOrder] = useState<ResellerOrderModel | null>(null);
+  const [inputTrackingNumber, setInputTrackingNumber] = useState("");
+  const [inputCourierName, setInputCourierName] = useState("J&T Express");
+  const [isSavingTracking, setIsSavingTracking] = useState(false);
+  const [liveTrackingData, setLiveTrackingData] = useState<LiveTrackingResult | null>(null);
+  const [isLoadingLiveTracking, setIsLoadingLiveTracking] = useState(false);
 
   // Modal Edit Customer Data
   const [editingOrder, setEditingOrder] = useState<ResellerOrderModel | null>(null);
@@ -179,6 +192,77 @@ export function ResellerOrdersManagerModal({
       loadOrders(false);
     } finally {
       setIsSavingCustomer(false);
+    }
+  };
+
+  const handleOpenTrackingModal = (order: ResellerOrderModel) => {
+    setTrackingModalOrder(order);
+    setInputTrackingNumber(order.trackingNumber || "");
+    setInputCourierName(order.courierName || "J&T Express");
+    setLiveTrackingData(null);
+
+    if (order.trackingNumber) {
+      setIsLoadingLiveTracking(true);
+      getLiveOrderTrackingAction(order.id)
+        .then((res) => {
+          if (res.success) setLiveTrackingData(res);
+        })
+        .finally(() => setIsLoadingLiveTracking(false));
+    }
+  };
+
+  const handleSaveTrackingNumber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackingModalOrder || isSavingTracking) return;
+
+    if (!inputTrackingNumber.trim()) {
+      showErrorAlert("Validasi Gagal", "Nomor resi pengiriman wajib diisi.");
+      return;
+    }
+
+    setIsSavingTracking(true);
+    const cleanAwb = inputTrackingNumber.trim().toUpperCase();
+
+    // Optimistic UI update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === trackingModalOrder.id
+          ? {
+              ...o,
+              trackingNumber: cleanAwb,
+              courierName: inputCourierName,
+              orderStatus: o.orderStatus === "PENDING" || o.orderStatus === "PROCESSING" ? "SHIPPED" : o.orderStatus,
+            }
+          : o
+      )
+    );
+
+    try {
+      const res = await updateOrderTrackingNumberAction(
+        trackingModalOrder.id,
+        cleanAwb,
+        inputCourierName
+      );
+
+      if (res.success) {
+        showSuccessAlert(
+          "Resi Berhasil Disimpan 🚚",
+          res.message || "Nomor resi berhasil dihubungkan.",
+          1500
+        );
+        setTrackingModalOrder(null);
+        loadOrders(false);
+        onRefreshData?.();
+      } else {
+        showErrorAlert("Gagal", res.message || "Gagal menyimpan nomor resi.");
+        loadOrders(false);
+      }
+    } catch (err) {
+      console.error("Save tracking error:", err);
+      showErrorAlert("Kesalahan", "Terjadi kesalahan teknis saat menyimpan resi.");
+      loadOrders(false);
+    } finally {
+      setIsSavingTracking(false);
     }
   };
 
@@ -711,6 +795,21 @@ Salam hangat`
 
                       {/* Approval & Delete Actions */}
                       <div className="flex items-center gap-2 flex-wrap">
+                        {/* Tombol Input / Edit Nomor Resi J&T Express (Auto Tracking) */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTrackingModal(order)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                            order.trackingNumber
+                              ? "bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 text-emerald-300 border border-emerald-500/30"
+                              : "bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30"
+                          }`}
+                          title="Input No. Resi J&T Express / Ekspedisi (Auto-Update Realtime)"
+                        >
+                          <Truck className="w-3.5 h-3.5 text-purple-400" />
+                          <span>{order.trackingNumber ? `Resi: ${order.trackingNumber}` : "+ No. Resi J&T"}</span>
+                        </button>
+
                         {/* Tombol Cetak / Download Label Pengiriman Ekspedisi */}
                         <button
                           type="button"
@@ -908,6 +1007,179 @@ Salam hangat`
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Modal Input & Live Tracking Resi Ekspedisi */}
+      {trackingModalOrder && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">
+                    Nomor Resi & Ekspedisi (#{trackingModalOrder.orderNumber})
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Otomasi tracking J&T Express & update otomatis saat barang diterima
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTrackingModalOrder(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTrackingNumber} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Pilih Ekspedisi / Kurir</label>
+                <select
+                  value={inputCourierName}
+                  onChange={(e) => setInputCourierName(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                >
+                  <option value="J&T Express">🚚 J&T Express (Rekomendasi Utama)</option>
+                  <option value="JNE Express">📦 JNE Express (Reg / YES / OKE)</option>
+                  <option value="SiCepat Ekspres">⚡ SiCepat Ekspres (GOKIL / REG)</option>
+                  <option value="Anteraja">🛵 Anteraja</option>
+                  <option value="POS Indonesia">📮 POS Indonesia</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Nomor Resi Pengiriman (AWB) *</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: JX1234567890 / JP..."
+                    value={inputTrackingNumber}
+                    onChange={(e) => setInputTrackingNumber(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:border-purple-500 tracking-wider"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        if (text) setInputTrackingNumber(text.trim().toUpperCase());
+                      } catch {}
+                    }}
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold text-[11px] shrink-0 cursor-pointer"
+                    title="Paste dari Clipboard"
+                  >
+                    Paste
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-[11px] text-purple-300 space-y-1">
+                <span className="font-bold block text-purple-200">✨ Keunggulan Otomasi Resi:</span>
+                <p className="text-slate-300">
+                  1. Status pesanan langsung otomatis berubah jadi <strong>&ldquo;Sedang Dikirim (SHIPPED)&rdquo;</strong>.<br />
+                  2. Sistem otomatis membaca perjalanan paket J&T dan otomatis mengubah status jadi <strong>&ldquo;Selesai (COMPLETED)&rdquo;</strong> saat paket tiba.
+                </p>
+              </div>
+
+              {/* WhatsApp Dispatch Button */}
+              {trackingModalOrder.customerPhone && inputTrackingNumber.trim() && (
+                <div className="pt-1">
+                  <a
+                    href={`https://wa.me/${trackingModalOrder.customerPhone.replace(/[^0-9]/g, "").startsWith("08") ? "62" + trackingModalOrder.customerPhone.replace(/[^0-9]/g, "").slice(1) : trackingModalOrder.customerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                      `Halo Kak ${trackingModalOrder.customerName}, paket pesanan Smart QR Anda #${trackingModalOrder.orderNumber} telah dikirim melalui *${inputCourierName}*.\n\n📦 *No. Resi:* ${inputTrackingNumber.trim()}\n🌐 *Lacak Pesanan:* https://qr-inaja.vercel.app/reseller\n\nTerimakasih telah bermitra dengan kami! 🙏`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-bold flex items-center justify-center gap-1.5 transition-all text-xs"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Kirim Notifikasi Resi ke WhatsApp Pembeli</span>
+                  </a>
+                </div>
+              )}
+
+              {/* Live Tracking Result Preview */}
+              {isLoadingLiveTracking && (
+                <div className="py-4 text-center space-y-2 bg-slate-950/60 rounded-xl border border-slate-800">
+                  <Loader2 className="w-5 h-5 text-purple-400 animate-spin mx-auto" />
+                  <span className="text-[11px] text-slate-400">Menghubungkan ke server {inputCourierName}...</span>
+                </div>
+              )}
+
+              {liveTrackingData && (
+                <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-purple-400" />
+                      Status Server Kurir:
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      liveTrackingData.isDelivered
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                    }`}>
+                      {liveTrackingData.statusDescription}
+                    </span>
+                  </div>
+
+                  {liveTrackingData.history && liveTrackingData.history.length > 0 && (
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pt-1">
+                      {liveTrackingData.history.map((h, i) => (
+                        <div key={i} className="p-2 rounded-lg bg-slate-900/80 border border-slate-800/80 text-[11px] space-y-0.5">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400">
+                            <span className="font-mono">{h.date}</span>
+                            {h.location && <span className="font-semibold text-slate-300">{h.location}</span>}
+                          </div>
+                          <p className="text-slate-200">{h.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="pt-1">
+                    <a
+                      href={liveTrackingData.officialTrackUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-sky-400 hover:text-sky-300 hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Cek Langsung di Website Resmi {liveTrackingData.courierName}</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setTrackingModalOrder(null)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingTracking || !inputTrackingNumber.trim()}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {isSavingTracking ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5" />
+                  )}
+                  <span>Simpan & Aktifkan Tracking</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

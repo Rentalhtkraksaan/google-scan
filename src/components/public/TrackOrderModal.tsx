@@ -255,6 +255,88 @@ export function TrackOrderModal({ isOpen, onClose, initialQuery = "" }: TrackOrd
                     </div>
                   </div>
 
+                  {/* Live Courier Tracking Information (J&T Express / Ekspedisi) */}
+                  {order.trackingNumber ? (
+                    <div className="p-3.5 rounded-xl bg-gradient-to-br from-purple-900/20 via-indigo-900/15 to-slate-900/40 border border-purple-500/30 space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                            <Truck className="w-4 h-4 text-purple-400" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block">
+                              Ekspedisi Pengiriman
+                            </span>
+                            <span className="font-extrabold text-white text-xs">
+                              {order.courierName || "J&T Express"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700/80 font-mono text-xs font-bold text-sky-300 tracking-wider flex items-center gap-1.5">
+                            <span>{order.trackingNumber}</span>
+                          </div>
+                          <a
+                            href={
+                              (order.courierName || "").toLowerCase().includes("jne")
+                                ? `https://www.jne.co.id/tracking-package?awb=${encodeURIComponent(order.trackingNumber)}`
+                                : `https://www.jet.co.id/track?awb=${encodeURIComponent(order.trackingNumber)}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 transition-colors"
+                            title="Buka Halaman Lacak Resmi di Web Kurir"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Live Courier Timeline Manifest */}
+                      <div className="p-2.5 bg-slate-950/80 rounded-lg border border-slate-800/80 space-y-1.5 text-[11px]">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-300 flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                            Status Pengiriman:
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            order.orderStatus === "COMPLETED" || order.courierStatus === "DELIVERED"
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                          }`}>
+                            {order.orderStatus === "COMPLETED" || order.courierStatus === "DELIVERED"
+                              ? "🟢 Paket Telah Sampai / Diterima"
+                              : "🚚 Sedang Dalam Perjalanan Kurir"}
+                          </span>
+                        </div>
+
+                        {order.courierHistory && Array.isArray(order.courierHistory) && order.courierHistory.length > 0 ? (
+                          <div className="space-y-1 pt-1 max-h-32 overflow-y-auto custom-scrollbar">
+                            {(order.courierHistory as any[]).map((h: any, idx: number) => (
+                              <div key={idx} className="p-1.5 rounded bg-slate-900/90 border border-slate-800 text-[10px] space-y-0.5">
+                                <div className="flex items-center justify-between text-slate-400">
+                                  <span className="font-mono">{h.date}</span>
+                                  {h.location && <span className="font-semibold text-slate-300">{h.location}</span>}
+                                </div>
+                                <p className="text-slate-200">{h.desc}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 text-[10px] italic">
+                            Paket telah diproses oleh ekspedisi {order.courierName || "J&T Express"}. Pantau pembaruan posisi paket secara berkala.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : order.orderStatus === "PROCESSING" ? (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2.5 text-xs text-amber-300">
+                      <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Paket Anda sedang dipersiapkan dan dikemas oleh tim gudang. Nomor resi J&T akan segera diupdate.</span>
+                    </div>
+                  ) : null}
+
                   {/* Payment Status Info */}
                   <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                     <span className="text-slate-400">Status Pembayaran:</span>
