@@ -122,9 +122,9 @@ export function ProductPhotoManagerModal({ isOpen, onClose }: ProductPhotoManage
               <Images className="w-4 h-4 text-sky-400" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Kelola Foto Produk</h2>
+              <h2 className="text-base font-bold text-white">Foto Galeri Landing Page</h2>
               <p className="text-xs text-slate-400">
-                {photos.length} foto tersimpan · Hapus foto = data hilang bersih dari DB
+                {photos.length} foto tersimpan · Foto carousel yang tampil di galeri halaman utama (Landing Page)
               </p>
             </div>
           </div>

@@ -1766,14 +1766,15 @@ Tim Layanan Smart QR`;
               </button>
             )}
 
-            {/* Foto Produk (Khusus Super Admin 1) */}
+            {/* Foto Galeri Landing Page (Khusus Super Admin 1) */}
             {isMaster && (
               <button
                 onClick={() => setIsPhotoModalOpen(true)}
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+                title="Kelola foto galeri carousel yang tampil di landing page"
               >
                 <Images className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
-                <span className="truncate">Foto Produk Reseller</span>
+                <span className="truncate">Foto Galeri Landing Page</span>
               </button>
             )}
 
@@ -1929,51 +1930,21 @@ Tim Layanan Smart QR`;
           </div>
 
           {/* Top-Right Quick Action CTA Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* 0. Finance & Kas Internal (Khusus Super Admin) */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* 1. Finance & Kas Internal (Khusus Super Admin) */}
             <button
               onClick={() => setIsFinanceModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Buku kas, inventaris bisnis & bagi hasil gaji (25th)"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 border border-emerald-400/40 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              title="Buku kas, inventaris bisnis & bagi hasil gaji tgl 25"
             >
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
-              <span>Finance & Kas</span>
+              <TrendingUp className="w-4 h-4 text-emerald-200 shrink-0" />
+              <span>💰 Finance & Kas</span>
             </button>
 
-            {/* 1. Mitra Affiliate (Desktop) */}
-            <button
-              onClick={() => setIsAffiliateModalOpen(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-purple-300 hover:text-white font-bold text-xs border border-purple-500/40 hover:border-purple-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Kelola mitra affiliate & bagi hasil komisi"
-            >
-              <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-              <span>Affiliate</span>
-            </button>
-
-            {/* 2. Pesanan Reseller (Tablet & Desktop) */}
-            <button
-              onClick={() => setIsResellerOrdersModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white font-bold text-xs border border-emerald-500/40 hover:border-emerald-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Kelola pesanan belanja kartu fisik dari admin reseller"
-            >
-              <ShoppingCart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Pesanan Reseller</span>
-            </button>
-
-            {/* 3. Kelola Member & Bukti Transfer (Tablet & Desktop) */}
-            <button
-              onClick={() => setIsMembershipModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs border border-amber-500/40 hover:border-amber-500/70 transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] shrink-0"
-              title="Kelola bukti transfer masuk, tarif member & perpanjangan"
-            >
-              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>Kelola Member</span>
-            </button>
-
-            {/* 4. Notifikasi & Dering HP Super Admin (Desktop Only agar tidak menimpa tombol menu di HP) */}
+            {/* 2. Notifikasi & Dering HP Super Admin (Desktop Only) */}
             <NotificationPrompt className="hidden lg:inline-flex shrink-0" />
 
-            {/* 5. Dynamic Primary Action Button */}
+            {/* 3. Dynamic Primary Action Button */}
             {activeTab === "ADMINS" ? (
               <button
                 onClick={() => setIsCreateAdminOpen(true)}
@@ -2167,6 +2138,36 @@ Tim Layanan Smart QR`;
           {/* Overview View (When activeTab === 'OVERVIEW') */}
           {activeTab === "OVERVIEW" && (
             <div className="space-y-6">
+              {/* 💼 Quick Access Card: Finance & Kas Bisnis */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-teal-950/50 border border-emerald-500/30 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0 shadow-lg shadow-emerald-500/10">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-sm sm:text-base text-white">
+                        Finance & Bagi Hasil Bisnis
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        SUPER ADMIN
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Buku kas riil, inventaris aset bisnis (kamera/domain), laba bersih, dan bagi hasil gaji (Kas 10%, Chika 40%, Adit 50% setiap tgl 25).
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setIsFinanceModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Buka Finance & Kas</span>
+                </button>
+              </div>
+
               {/* Table Card 1: Kartu QR Paling Banyak Discan (Top 5) */}
               <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
