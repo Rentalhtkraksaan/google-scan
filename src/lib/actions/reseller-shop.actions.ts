@@ -238,7 +238,7 @@ import bcrypt from "bcryptjs";
 /**
  * Sanitasi string input untuk mencegah XSS, SQLi, PHP injection, dan phishing file payload.
  */
-export function sanitizeInputText(input?: string | null, maxLength: number = 255): string {
+function sanitizeInputText(input?: string | null, maxLength: number = 255): string {
   if (!input) return "";
   let clean = input.trim();
   // Strip PHP tags and code execution blocks
@@ -256,7 +256,7 @@ export function sanitizeInputText(input?: string | null, maxLength: number = 255
 /**
  * Validasi ketat foto struk bukti transfer untuk mencegah upload file PHP / script berbahaya
  */
-export function validateReceiptImage(receiptUrlOrBase64?: string | null): boolean {
+function validateReceiptImage(receiptUrlOrBase64?: string | null): boolean {
   if (!receiptUrlOrBase64) return true; // Opsional jika belum diupload
   const str = receiptUrlOrBase64.trim().toLowerCase();
   
