@@ -1450,6 +1450,24 @@ Tim Layanan Smart QR`;
               <span className="truncate">Dashboard Utama</span>
             </button>
 
+            {/* 💰 Finance & Kas Usaha (Khusus Super Admin) */}
+            <button
+              onClick={() => {
+                setIsFinanceModalOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/30 border border-emerald-400/40 transition-all cursor-pointer group active:scale-[0.98]"
+              title="Buku Kas Riil, Laba Bersih & Bagi Hasil Gaji (10% Kas / 40% Chika / 50% Adit)"
+            >
+              <div className="flex items-center gap-2.5 truncate">
+                <TrendingUp className="w-4 h-4 shrink-0 text-emerald-200 transition-transform group-hover:scale-110" />
+                <span className="truncate">💰 Finance & Kas</span>
+              </div>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/30 shrink-0">
+                10/40/50%
+              </span>
+            </button>
+
             {/* Data Kartu QR */}
             <button
               onClick={() => {
