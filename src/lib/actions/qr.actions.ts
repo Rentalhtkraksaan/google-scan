@@ -1246,3 +1246,125 @@ export async function notifyCardQuotaRequestAction(data: {
   }
 }
 
+/**
+ * Ambil seluruh daftar kartu untuk keperluan alokasi massal ke Admin Lapangan
+ */
+export async function getAvailableCardsForAllocationAction() {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== Role.SUPER_ADMIN) {
+      return { success: false, message: "Akses ditolak: Khusus Super Admin." };
+    }
+
+    const cards = await prisma.qrCard.findMany({
+      select: {
+        code: true,
+        outletId: true,
+        assignedAdminId: true,
+        status: true,
+        scanCount: true,
+        createdAt: true,
+        assignedAdmin: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        outlet: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { code: "asc" },
+    });
+
+    return {
+      success: true,
+      cards: cards.map((c) => ({
+        code: c.code,
+        outletId: c.outletId,
+        outletName: c.outlet?.name || null,
+        assignedAdminId: c.assignedAdminId,
+        assignedAdminName: c.assignedAdmin?.fullName || null,
+        status: c.status,
+        scanCount: c.scanCount,
+        createdAt: c.createdAt.toISOString(),
+      })),
+    };
+  } catch (error) {
+    console.error("getAvailableCardsForAllocationAction error:", error);
+    return { success: false, message: "Gagal memuat data kartu." };
+  }
+}
+
+/**
+ * Alokasi Massal Kartu (Berdasarkan Rentang Nomor / Pilihan / Jumlah) ke Admin Lapangan
+ */
+export async function batchAllocateCardsToAdminAction(data: {
+  adminId: string;
+  cardCodes: string[];
+}) {
+  try {
+    const session = await auth();
+    if (!session || session.user.role !== Role.SUPER_ADMIN) {
+      return { success: false, message: "Akses ditolak: Khusus Super Admin." };
+    }
+
+    if (!data.adminId || !data.cardCodes || data.cardCodes.length === 0) {
+      return { success: false, message: "Pilih admin tujuan dan minimal 1 kartu untuk dialokasikan." };
+    }
+
+    const targetAdmin = await prisma.user.findUnique({
+      where: { id: data.adminId },
+      select: { id: true, fullName: true, email: true, role: true },
+    });
+
+    if (!targetAdmin) {
+      return { success: false, message: "Admin tujuan tidak ditemukan." };
+    }
+
+    // Update assignedAdminId untuk seluruh kartu terpilih
+    const updateResult = await prisma.qrCard.updateMany({
+      where: {
+        code: { in: data.cardCodes },
+      },
+      data: {
+        assignedAdminId: targetAdmin.id,
+      },
+    });
+
+    const firstCode = data.cardCodes[0];
+    const lastCode = data.cardCodes[data.cardCodes.length - 1];
+    const rangeInfo = data.cardCodes.length === 1 ? `#${firstCode}` : `#${firstCode} s/d #${lastCode} (${data.cardCodes.length} kartu)`;
+
+    await recordActivityLog({
+      userId: session.user.id,
+      userName: session.user.name || session.user.fullName || "Super Admin",
+      userRole: Role.SUPER_ADMIN,
+      action: "BATCH_ALLOCATE_CARDS",
+      title: `Alokasikan ${data.cardCodes.length} Kartu ke ${targetAdmin.fullName}`,
+      description: `Super Admin mengalokasikan ${data.cardCodes.length} kartu QR (${rangeInfo}) kepada Admin Lapangan "${targetAdmin.fullName}".`,
+      targetId: targetAdmin.id,
+      targetName: `Admin ${targetAdmin.fullName}`,
+      adminId: targetAdmin.id,
+      superAdminId: session.user.id,
+    });
+
+    revalidatePath("/super-admin");
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      count: updateResult.count,
+      message: `Berhasil mengalokasikan ${updateResult.count} kartu kepada Admin "${targetAdmin.fullName}"! 🎉`,
+    };
+  } catch (error) {
+    console.error("batchAllocateCardsToAdminAction error:", error);
+    return { success: false, message: "Gagal mengalokasikan kartu." };
+  }
+}
+
+

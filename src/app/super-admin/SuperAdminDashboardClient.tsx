@@ -84,6 +84,7 @@ import { ProductPhotoManagerModal } from "@/components/dashboard/ProductPhotoMan
 import { InvoiceGeneratorModal } from "@/components/dashboard/InvoiceGeneratorModal";
 import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { MembershipManagementModal } from "@/components/dashboard/MembershipManagementModal";
+import { BatchAllocateCardsModal } from "@/components/dashboard/BatchAllocateCardsModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
 import { NotificationPrompt } from "@/components/pwa/NotificationPrompt";
 import { toggleCardStatusAction, deleteCardAction, deleteBatchCardsAction } from "@/lib/actions/qr.actions";
@@ -489,6 +490,8 @@ export function SuperAdminDashboardClient({
   const [isResellerOrdersModalOpen, setIsResellerOrdersModalOpen] = useState(false);
   const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
   const [isFinanceModalOpen, setIsFinanceModalOpen] = useState(false);
+  const [isBatchAllocateOpen, setIsBatchAllocateOpen] = useState(false);
+  const [batchAllocateTargetAdminId, setBatchAllocateTargetAdminId] = useState<string | null>(null);
   const [editingMembershipOutlet, setEditingMembershipOutlet] = useState<{
     id: string;
     name: string;
@@ -3017,7 +3020,7 @@ Tim Layanan Smart QR`;
         {/* TAB 2: MANAGE ADMINS (LAPANGAN) */}
         {activeTab === "ADMINS" && (
           <div className="mt-5 space-y-4">
-            {/* Header Action Card: Tambah Admin Baru */}
+            {/* Header Action Card: Tambah Admin Baru & Alokasi Kartu Massal */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 border border-amber-500/25 shadow-lg">
               <div className="space-y-0.5">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
@@ -3025,17 +3028,33 @@ Tim Layanan Smart QR`;
                   Daftar Tim Mitra Admin Lapangan (Reseller)
                 </h3>
                 <p className="text-[11px] text-slate-300">
-                  Kelola akun mitra reseller, alokasi jatah kuota kartu perdana, status aktivasi modul, serta pantau outlet binaan.
+                  Kelola akun mitra reseller, alokasi jatah kuota kartu perdana (rentang nomor/kuota cepat), status aktivasi modul, serta pantau outlet binaan.
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsCreateAdminOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center gap-2 shrink-0 cursor-pointer transition-all hover:scale-105 active:scale-95"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>+ Tambah Admin Lapangan Baru</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBatchAllocateTargetAdminId(null);
+                    setIsBatchAllocateOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                  title="Alokasikan kartu kosong secara massal berdasarkan rentang nomor (contoh: 001 s/d 050)"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Alokasi Kartu Massal (Range)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCreateAdminOpen(true)}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ Tambah Admin Baru</span>
+                </button>
+              </div>
             </div>
 
             {/* Leaderboard Quick Banner in ADMINS Tab */}
@@ -3322,6 +3341,19 @@ Tim Layanan Smart QR`;
                                   <MessageCircle className="w-3.5 h-3.5" />
                                 </a>
                               )}
+
+                              {/* Tombol Alokasikan Kartu Massal ke Admin Ini */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBatchAllocateTargetAdminId(admin.id);
+                                  setIsBatchAllocateOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors cursor-pointer"
+                                title="Alokasikan Kartu Massal (Rentang Nomor / Kuota Cepat) ke Admin Ini"
+                              >
+                                <Layers className="w-3.5 h-3.5" />
+                              </button>
 
                               {/* Tombol Edit Data & Password Admin */}
                               <button
@@ -4513,6 +4545,24 @@ Tim Layanan Smart QR`;
         isOpen={isFinanceModalOpen}
         onClose={() => setIsFinanceModalOpen(false)}
         isMaster={isMaster}
+      />
+
+      {/* Batch Allocate Cards Modal (Super Admin) */}
+      <BatchAllocateCardsModal
+        isOpen={isBatchAllocateOpen}
+        onClose={() => {
+          setIsBatchAllocateOpen(false);
+          setBatchAllocateTargetAdminId(null);
+        }}
+        admins={admins.map((a) => ({
+          id: a.id,
+          fullName: a.fullName,
+          email: a.email,
+          whatsappNumber: a.whatsappNumber,
+          assignedCardsCount: a.assignedCards?.length || 0,
+        }))}
+        preselectedAdminId={batchAllocateTargetAdminId}
+        onSuccess={() => router.refresh()}
       />
     </div>
   );
