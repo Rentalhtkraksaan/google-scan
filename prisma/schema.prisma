@@ -507,4 +507,65 @@ model AffiliateAccount {
   @@map("affiliate_accounts")
 }
 
+// ─── Finance & Kas Internal Super Admin ────────────────────────────────
+
+model FinanceTransaction {
+  id           String   @id @default(cuid())
+  type         String   // "INCOME" | "EXPENSE"
+  category     String   // "OPERATIONAL" | "INVENTORY_ASSET" | "MONTHLY_LIABILITY" | "ORDER_SALES" | "MANUAL_INCOME" | "OTHER"
+  title        String
+  amount       Int
+  date         DateTime @default(now())
+  notes        String?  @db.Text
+  receiptUrl   String?  @db.LongText
+  isSettled    Boolean  @default(false)
+  settlementId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([type])
+  @@index([category])
+  @@index([isSettled])
+  @@index([date])
+  @@index([createdAt])
+  @@map("finance_transactions")
+}
+
+model FinanceSetting {
+  id              String   @id @default("default")
+  initialBalance  Int      @default(0)   // Modal Awal Kas
+  settlementDay   Int      @default(25)  // Tanggal Gajian Bulanan (25)
+  kasPercentage   Int      @default(10)  // 10% Kas Usaha
+  chikaPercentage Int      @default(40)  // 40% Chika
+  aditPercentage  Int      @default(50)  // 50% Adit
+  kasName         String   @default("Kas Usaha (Cadangan)")
+  chikaName       String   @default("Chika")
+  aditName        String   @default("Adit")
+  updatedAt       DateTime @updatedAt
+
+  @@map("finance_settings")
+}
+
+model FinanceSettlementHistory {
+  id              String   @id @default(cuid())
+  periodName      String   // Misal: "Periode 25 Ags - 25 Sep 2026"
+  settledAt       DateTime @default(now())
+  totalIncome     Int      @default(0)
+  totalExpense    Int      @default(0)
+  totalLiability  Int      @default(0)
+  totalInventory  Int      @default(0)
+  netProfit       Int      @default(0)
+  kasAmount       Int      @default(0)
+  chikaAmount     Int      @default(0)
+  aditAmount      Int      @default(0)
+  sharesBreakdown String?  @db.LongText // JSON rincian persentase & penerima
+  notes           String?  @db.Text
+  settledByName   String?  @default("Super Admin")
+  createdAt       DateTime @default(now())
+
+  @@index([settledAt])
+  @@index([createdAt])
+  @@map("finance_settlement_histories")
+}
+
 

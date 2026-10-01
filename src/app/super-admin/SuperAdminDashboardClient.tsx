@@ -53,6 +53,7 @@ import {
   Users,
 } from "lucide-react";
 import { AffiliateManagerModal } from "@/components/dashboard/AffiliateManagerModal";
+import { FinanceManagerModal } from "@/components/dashboard/FinanceManagerModal";
 import { ResellerProductManagerModal } from "@/components/dashboard/ResellerProductManagerModal";
 import { ResellerOrdersManagerModal } from "@/components/dashboard/ResellerOrdersManagerModal";
 import { EditMembershipDateModal } from "@/components/dashboard/EditMembershipDateModal";
@@ -487,6 +488,7 @@ export function SuperAdminDashboardClient({
   const [isResellerProductsModalOpen, setIsResellerProductsModalOpen] = useState(false);
   const [isResellerOrdersModalOpen, setIsResellerOrdersModalOpen] = useState(false);
   const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
+  const [isFinanceModalOpen, setIsFinanceModalOpen] = useState(false);
   const [editingMembershipOutlet, setEditingMembershipOutlet] = useState<{
     id: string;
     name: string;
@@ -1662,6 +1664,24 @@ Tim Layanan Smart QR`;
               </span>
             </button>
 
+            {/* Finance & Kas Usaha (Khusus Super Admin) */}
+            <button
+              onClick={() => {
+                setIsFinanceModalOpen(true);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              title="Buku kas, inventaris bisnis, laba bersih & bagi hasil (25th)"
+            >
+              <div className="flex items-center gap-3 truncate">
+                <TrendingUp className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span className="truncate">Finance & Bagi Hasil</span>
+              </div>
+              <span className="text-[9px] px-2 py-0.5 rounded-md font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                KAS & GAJI
+              </span>
+            </button>
+
             {/* Katalog Produk Reseller (Khusus Super Admin 1 Master) */}
             {isMaster && (
               <button
@@ -1910,6 +1930,16 @@ Tim Layanan Smart QR`;
 
           {/* Top-Right Quick Action CTA Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* 0. Finance & Kas Internal (Khusus Super Admin) */}
+            <button
+              onClick={() => setIsFinanceModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] shrink-0"
+              title="Buku kas, inventaris bisnis & bagi hasil gaji (25th)"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+              <span>Finance & Kas</span>
+            </button>
+
             {/* 1. Mitra Affiliate (Desktop) */}
             <button
               onClick={() => setIsAffiliateModalOpen(true)}
@@ -4475,6 +4505,13 @@ Tim Layanan Smart QR`;
       <AffiliateManagerModal
         isOpen={isAffiliateModalOpen}
         onClose={() => setIsAffiliateModalOpen(false)}
+      />
+
+      {/* Finance & Cash Flow Management Modal (Super Admin Only) */}
+      <FinanceManagerModal
+        isOpen={isFinanceModalOpen}
+        onClose={() => setIsFinanceModalOpen(false)}
+        isMaster={isMaster}
       />
     </div>
   );
