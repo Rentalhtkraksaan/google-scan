@@ -603,12 +603,15 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                     </div>
 
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Tarif Komisi (%)</span>
-                      <span className="font-bold text-emerald-400 text-xs">
-                        {aff.commissionPerPcs <= 100
-                          ? `Satuan ${aff.commissionPerPcs}% • Reseller ${aff.commissionPerPcs / 2}%`
-                          : `Rp ${aff.commissionPerPcs.toLocaleString("id-ID")} / pcs`}
-                      </span>
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block mb-0.5">Tarif Komisi (%)</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-extrabold text-xs border border-emerald-500/30">
+                          {aff.commissionPerPcs <= 100 ? `${aff.commissionPerPcs}%` : "15%"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          (Eceran {aff.commissionPerPcs <= 100 ? `${aff.commissionPerPcs}%` : "15%"} • Grosir {aff.commissionPerPcs <= 100 ? `${aff.commissionPerPcs / 2}%` : "7.5%"})
+                        </span>
+                      </div>
                     </div>
 
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">

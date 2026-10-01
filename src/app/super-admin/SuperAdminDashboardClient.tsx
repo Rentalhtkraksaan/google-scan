@@ -1950,48 +1950,85 @@ Tim Layanan Smart QR`;
             </div>
           </div>
 
-          {/* Top-Right Quick Action CTA Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* 1. Finance & Kas Internal (Khusus Super Admin) */}
+          {/* Top-Right Quick Action CTA Toolbar (Akselerasi) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
+            {/* 1. Finance & Kas (Emerald Gradient Button) */}
             <button
               onClick={() => setIsFinanceModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 border border-emerald-400/40 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
-              title="Buku kas, inventaris bisnis & bagi hasil gaji tgl 25"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/30 border border-emerald-400/40 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              title="Buku Kas Riil, Laba Bersih & Bagi Hasil Gaji (25th)"
             >
-              <TrendingUp className="w-4 h-4 text-emerald-200 shrink-0" />
-              <span>💰 Finance & Kas</span>
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-200 shrink-0" />
+              <span>💰 Finance</span>
             </button>
 
-            {/* 2. Notifikasi & Dering HP Super Admin (Desktop Only) */}
-            <NotificationPrompt className="hidden lg:inline-flex shrink-0" />
+            {/* 2. Pesanan Reseller Shopee (Quick Pill) */}
+            <button
+              onClick={() => setIsResellerOrdersModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 text-xs font-bold transition-colors cursor-pointer shrink-0"
+              title="Pesanan Reseller (Shopee)"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="hidden md:inline">Pesanan</span>
+            </button>
 
-            {/* 3. Dynamic Primary Action Button */}
+            {/* 3. Mitra Affiliate (Quick Pill) */}
+            <button
+              onClick={() => setIsAffiliateModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-purple-300 border border-purple-500/30 hover:border-purple-500/50 text-xs font-bold transition-colors cursor-pointer shrink-0"
+              title="Mitra Affiliate & Komisi"
+            >
+              <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span className="hidden md:inline">Affiliate</span>
+            </button>
+
+            {/* 4. Kelola Member VIP (Quick Pill) */}
+            <button
+              onClick={() => setIsMembershipModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/30 hover:border-amber-500/50 text-xs font-bold transition-colors cursor-pointer shrink-0"
+              title="Kelola Member (Rp 45rb)"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden md:inline">Member</span>
+            </button>
+
+            {/* 5. Alokasi Kartu Massal */}
+            <button
+              onClick={() => {
+                setBatchAllocateTargetAdminId(null);
+                setIsBatchAllocateOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-colors cursor-pointer shrink-0"
+              title="Alokasikan Kartu Massal ke Admin Lapangan (Range/Kuota)"
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="hidden lg:inline">+ Alokasi Kartu</span>
+            </button>
+
+            {/* 6. Dynamic Primary Action Button */}
             {activeTab === "ADMINS" ? (
               <button
                 onClick={() => setIsCreateAdminOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="hidden sm:inline">+ Tambah Admin Baru</span>
-                <span className="sm:hidden text-[11px]">+ Admin</span>
+                <span>+ Tambah Admin</span>
               </button>
             ) : activeTab === "SUPER_ADMINS" && isMaster ? (
               <button
                 onClick={() => setIsCreateSuperAdminOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="hidden sm:inline">+ Super Admin 2</span>
-                <span className="sm:hidden text-[11px]">+ SA 2</span>
+                <span>+ SA 2</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsBatchGenerateOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="hidden sm:inline">Input Kartu Baru</span>
-                <span className="sm:hidden text-[11px]">+ Kartu</span>
+                <span>+ Input Kartu</span>
               </button>
             )}
           </div>
@@ -3329,10 +3366,24 @@ Tim Layanan Smart QR`;
                           </td>
 
                           <td className="py-3.5 px-4 text-center">
-                            <span className="font-bold text-white">{admin.assignedCards.length}</span>
-                            <span className="text-[11px] text-amber-400 block font-medium">
-                              ({blankQuota} kosong)
-                            </span>
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="font-extrabold text-white text-xs">{admin.assignedCards.length} Kartu</span>
+                              <span className="text-[10px] text-amber-400 font-semibold">
+                                ({blankQuota} kosong)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBatchAllocateTargetAdminId(admin.id);
+                                  setIsBatchAllocateOpen(true);
+                                }}
+                                className="mt-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold flex items-center gap-1 shadow-md shadow-indigo-600/30 transition-all hover:scale-105 cursor-pointer"
+                                title="Beri / Tambah Jatah Kartu ke Admin Ini"
+                              >
+                                <Layers className="w-3 h-3" />
+                                <span>+ Beri Kartu</span>
+                              </button>
+                            </div>
                           </td>
 
                           <td className="py-3.5 px-4 text-center">

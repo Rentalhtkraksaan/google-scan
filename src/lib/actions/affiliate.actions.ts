@@ -113,15 +113,19 @@ export async function registerAffiliateAccountAction(data: {
       select: { affiliateDefaultCommission: true },
     });
 
-    // Tarif komisi: jika diisi manual pakai manual, jika tidak hitung tier followers
+    // Tarif komisi dalam persen (%): default 10%, 15%, atau 20%
     let commissionPerPcs = Number(data.commissionPerPcs) || 0;
     if (commissionPerPcs <= 0) {
-      commissionPerPcs = siteSetting?.affiliateDefaultCommission ?? 5000;
       if (followers >= 50000) {
-        commissionPerPcs = 10000;
+        commissionPerPcs = 20; // 20%
       } else if (followers >= 10000) {
-        commissionPerPcs = 7500;
+        commissionPerPcs = 15; // 15%
+      } else {
+        commissionPerPcs = 10; // 10%
       }
+    } else if (commissionPerPcs > 100) {
+      // Legacy flat rupiah converted to percentage
+      commissionPerPcs = commissionPerPcs >= 10000 ? 20 : commissionPerPcs >= 7500 ? 15 : 10;
     }
 
     const plainPassword = data.password?.trim() || "affiliate123";
@@ -210,8 +214,13 @@ export async function getAffiliateAccountsAction() {
 
     const enrichedAffiliates = affiliates.map((aff) => {
       const stats = statsMap.get(aff.referralCode) || { totalOrders: 0, totalCards: 0, totalSales: 0 };
+      let comm = aff.commissionPerPcs;
+      if (comm > 100) {
+        comm = comm >= 10000 ? 20 : comm >= 7500 ? 15 : 10;
+      }
       return {
         ...aff,
+        commissionPerPcs: comm,
         hasPassword: !!aff.password,
         totalOrders: stats.totalOrders,
         totalCards: stats.totalCards,
