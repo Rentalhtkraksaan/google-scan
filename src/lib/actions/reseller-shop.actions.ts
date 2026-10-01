@@ -321,6 +321,7 @@ export async function createResellerOrderAction(data: {
   notes?: string;
   paymentMethod: "MIDTRANS_QRIS" | "MANUAL_BANK_BNI";
   receiptImageUrl?: string;
+  affiliateCode?: string;
 }) {
   try {
     const session = await auth();
@@ -390,6 +391,30 @@ export async function createResellerOrderAction(data: {
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
     const shippingFee = 0; // Bebas ongkir untuk pesanan grosir reseller (ongkir dibebankan / diurus sendiri oleh reseller)
     const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard ?? 5000;
+
+    // Verifikasi Kode Referral Affiliate jika ada (Pesanan Reseller mendapat komisi 50% dari rate normal)
+    let validAffiliateCode: string | null = null;
+    let affiliateCommission = 0;
+
+    if (data.affiliateCode && data.affiliateCode.trim()) {
+      const cleanRef = data.affiliateCode.trim().toUpperCase();
+      const affiliate = await prisma.affiliateAccount.findUnique({
+        where: { referralCode: cleanRef },
+      });
+
+      if (affiliate && affiliate.status === "ACTIVE") {
+        validAffiliateCode = affiliate.referralCode;
+        const rate = affiliate.commissionPerPcs || 15; // default 15%
+        // Pembelian paket reseller mendapat komisi 50% (setengah) dari tarif per pcs / persentase normal
+        if (rate <= 100) {
+          const resellerRatePercent = rate / 2; // contoh: 15% / 2 = 7.5%
+          affiliateCommission = Math.round((calculatedSubtotal * resellerRatePercent) / 100);
+        } else {
+          const resellerRateFlat = Math.round(rate / 2);
+          affiliateCommission = totalQuantity * resellerRateFlat;
+        }
+      }
+    }
 
     // Hitung diskon reward VIP jika reseller login
     let discountAmount = 0;
@@ -527,6 +552,8 @@ export async function createResellerOrderAction(data: {
         shippingAddress: data.shippingAddress?.trim() || null,
         province: "Jawa Timur",
         notes: data.notes?.trim() || null,
+        affiliateCode: validAffiliateCode,
+        affiliateCommission: affiliateCommission,
         paymentMethod: data.paymentMethod,
         paymentStatus: "PENDING",
         orderStatus: "PENDING",

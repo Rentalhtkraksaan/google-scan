@@ -46,8 +46,12 @@ export default async function AffiliatePage() {
     select: {
       id: true,
       orderNumber: true,
+      orderType: true,
       customerName: true,
       totalQuantity: true,
+      subtotal: true,
+      shippingFee: true,
+      discountAmount: true,
       totalAmount: true,
       paymentStatus: true,
       orderStatus: true,

@@ -104,6 +104,13 @@ export function RetailOrderModal({
   const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedBank, setCopiedBank] = useState(false);
+  const [copiedOrderCode, setCopiedOrderCode] = useState(false);
+
+  const handleCopyOrderCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedOrderCode(true);
+    setTimeout(() => setCopiedOrderCode(false), 2000);
+  };
 
   // Success state
   const [orderSuccessData, setOrderSuccessData] = useState<{
@@ -593,23 +600,44 @@ export function RetailOrderModal({
 
         {/* ── SUCCESS SCREEN ── */}
         {orderSuccessData ? (
-          <div className="py-6 space-y-6 text-center animate-in zoom-in-95">
+          <div className="py-6 space-y-5 text-center animate-in zoom-in-95">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto shadow-xl">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">
-                Pesanan Berhasil Dibuat
-              </span>
-              <h4 className="text-2xl font-black text-white">
-                Kode Pesanan:{" "}
-                <span className="font-mono text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-xl border border-indigo-500/30">
-                  {orderSuccessData.orderNumber}
+            <div className="space-y-2.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Pesanan Berhasil Disimpan & Terkunci</span>
+              </div>
+
+              {/* Box Kode Pesanan Besar + Tombol Salin */}
+              <div className="p-4 bg-slate-950 border border-indigo-500/40 rounded-2xl max-w-md mx-auto space-y-2 shadow-inner">
+                <span className="text-[11px] text-slate-400 block uppercase font-bold tracking-wider">
+                  Nomor / Kode Pesanan Anda:
                 </span>
-              </h4>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Simpan kode 6 karakter di atas untuk melacak status pengiriman dan nomor resi paket Anda kapan saja.
+                <div className="flex items-center justify-center gap-2">
+                  <span className="font-mono text-2xl sm:text-3xl font-black text-indigo-400 bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-500/30 tracking-widest">
+                    #{orderSuccessData.orderNumber}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyOrderCode(orderSuccessData.orderNumber)}
+                    className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+                    title="Salin Kode Pesanan"
+                  >
+                    {copiedOrderCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                {copiedOrderCode && (
+                  <span className="text-[11px] text-emerald-400 font-semibold block animate-in fade-in">
+                    ✓ Kode pesanan disalin ke clipboard!
+                  </span>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                Halaman ini tetap tersimpan. Anda dapat menyalin kode pesanan di atas atau langsung klik tombol <strong>Lacak Pesanan</strong> untuk mengecek status dan nomor resi pengiriman Anda.
               </p>
             </div>
 
@@ -619,6 +647,17 @@ export function RetailOrderModal({
                 <span className="text-slate-400">Total Pembayaran:</span>
                 <span className="font-mono font-extrabold text-emerald-400 text-sm">
                   Rp {orderSuccessData.totalAmount.toLocaleString("id-ID")}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
+                <span className="text-slate-400">Status Pembayaran:</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  orderSuccessData.paymentStatus === "PAID"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                }`}>
+                  {orderSuccessData.paymentStatus === "PAID" ? "✅ LUNAS (Midtrans QRIS)" : "⏳ MENUNGGU VERIFIKASI"}
                 </span>
               </div>
 
@@ -645,7 +684,7 @@ export function RetailOrderModal({
               {orderSuccessData.affiliateCode && (
                 <div className="flex items-center gap-1.5 text-[11px] text-emerald-300 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span>Referral terpasang: <strong>{orderSuccessData.affiliateCode}</strong> (Diskon Ongkir Rp 10.000 Aktif)</span>
+                  <span>Referral terpasang: <strong>{orderSuccessData.affiliateCode}</strong> (Diskon Subsidi Ongkir Aktif)</span>
                 </div>
               )}
             </div>
@@ -658,10 +697,10 @@ export function RetailOrderModal({
                   onClose();
                   if (onOpenTracking) onOpenTracking(orderSuccessData.orderNumber);
                 }}
-                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-xl shadow-indigo-600/30 transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Truck className="w-4 h-4" />
-                <span>Lacak Pesanan Ini</span>
+                <span>🔍 Lacak Pesanan Sekarang</span>
               </button>
 
               <a
@@ -673,7 +712,7 @@ export function RetailOrderModal({
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-5 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-[0.98]"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>Konfirmasi via WhatsApp</span>

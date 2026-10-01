@@ -70,6 +70,7 @@ interface AffiliateDashboardClientProps {
   orders: {
     id: string;
     orderNumber: string;
+    orderType?: string;
     customerName: string;
     totalQuantity: number;
     subtotal?: number;
@@ -597,14 +598,13 @@ export function AffiliateDashboardClient({
                       <span className="text-emerald-400">
                         {affiliate.commissionPerPcs <= 100
                           ? `${affiliate.commissionPerPcs}%`
-                          : `Rp ${affiliate.commissionPerPcs.toLocaleString("id-ID")}`}
+                          : "15%"}
                       </span>{" "}
-                      {affiliate.commissionPerPcs <= 100 ? "dari Subtotal Belanja Kartu" : "/ Kartu Terjual"}
+                      dari Subtotal Belanja Produk
                     </h1>
 
                     <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                      Setiap pembeli yang checkout menggunakan link atau kode referral Anda akan mendapatkan{" "}
-                      <strong className="text-emerald-300">subsidi potongan ongkir Rp {(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}</strong>. Komisi dihitung murni dari total belanja kartu (tidak dipotong ongkir) dan langsung masuk ke saldo Anda!
+                      Dapatkan komisi <strong className="text-emerald-300">{affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"}</strong> untuk setiap pesanan satuan dan <strong className="text-purple-300">{affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs / 2}%` : "7.5%"}</strong> untuk pesanan reseller grosir. Komisi dihitung murni dari <strong>subtotal belanja produk</strong> (tanpa ongkos kirim) dan pembeli mendapatkan potongan subsidi ongkir Rp {(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}!
                     </p>
                   </div>
 
@@ -720,24 +720,14 @@ export function AffiliateDashboardClient({
                 {/* Card 4: Tarif Komisi */}
                 <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2">
                   <div className="flex items-center justify-between text-purple-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">Tarif Komisi</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Tarif Komisi (%)</span>
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div className="text-2xl font-black text-purple-300 font-mono">
-                    {affiliate.commissionPerPcs <= 100 ? (
-                      <>
-                        {affiliate.commissionPerPcs}% <span className="text-xs text-slate-400 font-normal">subtotal kartu</span>
-                      </>
-                    ) : (
-                      <>
-                        Rp {affiliate.commissionPerPcs.toLocaleString("id-ID")} <span className="text-xs text-slate-400 font-normal">/ pcs</span>
-                      </>
-                    )}
+                    {affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"}
                   </div>
-                  <p className="text-[11px] text-slate-400 pt-1">
-                    {affiliate.commissionPerPcs <= 100
-                      ? "Dihitung dari subtotal kartu (tanpa ongkir)"
-                      : `Tier: ${affiliate.followersCount.toLocaleString("id-ID")} Followers`}
+                  <p className="text-[11px] text-slate-400 pt-0.5">
+                    Pesanan Satuan <strong>{affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"}</strong> • Reseller <strong>{affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs / 2}%` : "7.5%"}</strong> (Murni Subtotal)
                   </p>
                 </div>
               </div>
@@ -776,6 +766,7 @@ export function AffiliateDashboardClient({
                         <thead>
                           <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
                             <th className="pb-2.5 font-bold">No. Pesanan</th>
+                            <th className="pb-2.5 font-bold">Tipe Order</th>
                             <th className="pb-2.5 font-bold">Pembeli</th>
                             <th className="pb-2.5 font-bold text-center">Jumlah</th>
                             <th className="pb-2.5 font-bold text-right">Subtotal Produk</th>
@@ -786,10 +777,20 @@ export function AffiliateDashboardClient({
                         <tbody className="divide-y divide-slate-800/60">
                           {orders.slice(0, 5).map((ord) => {
                             const productSubtotal = ord.subtotal || Math.max(0, ord.totalAmount - (ord.shippingFee || 0));
+                            const isReseller = ord.orderType === "RESELLER";
                             return (
                               <tr key={ord.id} className="hover:bg-slate-800/40 transition-colors">
                                 <td className="py-3 font-mono font-bold text-white">
                                   #{ord.orderNumber}
+                                </td>
+                                <td className="py-3">
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    isReseller
+                                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                      : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                  }`}>
+                                    {isReseller ? "Reseller (50%)" : "Satuan (Normal)"}
+                                  </span>
                                 </td>
                                 <td className="py-3 text-slate-300 font-medium">
                                   {ord.customerName}
@@ -799,6 +800,7 @@ export function AffiliateDashboardClient({
                                 </td>
                                 <td className="py-3 text-right font-mono font-bold text-slate-200">
                                   Rp {productSubtotal.toLocaleString("id-ID")}
+                                  <span className="text-[9px] text-slate-500 block font-normal">(Tanpa Ongkir)</span>
                                 </td>
                                 <td className="py-3 text-right font-mono font-bold text-emerald-400">
                                   + Rp {ord.affiliateCommission.toLocaleString("id-ID")}
@@ -930,10 +932,11 @@ export function AffiliateDashboardClient({
                         <thead>
                           <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px]">
                             <th className="pb-3 font-bold">No. Pesanan</th>
+                            <th className="pb-3 font-bold">Tipe Order</th>
                             <th className="pb-3 font-bold">Nama Pembeli</th>
                             <th className="pb-3 font-bold text-center">Jumlah (pcs)</th>
                             <th className="pb-3 font-bold text-right">Subtotal Produk</th>
-                            <th className="pb-3 font-bold text-center">Tarif Komisi</th>
+                            <th className="pb-3 font-bold text-center">Tarif Komisi (%)</th>
                             <th className="pb-3 font-bold text-right">Komisi Anda</th>
                             <th className="pb-3 font-bold text-center">Status Bayar</th>
                             <th className="pb-3 font-bold text-center">Tanggal</th>
@@ -942,9 +945,10 @@ export function AffiliateDashboardClient({
                         <tbody className="divide-y divide-slate-800/60">
                           {filteredOrders.map((ord) => {
                             const productSubtotal = ord.subtotal || Math.max(0, ord.totalAmount - (ord.shippingFee || 0));
-                            const rateDisplay = affiliate.commissionPerPcs <= 100
-                              ? `${affiliate.commissionPerPcs}%`
-                              : `Rp ${affiliate.commissionPerPcs.toLocaleString("id-ID")}/pcs`;
+                            const isReseller = ord.orderType === "RESELLER";
+                            const baseRate = affiliate.commissionPerPcs <= 100 ? affiliate.commissionPerPcs : 15;
+                            const effectiveRate = isReseller ? baseRate / 2 : baseRate;
+                            const rateDisplay = `${effectiveRate}%`;
 
                             const orderDate = new Date(ord.createdAt).toLocaleDateString("id-ID", {
                               day: "numeric",
@@ -957,6 +961,15 @@ export function AffiliateDashboardClient({
                                 <td className="py-3 font-mono font-bold text-white">
                                   #{ord.orderNumber}
                                 </td>
+                                <td className="py-3">
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    isReseller
+                                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                      : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                  }`}>
+                                    {isReseller ? "Grosir Reseller" : "Satuan Normal"}
+                                  </span>
+                                </td>
                                 <td className="py-3 text-slate-300 font-medium">
                                   {ord.customerName}
                                 </td>
@@ -965,8 +978,9 @@ export function AffiliateDashboardClient({
                                 </td>
                                 <td className="py-3 text-right font-mono font-bold text-slate-200">
                                   Rp {productSubtotal.toLocaleString("id-ID")}
+                                  <span className="text-[9px] text-slate-500 block font-normal">(Murni Tanpa Ongkir)</span>
                                 </td>
-                                <td className="py-3 text-center font-mono text-[11px] text-purple-300">
+                                <td className="py-3 text-center font-mono text-[11px] font-bold text-purple-300">
                                   {rateDisplay}
                                 </td>
                                 <td className="py-3 text-right font-mono font-bold text-emerald-400">

@@ -29,12 +29,14 @@ import {
   Truck,
   Check,
   ShieldCheck,
+  Tag,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import {
   getResellerProductsAction,
   createResellerOrderAction,
 } from "@/lib/actions/reseller-shop.actions";
+import { validateAffiliateReferralCodeAction } from "@/lib/actions/affiliate.actions";
 import { ResellerProductModel, SiteSettingModel } from "@/types/models";
 
 interface PublicResellerRegistrationModalProps {
@@ -65,10 +67,46 @@ export function PublicResellerRegistrationModal({
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [isValidatingReferral, setIsValidatingReferral] = useState(false);
+  const [referralStatus, setReferralStatus] = useState<{
+    valid: boolean;
+    affiliateName?: string;
+    code?: string;
+    message?: string;
+  } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"MIDTRANS_QRIS" | "MANUAL_BANK_BNI">(
     siteSetting?.midtransEnabled === false ? "MANUAL_BANK_BNI" : "MIDTRANS_QRIS"
   );
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
+
+  const handleValidateReferralCode = async () => {
+    if (!referralCode.trim()) return;
+    setIsValidatingReferral(true);
+    try {
+      const res = await validateAffiliateReferralCodeAction(referralCode.trim());
+      if (res.success && res.affiliate) {
+        setReferralStatus({
+          valid: true,
+          affiliateName: res.affiliate.fullName,
+          code: res.affiliate.referralCode,
+          message: `Kode referral "${res.affiliate.referralCode}" aktif! Mitra affiliate ${res.affiliate.fullName} akan menerima komisi kemitraan (50% rate).`,
+        });
+      } else {
+        setReferralStatus({
+          valid: false,
+          message: res.message || "Kode referral affiliate tidak ditemukan atau tidak aktif.",
+        });
+      }
+    } catch {
+      setReferralStatus({
+        valid: false,
+        message: "Gagal memverifikasi kode referral.",
+      });
+    } finally {
+      setIsValidatingReferral(false);
+    }
+  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingStatus, setSubmittingStatus] = useState("Memproses Pesanan...");
@@ -295,6 +333,7 @@ export function PublicResellerRegistrationModal({
         customerEmail: customerEmail.trim().toLowerCase().slice(0, 100),
         shippingAddress: shippingAddress.trim().slice(0, 500),
         notes: notes.trim() ? notes.trim().slice(0, 300) : undefined,
+        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim() || undefined),
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
       });
@@ -849,6 +888,53 @@ export function PublicResellerRegistrationModal({
                       Rp {totalAmount.toLocaleString("id-ID")}
                     </span>
                   </div>
+                </div>
+
+                {/* Kode Referral Affiliate (Opsional) */}
+                <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Kode Referral Affiliate (Opsional)</span>
+                    </span>
+                    <span className="text-[10px] text-purple-400 font-medium">Bagi Hasil Kemitraan</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) => {
+                        setReferralCode(e.target.value.toUpperCase());
+                        if (referralStatus) setReferralStatus(null);
+                      }}
+                      placeholder="Masukkan kode referral jika ada..."
+                      className="flex-1 px-3 py-2 bg-slate-900 border border-slate-800 focus:border-purple-500 rounded-xl text-xs text-white font-mono uppercase placeholder-slate-600 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleValidateReferralCode}
+                      disabled={isValidatingReferral || !referralCode.trim()}
+                      className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      {isValidatingReferral ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Terapkan"}
+                    </button>
+                  </div>
+
+                  {referralStatus && (
+                    <div className={`p-2.5 rounded-xl text-[11px] flex items-center gap-2 ${
+                      referralStatus.valid
+                        ? "bg-purple-500/15 border border-purple-500/30 text-purple-300"
+                        : "bg-rose-500/15 border border-rose-500/30 text-rose-300"
+                    }`}>
+                      {referralStatus.valid ? (
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      )}
+                      <span>{referralStatus.message}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Payment Method Selector */}

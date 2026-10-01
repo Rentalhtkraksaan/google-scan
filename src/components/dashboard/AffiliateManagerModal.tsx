@@ -603,10 +603,10 @@ export function AffiliateManagerModal({ isOpen, onClose }: AffiliateManagerModal
                     </div>
 
                     <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
-                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Tarif Komisi</span>
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Tarif Komisi (%)</span>
                       <span className="font-bold text-emerald-400 text-xs">
                         {aff.commissionPerPcs <= 100
-                          ? `${aff.commissionPerPcs}% dari Subtotal Kartu`
+                          ? `Satuan ${aff.commissionPerPcs}% • Reseller ${aff.commissionPerPcs / 2}%`
                           : `Rp ${aff.commissionPerPcs.toLocaleString("id-ID")} / pcs`}
                       </span>
                     </div>
