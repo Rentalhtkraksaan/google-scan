@@ -1950,74 +1950,31 @@ Tim Layanan Smart QR`;
             </div>
           </div>
 
-          {/* Top-Right Quick Action CTA Toolbar (Akselerasi) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
-            {/* 1. Finance & Kas (Emerald Gradient Button) */}
+          {/* Top-Right Clean Action Toolbar */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 justify-end">
+            {/* 1. Finance & Kas (Emerald Glowing Button) */}
             <button
               onClick={() => setIsFinanceModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md shadow-emerald-600/30 border border-emerald-400/40 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 border border-emerald-400/40 transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
               title="Buku Kas Riil, Laba Bersih & Bagi Hasil Gaji (25th)"
             >
               <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-200 shrink-0" />
               <span>💰 Finance</span>
             </button>
 
-            {/* 2. Pesanan Reseller Shopee (Quick Pill) */}
-            <button
-              onClick={() => setIsResellerOrdersModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 text-xs font-bold transition-colors cursor-pointer shrink-0"
-              title="Pesanan Reseller (Shopee)"
-            >
-              <ShoppingCart className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="hidden md:inline">Pesanan</span>
-            </button>
-
-            {/* 3. Mitra Affiliate (Quick Pill) */}
-            <button
-              onClick={() => setIsAffiliateModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-purple-300 border border-purple-500/30 hover:border-purple-500/50 text-xs font-bold transition-colors cursor-pointer shrink-0"
-              title="Mitra Affiliate & Komisi"
-            >
-              <Users className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-              <span className="hidden md:inline">Affiliate</span>
-            </button>
-
-            {/* 4. Kelola Member VIP (Quick Pill) */}
-            <button
-              onClick={() => setIsMembershipModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/30 hover:border-amber-500/50 text-xs font-bold transition-colors cursor-pointer shrink-0"
-              title="Kelola Member (Rp 45rb)"
-            >
-              <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="hidden md:inline">Member</span>
-            </button>
-
-            {/* 5. Alokasi Kartu Massal */}
-            <button
-              onClick={() => {
-                setBatchAllocateTargetAdminId(null);
-                setIsBatchAllocateOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-colors cursor-pointer shrink-0"
-              title="Alokasikan Kartu Massal ke Admin Lapangan (Range/Kuota)"
-            >
-              <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="hidden lg:inline">+ Alokasi Kartu</span>
-            </button>
-
-            {/* 6. Dynamic Primary Action Button */}
+            {/* 2. Dynamic Primary Action Button */}
             {activeTab === "ADMINS" ? (
               <button
                 onClick={() => setIsCreateAdminOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               >
                 <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span>+ Tambah Admin</span>
+                <span>+ Admin</span>
               </button>
             ) : activeTab === "SUPER_ADMINS" && isMaster ? (
               <button
                 onClick={() => setIsCreateSuperAdminOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>+ SA 2</span>
@@ -2025,7 +1982,7 @@ Tim Layanan Smart QR`;
             ) : (
               <button
                 onClick={() => setIsBatchGenerateOpen(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                 <span>+ Input Kartu</span>
@@ -2035,7 +1992,7 @@ Tim Layanan Smart QR`;
         </header>
 
         {/* Viewport Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
           {/* Realtime Alert Banner for Super Admin (Orders, Transfers, Card Requests) */}
           {realtimeAlert && (
             <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-slate-900 to-indigo-950/40 border border-amber-500/40 shadow-xl shadow-amber-500/10 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">

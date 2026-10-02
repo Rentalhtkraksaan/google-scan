@@ -1207,28 +1207,7 @@ export async function trackResellerOrderAction(query: string) {
       };
     }
 
-    // Refresh data tracking secara live jika pesanan memiliki nomor resi
-    const { getLiveOrderTrackingAction } = await import("@/lib/actions/courier-tracking.actions");
-    const updatedOrders = await Promise.all(
-      orders.map(async (order) => {
-        if (order.trackingNumber) {
-          try {
-            const live = await getLiveOrderTrackingAction(order.id);
-            if (live.success && live.history && live.history.length > 0) {
-              return {
-                ...order,
-                courierStatus: live.status,
-                courierHistory: live.history,
-                orderStatus: live.isDelivered ? "COMPLETED" : order.orderStatus,
-              };
-            }
-          } catch {}
-        }
-        return order;
-      })
-    );
-
-    return { success: true, data: updatedOrders };
+    return { success: true, data: orders };
   } catch (error) {
     console.error("trackResellerOrderAction error:", error);
     return { success: false, message: "Terjadi kesalahan saat melacak pesanan." };

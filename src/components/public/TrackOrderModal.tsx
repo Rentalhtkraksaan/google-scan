@@ -18,6 +18,8 @@ import {
   ChevronRight,
   ShieldCheck,
   AlertCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { trackResellerOrderAction } from "@/lib/actions/reseller-shop.actions";
 import { ResellerOrderModel } from "@/types/models";
@@ -34,6 +36,7 @@ export function TrackOrderModal({ isOpen, onClose, initialQuery = "" }: TrackOrd
   const [hasSearched, setHasSearched] = useState(false);
   const [orders, setOrders] = useState<ResellerOrderModel[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedAwb, setCopiedAwb] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -255,85 +258,111 @@ export function TrackOrderModal({ isOpen, onClose, initialQuery = "" }: TrackOrd
                     </div>
                   </div>
 
-                  {/* Live Courier Tracking Information (J&T Express / Ekspedisi) */}
+                  {/* Courier & Tracking Number Card (Clean, Simple & Direct) */}
                   {order.trackingNumber ? (
-                    <div className="p-3.5 rounded-xl bg-gradient-to-br from-purple-900/20 via-indigo-900/15 to-slate-900/40 border border-purple-500/30 space-y-2.5">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-900 border border-indigo-500/30 space-y-3 shadow-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-800/80">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
                             <Truck className="w-4 h-4 text-purple-400" />
                           </div>
                           <div>
                             <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block">
                               Ekspedisi Pengiriman
                             </span>
-                            <span className="font-extrabold text-white text-xs">
+                            <span className="font-extrabold text-white text-xs sm:text-sm">
                               {order.courierName || "J&T Express"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <div className="px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700/80 font-mono text-xs font-bold text-sky-300 tracking-wider flex items-center gap-1.5">
-                            <span>{order.trackingNumber}</span>
-                          </div>
-                          <a
-                            href={
-                              (order.courierName || "").toLowerCase().includes("jne")
-                                ? `https://www.jne.co.id/tracking-package?awb=${encodeURIComponent(order.trackingNumber)}`
-                                : `https://www.jet.co.id/track?awb=${encodeURIComponent(order.trackingNumber)}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 transition-colors"
-                            title="Buka Halaman Lacak Resmi di Web Kurir"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* Live Courier Timeline Manifest */}
-                      <div className="p-2.5 bg-slate-950/80 rounded-lg border border-slate-800/80 space-y-1.5 text-[11px]">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-300 flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                            Status Pengiriman:
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            order.orderStatus === "COMPLETED" || order.courierStatus === "DELIVERED"
+                        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                            order.orderStatus === "COMPLETED"
                               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
                               : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
                           }`}>
-                            {order.orderStatus === "COMPLETED" || order.courierStatus === "DELIVERED"
-                              ? "🟢 Paket Telah Sampai / Diterima"
-                              : "🚚 Sedang Dalam Perjalanan Kurir"}
+                            {order.orderStatus === "COMPLETED" ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                <span>Paket Telah Sampai</span>
+                              </>
+                            ) : (
+                              <>
+                                <Truck className="w-3 h-3 text-sky-400" />
+                                <span>Sedang Dikirim</span>
+                              </>
+                            )}
                           </span>
                         </div>
+                      </div>
 
-                        {order.courierHistory && Array.isArray(order.courierHistory) && order.courierHistory.length > 0 ? (
-                          <div className="space-y-1 pt-1 max-h-32 overflow-y-auto custom-scrollbar">
-                            {(order.courierHistory as any[]).map((h: any, idx: number) => (
-                              <div key={idx} className="p-1.5 rounded bg-slate-900/90 border border-slate-800 text-[10px] space-y-0.5">
-                                <div className="flex items-center justify-between text-slate-400">
-                                  <span className="font-mono">{h.date}</span>
-                                  {h.location && <span className="font-semibold text-slate-300">{h.location}</span>}
-                                </div>
-                                <p className="text-slate-200">{h.desc}</p>
-                              </div>
-                            ))}
+                      {/* Resi Box & Actions */}
+                      <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                              Nomor Resi Pengiriman:
+                            </span>
+                            <span className="font-mono text-sm sm:text-base font-extrabold text-sky-300 tracking-wider">
+                              {order.trackingNumber}
+                            </span>
                           </div>
-                        ) : (
-                          <p className="text-slate-400 text-[10px] italic">
-                            Paket telah diproses oleh ekspedisi {order.courierName || "J&T Express"}. Pantau pembaruan posisi paket secara berkala.
-                          </p>
-                        )}
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (order.trackingNumber) {
+                                  navigator.clipboard.writeText(order.trackingNumber);
+                                  setCopiedAwb(order.trackingNumber);
+                                  setTimeout(() => setCopiedAwb(null), 2000);
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-700"
+                              title="Salin Nomor Resi"
+                            >
+                              {copiedAwb === order.trackingNumber ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span className="text-emerald-300 font-bold">Tersalin!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Salin Resi</span>
+                                </>
+                              )}
+                            </button>
+
+                            <a
+                              href={
+                                (order.courierName || "").toLowerCase().includes("jne")
+                                  ? `https://www.jne.co.id/tracking-package?awb=${encodeURIComponent(order.trackingNumber)}`
+                                  : (order.courierName || "").toLowerCase().includes("sicepat")
+                                  ? `https://www.sicepat.com/checkAwb?awb=${encodeURIComponent(order.trackingNumber)}`
+                                  : `https://www.jet.co.id/track?awb=${encodeURIComponent(order.trackingNumber)}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs font-bold flex items-center gap-1.5 transition-colors border border-sky-500/30"
+                              title="Lacak di Web Resmi Ekspedisi"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
+                              <span>Cek di Web Resmi {order.courierName || "J&T"}</span>
+                            </a>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-900 leading-relaxed">
+                          💡 Paket pesanan Anda telah diserahkan ke kurir <strong>{order.courierName || "J&T Express"}</strong>. Silakan klik tombol <em>&ldquo;Cek di Web Resmi&rdquo;</em> untuk melihat linimasa perjalanan paket Anda secara live.
+                        </p>
                       </div>
                     </div>
                   ) : order.orderStatus === "PROCESSING" ? (
                     <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2.5 text-xs text-amber-300">
                       <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>Paket Anda sedang dipersiapkan dan dikemas oleh tim gudang. Nomor resi J&T akan segera diupdate.</span>
+                      <span>Paket Anda sedang dipersiapkan dan dikemas oleh tim gudang. Nomor resi akan segera diupdate.</span>
                     </div>
                   ) : null}
 
