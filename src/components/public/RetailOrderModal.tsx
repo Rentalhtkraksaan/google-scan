@@ -153,9 +153,30 @@ export function RetailOrderModal({
 
     loadData();
 
-    // Check default referral code from URL/props
-    if (defaultReferralCode.trim()) {
-      handleValidateReferral(defaultReferralCode.trim());
+    // Check default referral code from URL/props/localStorage
+    let targetRefCode = (defaultReferralCode || "").trim().toUpperCase();
+    if (!targetRefCode && typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRef = urlParams.get("ref");
+        if (urlRef) {
+          targetRefCode = urlRef.trim().toUpperCase();
+        } else {
+          const stored = localStorage.getItem("smartqr_referral_code");
+          if (stored) targetRefCode = stored.trim().toUpperCase();
+        }
+      } catch (e) {
+        console.error("Referral storage error:", e);
+      }
+    }
+
+    if (targetRefCode) {
+      setReferralCode(targetRefCode);
+      handleValidateReferral(targetRefCode);
+      try {
+        localStorage.setItem("smartqr_referral_code", targetRefCode);
+        document.cookie = `smartqr_ref=${encodeURIComponent(targetRefCode)}; path=/; max-age=2592000; SameSite=Lax`;
+      } catch (e) {}
     }
 
     // Load Midtrans Snap JS dynamically if not present
@@ -175,6 +196,15 @@ export function RetailOrderModal({
       document.body.appendChild(script);
     }
   }, [isOpen, siteSetting, defaultReferralCode]);
+
+  // Synchronize when defaultReferralCode changes dynamically
+  useEffect(() => {
+    if (defaultReferralCode && defaultReferralCode.trim()) {
+      const clean = defaultReferralCode.trim().toUpperCase();
+      setReferralCode(clean);
+      handleValidateReferral(clean);
+    }
+  }, [defaultReferralCode]);
 
   if (!isOpen) return null;
 
@@ -258,23 +288,28 @@ export function RetailOrderModal({
 
   // Referral validator
   const handleValidateReferral = async (customCode?: string) => {
-    const codeToValidate = customCode || referralCode;
-    if (!codeToValidate.trim()) {
+    const codeToValidate = (customCode || referralCode).trim().toUpperCase();
+    if (!codeToValidate) {
       setReferralStatus(null);
       return;
     }
 
+    setReferralCode(codeToValidate);
     setIsValidatingCode(true);
     try {
-      const res = await validateAffiliateReferralCodeAction(codeToValidate.trim());
+      const res = await validateAffiliateReferralCodeAction(codeToValidate);
       if (res.success && res.affiliate) {
         setReferralStatus({
           valid: true,
           affiliateName: res.affiliate.fullName,
           code: res.affiliate.referralCode,
           discount: res.discountAmount || 10000,
-          message: res.message,
+          message: res.message || `Kode referral "${res.affiliate.referralCode}" (${res.affiliate.fullName}) aktif! Subsidi diskon ongkir otomatis diterapkan.`,
         });
+        try {
+          localStorage.setItem("smartqr_referral_code", res.affiliate.referralCode);
+          document.cookie = `smartqr_ref=${encodeURIComponent(res.affiliate.referralCode)}; path=/; max-age=2592000; SameSite=Lax`;
+        } catch (e) {}
       } else {
         setReferralStatus({
           valid: false,

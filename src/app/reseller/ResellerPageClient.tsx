@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   QrCode,
@@ -30,6 +30,32 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [trackingInitialQuery, setTrackingInitialQuery] = useState("");
+  const [urlReferralCode, setUrlReferralCode] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = (urlParams.get("ref") || "").trim().toUpperCase();
+      const track = (urlParams.get("track") || "").trim();
+      const order = (urlParams.get("order") || urlParams.get("buy") || urlParams.get("register") || "").trim();
+
+      if (ref) {
+        setUrlReferralCode(ref);
+        localStorage.setItem("smartqr_referral_code", ref);
+        document.cookie = `smartqr_ref=${encodeURIComponent(ref)}; path=/; max-age=2592000; SameSite=Lax`;
+      }
+
+      if (track) {
+        setTrackingInitialQuery(track);
+        setIsTrackModalOpen(true);
+      } else if (ref || order) {
+        setIsRegisterModalOpen(true);
+      }
+    } catch (e) {
+      console.error("Reseller url query parse error:", e);
+    }
+  }, []);
 
   const handleOpenTrackingFromSuccess = (orderNumber?: string) => {
     if (orderNumber) setTrackingInitialQuery(orderNumber);
@@ -226,6 +252,7 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
         siteSetting={siteSetting}
+        defaultReferralCode={urlReferralCode}
         onOpenTracking={handleOpenTrackingFromSuccess}
       />
 

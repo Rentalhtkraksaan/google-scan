@@ -24,6 +24,7 @@ import {
 import type { Metadata } from "next";
 import { PwaInstantRedirect } from "@/components/pwa/PwaInstantRedirect";
 import { LandingRetailButtons } from "@/components/public/LandingRetailButtons";
+import { LandingAutoOrderHandler } from "@/components/public/LandingAutoOrderHandler";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +174,9 @@ export default async function LandingPage({
     <div className="min-h-screen bg-[#070b14] text-slate-100 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
       {/* Instant PWA & Stored Session Auto-Redirect (0ms latency) */}
       <PwaInstantRedirect />
+
+      {/* Auto Order & Referral Link Listener (?ref=..., ?buy=..., ?order=..., ?track=...) */}
+      <LandingAutoOrderHandler siteSetting={siteSetting || undefined} />
 
       {/* Dynamic Background Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-indigo-600/20 via-sky-600/10 to-transparent blur-3xl pointer-events-none -z-10" />

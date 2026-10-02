@@ -83,19 +83,26 @@ export function PublicResellerRegistrationModal({
   );
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
 
+  // Referral Validator
   const handleValidateReferralCode = async (customCode?: string) => {
-    const codeToValidate = customCode || referralCode;
-    if (!codeToValidate.trim()) return;
+    const codeToValidate = (customCode || referralCode).trim().toUpperCase();
+    if (!codeToValidate) return;
+
+    setReferralCode(codeToValidate);
     setIsValidatingReferral(true);
     try {
-      const res = await validateAffiliateReferralCodeAction(codeToValidate.trim());
+      const res = await validateAffiliateReferralCodeAction(codeToValidate);
       if (res.success && res.affiliate) {
         setReferralStatus({
           valid: true,
           affiliateName: res.affiliate.fullName,
           code: res.affiliate.referralCode,
-          message: `Kode referral "${res.affiliate.referralCode}" aktif! Mitra affiliate ${res.affiliate.fullName} akan menerima komisi kemitraan (50% rate).`,
+          message: `Kode referral "${res.affiliate.referralCode}" (${res.affiliate.fullName}) aktif! Komisi kemitraan otomatis terpasang.`,
         });
+        try {
+          localStorage.setItem("smartqr_referral_code", res.affiliate.referralCode);
+          document.cookie = `smartqr_ref=${encodeURIComponent(res.affiliate.referralCode)}; path=/; max-age=2592000; SameSite=Lax`;
+        } catch (e) {}
       } else {
         setReferralStatus({
           valid: false,
@@ -111,6 +118,42 @@ export function PublicResellerRegistrationModal({
       setIsValidatingReferral(false);
     }
   };
+
+  // Auto-detect referral code on mount / open / prop change
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let targetRefCode = (defaultReferralCode || "").trim().toUpperCase();
+    if (!targetRefCode && typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRef = urlParams.get("ref");
+        if (urlRef) {
+          targetRefCode = urlRef.trim().toUpperCase();
+        } else {
+          const stored = localStorage.getItem("smartqr_referral_code");
+          if (stored) targetRefCode = stored.trim().toUpperCase();
+        }
+      } catch (e) {}
+    }
+
+    if (targetRefCode) {
+      setReferralCode(targetRefCode);
+      handleValidateReferralCode(targetRefCode);
+      try {
+        localStorage.setItem("smartqr_referral_code", targetRefCode);
+        document.cookie = `smartqr_ref=${encodeURIComponent(targetRefCode)}; path=/; max-age=2592000; SameSite=Lax`;
+      } catch (e) {}
+    }
+  }, [isOpen, defaultReferralCode]);
+
+  useEffect(() => {
+    if (defaultReferralCode && defaultReferralCode.trim()) {
+      const clean = defaultReferralCode.trim().toUpperCase();
+      setReferralCode(clean);
+      handleValidateReferralCode(clean);
+    }
+  }, [defaultReferralCode]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingStatus, setSubmittingStatus] = useState("Memproses Pesanan...");
