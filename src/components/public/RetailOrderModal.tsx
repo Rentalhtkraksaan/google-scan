@@ -197,14 +197,19 @@ export function RetailOrderModal({
   }, 0);
 
   // Shipping Calculation:
-  const isJatim = province === "Jawa Timur";
-  const baseShippingFee = isJatim
-    ? (siteSetting?.resellerShippingFee ?? 15000)
-    : 35000;
+  // Jatim & Bali: 20k, Jateng & DIY: 35k, Jabar/DKI/Banten: 40k, Luar Jawa: 50k
+  // Subsidi link affiliate: 10k
+  const getBaseRate = (p: string) => {
+    if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return 35000;
+    if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return 40000;
+    if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return 50000;
+    return 20000; // Jatim & Bali
+  };
 
-  // Referral discount on shipping up to 10k
-  const shippingDiscount = (referralStatus?.valid && isJatim)
-    ? (referralStatus.discount ?? (siteSetting?.affiliateShippingDiscount ?? 10000))
+  const baseShippingFee = getBaseRate(province);
+  const isAffiliateApplied = !!(referralStatus?.valid || (defaultReferralCode && defaultReferralCode.trim()));
+  const shippingDiscount = isAffiliateApplied
+    ? (referralStatus?.discount ?? siteSetting?.affiliateShippingDiscount ?? 10000)
     : 0;
 
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
@@ -998,10 +1003,10 @@ export function RetailOrderModal({
                       onChange={(e) => setProvince(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
                     >
-                      <option value="Jawa Timur">Jawa Timur (Ongkir Terjangkau / Diskon)</option>
-                      <option value="Jawa Tengah">Jawa Tengah / DIY</option>
-                      <option value="Jawa Barat / DKI">Jawa Barat / DKI Jakarta / Banten</option>
-                      <option value="Luar Jawa">Luar Pulau Jawa</option>
+                      <option value="Jawa Timur & Bali">Jawa Timur & Bali (Rp 20.000)</option>
+                      <option value="Jawa Tengah & DIY">Jawa Tengah & D.I. Yogyakarta (Rp 35.000)</option>
+                      <option value="Jawa Barat, DKI & Banten">Jawa Barat, DKI Jakarta & Banten (Rp 40.000)</option>
+                      <option value="Luar Pulau Jawa">Luar Pulau Jawa (Rp 50.000)</option>
                     </select>
                   </div>
 

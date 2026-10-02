@@ -32,8 +32,11 @@ export const authConfig: NextAuthConfig = {
         return role === "ADMIN" || role === "SUPER_ADMIN";
       }
 
-      // Protect affiliate routes
+      // Protect affiliate routes (kecuali form pendaftaran /affiliate/register)
       if (path.startsWith("/affiliate")) {
+        if (path === "/affiliate/register" || path.startsWith("/affiliate/register")) {
+          return true;
+        }
         if (!isLoggedIn) return false;
         return role === "AFFILIATE" || role === "SUPER_ADMIN";
       }

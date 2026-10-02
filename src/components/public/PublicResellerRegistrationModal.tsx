@@ -68,6 +68,7 @@ export function PublicResellerRegistrationModal({
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
+  const [province, setProvince] = useState("Jawa Timur & Bali");
   const [notes, setNotes] = useState("");
   const [referralCode, setReferralCode] = useState(defaultReferralCode);
   const [isValidatingReferral, setIsValidatingReferral] = useState(false);
@@ -221,7 +222,18 @@ export function PublicResellerRegistrationModal({
     return sum + (p.price || 0) * qty;
   }, 0);
 
-  const shippingFee = 0; // Bebas ongkir untuk reseller
+  // Hitung ongkos kirim berdasarkan zona wilayah: Jatim & Bali 20k, Jateng & DIY 35k, Jabar/DKI/Banten 40k, Luar Jawa 50k
+  const getBaseRate = (p: string) => {
+    if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return 35000;
+    if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return 40000;
+    if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return 50000;
+    return 20000; // Jatim & Bali
+  };
+
+  const baseShippingFee = getBaseRate(province);
+  const isAffiliateApplied = !!(referralStatus?.valid || (defaultReferralCode && defaultReferralCode.trim()));
+  const shippingDiscount = isAffiliateApplied ? (siteSetting?.affiliateShippingDiscount ?? 10000) : 0;
+  const shippingFee = Math.max(0, baseShippingFee - shippingDiscount);
   const totalAmount = subtotal + shippingFee;
   const isMinOrderMet = totalQuantity >= 8;
 
@@ -335,6 +347,7 @@ export function PublicResellerRegistrationModal({
         customerPhone: customerPhone.trim().replace(/[^0-9+]/g, "").slice(0, 20),
         customerEmail: customerEmail.trim().toLowerCase().slice(0, 100),
         shippingAddress: shippingAddress.trim().slice(0, 500),
+        province: province,
         notes: notes.trim() ? notes.trim().slice(0, 300) : undefined,
         affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim() || undefined),
         paymentMethod,
@@ -862,6 +875,20 @@ export function PublicResellerRegistrationModal({
                     </div>
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-300">Wilayah / Provinsi Tujuan *</label>
+                    <select
+                      value={province}
+                      onChange={(e) => setProvince(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
+                    >
+                      <option value="Jawa Timur & Bali">Jawa Timur & Bali (Rp 20.000)</option>
+                      <option value="Jawa Tengah & DIY">Jawa Tengah & D.I. Yogyakarta (Rp 35.000)</option>
+                      <option value="Jawa Barat, DKI & Banten">Jawa Barat, DKI Jakarta & Banten (Rp 40.000)</option>
+                      <option value="Luar Pulau Jawa">Luar Pulau Jawa (Rp 50.000)</option>
+                    </select>
+                  </div>
+
                   <div className="sm:col-span-2 space-y-1">
                     <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman Paket Kartu *</label>
                     <div className="relative">
@@ -949,10 +976,19 @@ export function PublicResellerRegistrationModal({
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                      Biaya Ongkir:
+                      Ongkos Kirim ({province}):
                     </span>
-                    <span className="font-semibold text-emerald-400 text-xs">Rp 0 (Bebas Ongkir / Diurus Sendiri)</span>
+                    <span className="font-mono font-semibold text-white">Rp {baseShippingFee.toLocaleString("id-ID")}</span>
                   </div>
+                  {shippingDiscount > 0 && (
+                    <div className="flex items-center justify-between text-xs text-emerald-400">
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Subsidi Ongkir Referral:
+                      </span>
+                      <span className="font-mono font-bold">-Rp {shippingDiscount.toLocaleString("id-ID")}</span>
+                    </div>
+                  )}
                   {referralStatus?.valid && (
                     <div className="flex items-center justify-between text-xs text-purple-400">
                       <span className="flex items-center gap-1">

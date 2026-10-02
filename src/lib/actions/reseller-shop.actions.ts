@@ -318,6 +318,7 @@ export async function createResellerOrderAction(data: {
   customerPhone: string;
   customerEmail: string;
   shippingAddress?: string;
+  province?: string;
   notes?: string;
   paymentMethod: "MIDTRANS_QRIS" | "MANUAL_BANK_BNI";
   receiptImageUrl?: string;
@@ -389,12 +390,27 @@ export async function createResellerOrderAction(data: {
     }
 
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    const shippingFee = 0; // Bebas ongkir untuk pesanan grosir reseller (ongkir dibebankan / diurus sendiri oleh reseller)
+    
+    // Hitung tarif ongkir berdasarkan zona wilayah
+    const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
+    let baseShippingFee = 20000;
+    if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
+      baseShippingFee = 35000;
+    } else if (provUpper.includes("BARAT") || provUpper.includes("DKI") || provUpper.includes("JAKARTA") || provUpper.includes("BANTEN")) {
+      baseShippingFee = 40000;
+    } else if (provUpper.includes("LUAR") || provUpper.includes("SUMATERA") || provUpper.includes("KALIMANTAN") || provUpper.includes("SULAWESI") || provUpper.includes("PAPUA") || provUpper.includes("NTT") || provUpper.includes("NTB") || provUpper.includes("MALUKU")) {
+      baseShippingFee = 50000;
+    } else {
+      baseShippingFee = 20000; // Default Jawa Timur & Bali
+    }
+
+    const shippingDiscountLimit = siteSetting?.affiliateShippingDiscount ?? 10000;
     const vipDiscountPerCard = siteSetting?.resellerVipDiscountPerCard ?? 5000;
 
     // Verifikasi Kode Referral Affiliate jika ada (Pesanan Reseller mendapat komisi 50% dari rate normal)
     let validAffiliateCode: string | null = null;
     let affiliateCommission = 0;
+    let shippingDiscount = 0;
 
     if (data.affiliateCode && data.affiliateCode.trim()) {
       const cleanRef = data.affiliateCode.trim().toUpperCase();
@@ -413,6 +429,8 @@ export async function createResellerOrderAction(data: {
           const resellerRateFlat = Math.round(rate / 2);
           affiliateCommission = totalQuantity * resellerRateFlat;
         }
+        // Potongan subsidi ongkir untuk pembeli max Rp 10.000
+        shippingDiscount = Math.min(baseShippingFee, shippingDiscountLimit);
       }
     }
 
@@ -443,7 +461,8 @@ export async function createResellerOrderAction(data: {
       }
     }
 
-    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + shippingFee);
+    const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
+    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee);
     const orderNumber = await generateUniqueOrderCode(); // Format unik 6 karakter: A9PC1A
 
     // Handle Midtrans QRIS
@@ -493,11 +512,11 @@ export async function createResellerOrderAction(data: {
             quantity: item.quantity,
             name: item.productName.slice(0, 50),
           })),
-          ...(shippingFee > 0
+          ...(finalShippingFee > 0
             ? [
                 {
                   id: "SHIPPING-FEE",
-                  price: Math.round(shippingFee),
+                  price: Math.round(finalShippingFee),
                   quantity: 1,
                   name: "Biaya Ongkir & Packing",
                 },
@@ -550,7 +569,7 @@ export async function createResellerOrderAction(data: {
         customerPhone: data.customerPhone.trim(),
         customerEmail: data.customerEmail.trim(),
         shippingAddress: data.shippingAddress?.trim() || null,
-        province: "Jawa Timur",
+        province: data.province || "Jawa Timur",
         notes: data.notes?.trim() || null,
         affiliateCode: validAffiliateCode,
         affiliateCommission: affiliateCommission,
@@ -560,7 +579,7 @@ export async function createResellerOrderAction(data: {
         totalQuantity,
         subtotal: calculatedSubtotal,
         discountAmount,
-        shippingFee: 0,
+        shippingFee: finalShippingFee,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,
@@ -698,7 +717,20 @@ export async function createRetailOrderAction(data: {
     }
 
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    let baseShippingFee = siteSetting?.resellerShippingFee ?? 20000;
+    
+    // Hitung tarif ongkir berdasarkan zona wilayah
+    const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
+    let baseShippingFee = 20000;
+    if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
+      baseShippingFee = 35000;
+    } else if (provUpper.includes("BARAT") || provUpper.includes("DKI") || provUpper.includes("JAKARTA") || provUpper.includes("BANTEN")) {
+      baseShippingFee = 40000;
+    } else if (provUpper.includes("LUAR") || provUpper.includes("SUMATERA") || provUpper.includes("KALIMANTAN") || provUpper.includes("SULAWESI") || provUpper.includes("PAPUA") || provUpper.includes("NTT") || provUpper.includes("NTB") || provUpper.includes("MALUKU")) {
+      baseShippingFee = 50000;
+    } else {
+      baseShippingFee = 20000; // Default Jawa Timur & Bali
+    }
+
     const shippingDiscountLimit = siteSetting?.affiliateShippingDiscount ?? 10000;
 
     // Verifikasi Kode Referral Affiliate jika ada
