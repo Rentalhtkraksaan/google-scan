@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { RetailOrderModal } from "./RetailOrderModal";
 import { PublicResellerRegistrationModal } from "./PublicResellerRegistrationModal";
 import { TrackOrderModal } from "./TrackOrderModal";
+import { recordAffiliateClickAction } from "@/lib/actions/affiliate.actions";
 import { SiteSettingModel } from "@/types/models";
 
 interface LandingAutoOrderHandlerProps {
@@ -33,8 +34,15 @@ function AutoOrderListener({ siteSetting }: LandingAutoOrderHandlerProps) {
       try {
         localStorage.setItem("smartqr_referral_code", ref);
         document.cookie = `smartqr_ref=${encodeURIComponent(ref)}; path=/; max-age=2592000; SameSite=Lax`;
+        
+        // Track affiliate click if not yet tracked in this browser session
+        const clickKey = `tracked_click_${ref}`;
+        if (typeof window !== "undefined" && !sessionStorage.getItem(clickKey)) {
+          sessionStorage.setItem(clickKey, "1");
+          recordAffiliateClickAction(ref).catch(() => {});
+        }
       } catch (e) {
-        // ignore localStorage error
+        // ignore localStorage / sessionStorage error
       }
     } else {
       try {

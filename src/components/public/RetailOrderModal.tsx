@@ -1147,13 +1147,13 @@ export function RetailOrderModal({
             )}
 
             {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* STEP 3: DATA USAHA, MAPS & PEMBAYARAN + BUKTI TRANSFER             */}
+            {/* STEP 3: METODE PEMBAYARAN & KONFIRMASI PESANAN                    */}
             {/* ═══════════════════════════════════════════════════════════════════ */}
             {currentStep === 3 && (
               <form onSubmit={handleSubmitFinalOrder} className="space-y-4 animate-in fade-in">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 pb-1">
-                  <Store className="w-4 h-4" />
-                  <span>3. Data Usaha, Google Maps & Pembayaran</span>
+                  <CreditCard className="w-4 h-4" />
+                  <span>3. Metode Pembayaran & Konfirmasi</span>
                 </div>
 
                 {step3Error && (
@@ -1163,64 +1163,19 @@ export function RetailOrderModal({
                   </div>
                 )}
 
-                {/* Form Data Usaha & Google Maps */}
-                <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Profil Usaha yang Akan Diprogram ke Kartu QR</span>
+                {/* Ringkasan Data Usaha Singkat */}
+                <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
+                  <div className="min-w-0">
+                    <span className="text-slate-400 text-[10px] block">Pemesan & Outlet:</span>
+                    <span className="font-bold text-white truncate block">{customerName} - {outletName}</span>
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Nama Usaha / Outlet */}
-                    <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">
-                        Nama Usaha / Nama Outlet <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={outletName}
-                        onChange={(e) => {
-                          setOutletName(e.target.value);
-                          if (step3Error) setStep3Error(null);
-                        }}
-                        placeholder="Contoh: Warung Kopi Senja / Barber Shop"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
-                      />
-                    </div>
-
-                    {/* Link Google Maps */}
-                    <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">
-                        Link Google Maps / Ulasan Usaha <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={googleMapsUrl}
-                        onChange={(e) => {
-                          setGoogleMapsUrl(e.target.value);
-                          if (step3Error) setStep3Error(null);
-                        }}
-                        placeholder="https://maps.app.goo.gl/... atau nama di Maps"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono text-[11px]"
-                      />
-                    </div>
-
-                    {/* Catatan Tambahan */}
-                    <div className="sm:col-span-2">
-                      <label className="text-[11px] text-slate-400 block mb-1">
-                        Catatan Tambahan (Opsional)
-                      </label>
-                      <input
-                        type="text"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Contoh: Nomor meja kasir, request warna akrilik, atau instruksi kurir..."
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
-                      />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer underline"
+                  >
+                    Ubah
+                  </button>
                 </div>
 
                 {/* Payment Method Selector */}
