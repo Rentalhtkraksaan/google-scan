@@ -210,8 +210,18 @@ export function RetailOrderModal({
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
   const finalTotalAmount = calculatedSubtotal + finalShippingFee;
 
-  // Step 1 Validation & Next
+  // Step 1: Produk & Referral -> Step 2
   const handleGoToStep2 = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (totalQuantity < 1) {
+      alert("Pilih minimal 1 pcs produk kartu ulasan.");
+      return;
+    }
+    setCurrentStep(2);
+  };
+
+  // Step 2: Data Penerima, Usaha & Alamat -> Step 3
+  const handleGoToStep3 = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim()) {
       setStep1Error("Nama Lengkap Penerima wajib diisi.");
@@ -229,17 +239,15 @@ export function RetailOrderModal({
       setStep1Error("Alamat pengiriman lengkap wajib diisi.");
       return;
     }
-    setStep1Error(null);
-    setCurrentStep(2);
-  };
-
-  // Step 2 Validation & Next
-  const handleGoToStep3 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (totalQuantity < 1) {
-      alert("Pilih minimal 1 pcs produk kartu ulasan.");
+    if (!outletName.trim()) {
+      setStep1Error("Nama Usaha / Nama Outlet wajib diisi.");
       return;
     }
+    if (!googleMapsUrl.trim()) {
+      setStep1Error("Link Google Maps usaha wajib diisi agar kartu QR dapat diprogram.");
+      return;
+    }
+    setStep1Error(null);
     setCurrentStep(3);
   };
 
@@ -511,10 +519,10 @@ export function RetailOrderModal({
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[11px] sm:text-xs font-bold truncate">
-                    1. Data Penerima
+                    1. Pilih Produk
                   </span>
                   <span className="hidden sm:block text-[9px] text-slate-400 truncate">
-                    Nama & Alamat
+                    Varian & Referral
                   </span>
                 </div>
               </button>
@@ -523,7 +531,7 @@ export function RetailOrderModal({
               <button
                 type="button"
                 onClick={() => {
-                  if (customerName.trim() && customerPhone.trim() && customerEmail.trim() && shippingAddress.trim()) {
+                  if (totalQuantity >= 1) {
                     setCurrentStep(2);
                   }
                 }}
@@ -548,10 +556,10 @@ export function RetailOrderModal({
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[11px] sm:text-xs font-bold truncate">
-                    2. Pilih Produk
+                    2. Data Penerima
                   </span>
                   <span className="hidden sm:block text-[9px] text-slate-400 truncate">
-                    Varian & Referral
+                    Toko & Alamat
                   </span>
                 </div>
               </button>
@@ -565,6 +573,8 @@ export function RetailOrderModal({
                     customerPhone.trim() &&
                     customerEmail.trim() &&
                     shippingAddress.trim() &&
+                    outletName.trim() &&
+                    googleMapsUrl.trim() &&
                     totalQuantity >= 1
                   ) {
                     setCurrentStep(3);
@@ -587,10 +597,10 @@ export function RetailOrderModal({
                 </div>
                 <div className="min-w-0">
                   <span className="block text-[11px] sm:text-xs font-bold truncate">
-                    3. Usaha & Bayar
+                    3. Pembayaran
                   </span>
                   <span className="hidden sm:block text-[9px] text-slate-400 truncate">
-                    Nama Toko & Bukti TF
+                    QRIS / Transfer
                   </span>
                 </div>
               </button>
@@ -723,135 +733,14 @@ export function RetailOrderModal({
           /* ── 3-STEP ORDER WIZARD ── */
           <div className="pt-3 flex-1 flex flex-col justify-between">
             {/* ═══════════════════════════════════════════════════════ */}
-            {/* STEP 1: DATA PENERIMA & ALAMAT PENGIRIMAN ("DATA PENERIMA") */}
+            {/* STEP 1: PILIH PRODUK & REFERRAL ("PILIH PRODUK")           */}
             {/* ═══════════════════════════════════════════════════════ */}
             {currentStep === 1 && (
               <form onSubmit={handleGoToStep2} className="space-y-4 animate-in fade-in">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 pb-1">
-                  <User className="w-4 h-4" />
-                  <span>1. Isi Data Penerima & Alamat Pengiriman</span>
-                </div>
-
-                {step1Error && (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{step1Error}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Nama Lengkap Penerima */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Nama Lengkap Penerima Paket <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(e) => {
-                        setCustomerName(e.target.value);
-                        if (step1Error) setStep1Error(null);
-                      }}
-                      placeholder="Contoh: Budi Santoso"
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
-                    />
-                  </div>
-
-                  {/* No WhatsApp */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      No. WhatsApp Aktif <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={customerPhone}
-                      onChange={(e) => {
-                        setCustomerPhone(e.target.value);
-                        if (step1Error) setStep1Error(null);
-                      }}
-                      placeholder="Contoh: 081234567890"
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none font-mono transition-colors"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Email Aktif <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={customerEmail}
-                      onChange={(e) => {
-                        setCustomerEmail(e.target.value);
-                        if (step1Error) setStep1Error(null);
-                      }}
-                      placeholder="Contoh: budi@gmail.com"
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
-                    />
-                  </div>
-
-                  {/* Provinsi Wilayah */}
-                  <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Provinsi Wilayah Pengiriman <span className="text-rose-400">*</span>
-                    </label>
-                    <select
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
-                    >
-                      <option value="Jawa Timur">Jawa Timur (Ongkir Terjangkau / Diskon)</option>
-                      <option value="Jawa Tengah">Jawa Tengah / DIY</option>
-                      <option value="Jawa Barat / DKI">Jawa Barat / DKI Jakarta / Banten</option>
-                      <option value="Luar Jawa">Luar Pulau Jawa</option>
-                    </select>
-                  </div>
-
-                  {/* Alamat Pengiriman Lengkap */}
-                  <div className="sm:col-span-2">
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Alamat Pengiriman Lengkap <span className="text-rose-400">*</span>
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      value={shippingAddress}
-                      onChange={(e) => {
-                        setShippingAddress(e.target.value);
-                        if (step1Error) setStep1Error(null);
-                      }}
-                      placeholder="Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Kode Pos"
-                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none resize-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                {/* Step 1 Button */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-sky-600 to-indigo-600 hover:from-indigo-500 hover:to-sky-500 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-indigo-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    <span>Lanjut: Pilih Produk & Jumlah</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {/* STEP 2: PILIH PRODUK & REFERRAL ("PILIH PRODUK")                   */}
-            {/* ═══════════════════════════════════════════════════════════════════ */}
-            {currentStep === 2 && (
-              <form onSubmit={handleGoToStep3} className="space-y-4 animate-in fade-in">
                 <div className="flex items-center justify-between pb-1">
                   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400">
                     <Package className="w-4 h-4" />
-                    <span>2. Pilih Varian Produk (Min. 1 pcs)</span>
+                    <span>1. Pilih Varian Produk (Min. 1 pcs)</span>
                   </div>
                   <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
                     Dipilih: {totalQuantity} pcs
@@ -980,7 +869,7 @@ export function RetailOrderModal({
                   )}
                 </div>
 
-                {/* Mini Summary on Step 2 */}
+                {/* Mini Summary on Step 1 */}
                 <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between text-slate-400">
                     <span>Subtotal Produk ({totalQuantity} pcs):</span>
@@ -1013,6 +902,188 @@ export function RetailOrderModal({
                   </div>
                 </div>
 
+                {/* Step 1 Button */}
+                <div className="pt-1">
+                  <button
+                    type="submit"
+                    disabled={totalQuantity < 1}
+                    className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-sky-600 to-indigo-600 hover:from-indigo-500 hover:to-sky-500 disabled:opacity-50 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-indigo-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <span>Lanjut: Data Penerima & Usaha</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════════ */}
+            {/* STEP 2: DATA PENERIMA, USAHA & ALAMAT PENGIRIMAN                   */}
+            {/* ═══════════════════════════════════════════════════════════════════ */}
+            {currentStep === 2 && (
+              <form onSubmit={handleGoToStep3} className="space-y-4 animate-in fade-in">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 pb-1">
+                  <User className="w-4 h-4" />
+                  <span>2. Isi Data Penerima, Toko & Alamat Pengiriman</span>
+                </div>
+
+                {step1Error && (
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{step1Error}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Nama Lengkap Penerima */}
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      Nama Lengkap Penerima Paket <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        if (step1Error) setStep1Error(null);
+                      }}
+                      placeholder="Contoh: Budi Santoso"
+                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* No WhatsApp */}
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      No. WhatsApp Aktif <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={customerPhone}
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value);
+                        if (step1Error) setStep1Error(null);
+                      }}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none font-mono transition-colors"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      Email Aktif <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={customerEmail}
+                      onChange={(e) => {
+                        setCustomerEmail(e.target.value);
+                        if (step1Error) setStep1Error(null);
+                      }}
+                      placeholder="Contoh: budi@gmail.com"
+                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Provinsi Wilayah */}
+                  <div>
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      Provinsi Wilayah Pengiriman <span className="text-rose-400">*</span>
+                    </label>
+                    <select
+                      value={province}
+                      onChange={(e) => setProvince(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
+                    >
+                      <option value="Jawa Timur">Jawa Timur (Ongkir Terjangkau / Diskon)</option>
+                      <option value="Jawa Tengah">Jawa Tengah / DIY</option>
+                      <option value="Jawa Barat / DKI">Jawa Barat / DKI Jakarta / Banten</option>
+                      <option value="Luar Jawa">Luar Pulau Jawa</option>
+                    </select>
+                  </div>
+
+                  {/* Alamat Pengiriman Lengkap */}
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] text-slate-400 block mb-1">
+                      Alamat Pengiriman Lengkap <span className="text-rose-400">*</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={shippingAddress}
+                      onChange={(e) => {
+                        setShippingAddress(e.target.value);
+                        if (step1Error) setStep1Error(null);
+                      }}
+                      placeholder="Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Kode Pos"
+                      className="w-full px-3.5 py-2 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none resize-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Form Profil Usaha & Link Maps */}
+                <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Profil Usaha yang Akan Diprogram ke Kartu QR</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Nama Usaha / Outlet */}
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">
+                        Nama Usaha / Nama Outlet <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={outletName}
+                        onChange={(e) => {
+                          setOutletName(e.target.value);
+                          if (step1Error) setStep1Error(null);
+                        }}
+                        placeholder="Contoh: Warung Kopi Senja / Barber Shop"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                      />
+                    </div>
+
+                    {/* Link Google Maps */}
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">
+                        Link Google Maps / Ulasan Usaha <span className="text-rose-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={googleMapsUrl}
+                        onChange={(e) => {
+                          setGoogleMapsUrl(e.target.value);
+                          if (step1Error) setStep1Error(null);
+                        }}
+                        placeholder="https://maps.app.goo.gl/... atau nama di Maps"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors font-mono text-[11px]"
+                      />
+                    </div>
+
+                    {/* Catatan Tambahan */}
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] text-slate-400 block mb-1">
+                        Catatan Tambahan (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Contoh: Nomor meja kasir, request warna akrilik, atau instruksi kurir..."
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Navigation Buttons Step 2 */}
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <button
@@ -1026,10 +1097,9 @@ export function RetailOrderModal({
 
                   <button
                     type="submit"
-                    disabled={totalQuantity < 1}
-                    className="py-3 px-4 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    className="py-3 px-4 bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>Lanjut: Data Usaha & Bayar</span>
+                    <span>Lanjut: Pembayaran</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>

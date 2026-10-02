@@ -861,3 +861,35 @@ export async function updateAffiliateProfileSelfAction(data: {
     return { success: false, message: "Gagal memperbarui profil affiliate." };
   }
 }
+
+/**
+ * 14. Record Affiliate Link Click (Hitung Kunjungan / Klik Link Affiliate)
+ */
+export async function recordAffiliateClickAction(referralCode: string) {
+  try {
+    if (!referralCode || !referralCode.trim()) return { success: false };
+    const clean = referralCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!clean) return { success: false };
+
+    const affiliate = await prisma.affiliateAccount.findUnique({
+      where: { referralCode: clean },
+      select: { id: true, status: true },
+    });
+
+    if (!affiliate || affiliate.status !== "ACTIVE") {
+      return { success: false, message: "Affiliate not found or inactive" };
+    }
+
+    await prisma.affiliateAccount.update({
+      where: { id: affiliate.id },
+      data: {
+        totalClicks: { increment: 1 },
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("recordAffiliateClickAction error:", error);
+    return { success: false };
+  }
+}

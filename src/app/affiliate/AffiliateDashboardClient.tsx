@@ -61,6 +61,7 @@ interface AffiliateDashboardClientProps {
     balance: number;
     totalEarned: number;
     totalWithdrawn: number;
+    totalClicks?: number;
     bankName: string | null;
     accountNumber: string | null;
     accountHolder: string | null;
@@ -99,6 +100,8 @@ export function AffiliateDashboardClient({
   const [activeTab, setActiveTab] = useState<ActiveTab>("OVERVIEW");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedRetailLink, setCopiedRetailLink] = useState(false);
+  const [copiedResellerLink, setCopiedResellerLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
@@ -125,18 +128,37 @@ export function AffiliateDashboardClient({
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
 
-  // Referral link
+  // Referral links (Satuan & Reseller)
   const origin = typeof window !== "undefined" ? window.location.origin : "https://qr-inaja.vercel.app";
   const referralLink = `${origin}?ref=${affiliate.referralCode}`;
+  const retailReferralLink = `${origin}?ref=${affiliate.referralCode}&buy=retail`;
+  const resellerReferralLink = `${origin}?ref=${affiliate.referralCode}&buy=reseller`;
+
   const totalCardsSold = orders.reduce((sum, o) => sum + (o.paymentStatus === "PAID" ? o.totalQuantity : 0), 0);
   const paidOrders = orders.filter((o) => o.paymentStatus === "PAID");
   const paidOrdersCount = paidOrders.length;
+  const totalClicksCount = affiliate.totalClicks || 0;
+  const conversionRate = totalClicksCount > 0 ? ((paidOrdersCount / totalClicksCount) * 100).toFixed(1) : "0.0";
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralLink);
     setCopiedLink(true);
-    showSuccessAlert("Link Disalin! 🔗", "Link referral affiliate berhasil disalin.");
+    showSuccessAlert("Link Disalin! 🔗", "Link referral umum berhasil disalin.");
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopyRetailLink = () => {
+    navigator.clipboard.writeText(retailReferralLink);
+    setCopiedRetailLink(true);
+    showSuccessAlert("Link Satuan Disalin! 🛍️", "Link langsung ke Form Pemesanan Satuan (Retail) berhasil disalin.");
+    setTimeout(() => setCopiedRetailLink(false), 2500);
+  };
+
+  const handleCopyResellerLink = () => {
+    navigator.clipboard.writeText(resellerReferralLink);
+    setCopiedResellerLink(true);
+    showSuccessAlert("Link Reseller Disalin! 📦", "Link langsung ke Form Pemesanan Paket Reseller berhasil disalin.");
+    setTimeout(() => setCopiedResellerLink(false), 2500);
   };
 
   const handleCopyCode = () => {
@@ -284,6 +306,16 @@ export function AffiliateDashboardClient({
     `Halo! Mau bisnismu kebanjiran ulasan Bintang 5 di Google Maps secara instan? Coba pakai Smart QR Review Card!\n\nPesan sekarang lewat link ini untuk dapat subsidi diskon ongkir Rp ${(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}:\n${referralLink}`
   );
   const shareWaUrl = `https://wa.me/?text=${shareWaText}`;
+
+  const shareRetailWaText = encodeURIComponent(
+    `Halo! Mau bisnismu kebanjiran ulasan Bintang 5 di Google Maps secara instan? Coba pakai Smart QR Review Card!\n\nPesan satuan sekarang lewat link ini untuk dapat subsidi diskon ongkir Rp ${(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}:\n${retailReferralLink}`
+  );
+  const shareRetailWaUrl = `https://wa.me/?text=${shareRetailWaText}`;
+
+  const shareResellerWaText = encodeURIComponent(
+    `Halo! Mau punya bisnis sampingan modal kecil untung jutaan? Yuk gabung jadi Kemitraan Reseller Smart QR Review Card!\n\nDaftar & pesan paket usaha langsung lewat link ini:\n${resellerReferralLink}`
+  );
+  const shareResellerWaUrl = `https://wa.me/?text=${shareResellerWaText}`;
 
   const isCodeChangeLocked = (affiliate.referralCodeChangeCount || 0) >= 1;
 
@@ -608,68 +640,100 @@ export function AffiliateDashboardClient({
                     </p>
                   </div>
 
-                  {/* Kode & Share Box */}
-                  <div className="p-5 bg-slate-900/95 border border-slate-800 rounded-2xl space-y-3 shrink-0 md:w-80 shadow-xl">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
+                  {/* Dual Referral Link Sharing Box */}
+                  <div className="p-5 bg-slate-900/95 border border-slate-800 rounded-2xl space-y-3 shrink-0 md:w-96 shadow-xl">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                      <div className="flex items-center gap-2">
                         <span className="text-[10px] uppercase font-bold text-slate-400">
                           Kode Referral Anda:
                         </span>
-                        {isCodeChangeLocked ? (
-                          <span className="text-[10px] font-bold text-slate-500 flex items-center gap-0.5">
-                            <Lock className="w-2.5 h-2.5" /> Paten (1x)
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNewCodeInput(affiliate.referralCode);
-                              setIsChangeCodeModalOpen(true);
-                            }}
-                            className="text-[11px] font-bold text-purple-400 hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                            <span>Ubah (1x)</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-purple-500/40">
-                        <span className="text-lg font-mono font-black text-purple-300 tracking-wider">
+                        <span className="font-mono font-black text-purple-300 text-sm px-2 py-0.5 rounded bg-purple-500/20 border border-purple-500/30">
                           {affiliate.referralCode}
+                        </span>
+                      </div>
+                      {isCodeChangeLocked ? (
+                        <span className="text-[10px] font-bold text-slate-500 flex items-center gap-0.5">
+                          <Lock className="w-2.5 h-2.5" /> Paten
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewCodeInput(affiliate.referralCode);
+                            setIsChangeCodeModalOpen(true);
+                          }}
+                          className="text-[11px] font-bold text-purple-400 hover:text-purple-300 hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span>Ubah (1x)</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 1. Link Satuan (Retail) */}
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-sky-500/30 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-sky-400 flex items-center gap-1">
+                          🛍️ Link Pesan Satuan (Retail):
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-semibold">
+                          Eceran 1 Pcs
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-mono text-[11px] text-slate-300 truncate max-w-[200px]">
+                          {retailReferralLink}
                         </span>
                         <button
                           type="button"
-                          onClick={handleCopyCode}
-                          className="p-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 transition-colors cursor-pointer"
-                          title="Salin Kode"
+                          onClick={handleCopyRetailLink}
+                          className="px-2.5 py-1 rounded-lg bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors border border-sky-500/40 shrink-0"
+                          title="Salin Link Satuan"
                         >
-                          {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          {copiedRetailLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedRetailLink ? "Disalin" : "Salin"}</span>
                         </button>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleCopyLink}
-                      className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      {copiedLink ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                      <span>{copiedLink ? "Link Referral Disalin!" : "Salin Link Referral"}</span>
-                    </button>
+                    {/* 2. Link Reseller (Grosir) */}
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-purple-500/30 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-purple-400 flex items-center gap-1">
+                          📦 Link Pesan Reseller (Grosir):
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-semibold">
+                          Paket Usaha
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-mono text-[11px] text-slate-300 truncate max-w-[200px]">
+                          {resellerReferralLink}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCopyResellerLink}
+                          className="px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors border border-purple-500/40 shrink-0"
+                          title="Salin Link Reseller"
+                        >
+                          {copiedResellerLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedResellerLink ? "Disalin" : "Salin"}</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* 4 Cards Summary Metrik Keuangan */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 5 Cards Summary Metrik Keuangan & Performa */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
                 {/* Card 1: Sisa Saldo */}
-                <div className="p-5 rounded-3xl bg-slate-900/80 border border-amber-500/30 shadow-lg space-y-2 relative overflow-hidden">
+                <div className="p-5 rounded-3xl bg-slate-900/80 border border-amber-500/30 shadow-lg space-y-2 relative overflow-hidden flex flex-col justify-between">
                   <div className="flex items-center justify-between text-amber-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">Sisa Saldo Komisi</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Sisa Saldo</span>
                     <DollarSign className="w-5 h-5" />
                   </div>
-                  <div className="text-2xl font-black text-amber-400 font-mono">
+                  <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
                     Rp {affiliate.balance.toLocaleString("id-ID")}
                   </div>
                   <div className="pt-2 border-t border-slate-800">
@@ -677,57 +741,72 @@ export function AffiliateDashboardClient({
                       href={payoutWaUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow ${
+                      className={`w-full py-1.5 px-2.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 shadow ${
                         affiliate.balance > 0
                           ? "bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer"
                           : "bg-slate-800 text-slate-500 pointer-events-none opacity-60"
                       }`}
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
-                      <span>Cairkan ke WhatsApp</span>
+                      <span>Cairkan ke WA</span>
                     </a>
                   </div>
                 </div>
 
                 {/* Card 2: Total Komisi Didapat */}
-                <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2">
+                <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2 flex flex-col justify-between">
                   <div className="flex items-center justify-between text-emerald-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">Total Komisi Didapat</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Total Komisi</span>
                     <TrendingUp className="w-5 h-5" />
                   </div>
-                  <div className="text-2xl font-black text-white font-mono">
+                  <div className="text-xl sm:text-2xl font-black text-white font-mono">
                     Rp {affiliate.totalEarned.toLocaleString("id-ID")}
                   </div>
-                  <p className="text-[11px] text-slate-400 pt-1">
-                    Akumulasi seluruh penjualan sukses
+                  <p className="text-[10px] text-slate-400 pt-1 truncate">
+                    Akumulasi seluruh penjualan
                   </p>
                 </div>
 
-                {/* Card 3: Kartu Terjual */}
-                <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2">
+                {/* Card 3: Total Link Diklik (Real-time Click Counter) */}
+                <div className="p-5 rounded-3xl bg-slate-900/80 border border-indigo-500/30 shadow-lg space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-indigo-400">
+                    <span className="text-xs font-bold uppercase tracking-wider">Link Diklik</span>
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-indigo-300 font-mono">
+                    {totalClicksCount} <span className="text-xs font-semibold text-slate-400">kali</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] text-indigo-400 font-semibold pt-1">
+                    <span>Konversi:</span>
+                    <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-bold">{conversionRate}%</span>
+                  </div>
+                </div>
+
+                {/* Card 4: Kartu Terjual */}
+                <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2 flex flex-col justify-between">
                   <div className="flex items-center justify-between text-sky-400">
                     <span className="text-xs font-bold uppercase tracking-wider">Kartu Terjual</span>
                     <Package className="w-5 h-5" />
                   </div>
-                  <div className="text-2xl font-black text-sky-300 font-mono">
-                    {totalCardsSold} <span className="text-sm font-semibold text-slate-400">pcs ({paidOrdersCount} order)</span>
+                  <div className="text-xl sm:text-2xl font-black text-sky-300 font-mono">
+                    {totalCardsSold} <span className="text-xs font-semibold text-slate-400">pcs</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 pt-1">
-                    Dari pembeli via link referral Anda
+                  <p className="text-[10px] text-slate-400 pt-1 truncate">
+                    {paidOrdersCount} transaksi sukses
                   </p>
                 </div>
 
-                {/* Card 4: Tarif Komisi */}
-                <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2">
+                {/* Card 5: Tarif Komisi */}
+                <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2 flex flex-col justify-between">
                   <div className="flex items-center justify-between text-purple-400">
-                    <span className="text-xs font-bold uppercase tracking-wider">Tarif Komisi (%)</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">Tarif Komisi</span>
                     <Sparkles className="w-5 h-5" />
                   </div>
-                  <div className="text-2xl font-black text-purple-300 font-mono">
+                  <div className="text-xl sm:text-2xl font-black text-purple-300 font-mono">
                     {affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"}
                   </div>
-                  <p className="text-[11px] text-slate-400 pt-0.5">
-                    Pesanan Satuan <strong>{affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"}</strong> • Reseller <strong>{affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs / 2}%` : "7.5%"}</strong> (Murni Subtotal)
+                  <p className="text-[10px] text-slate-400 pt-0.5 truncate">
+                    Satuan {affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"} • Grosir {affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs / 2}%` : "7.5%"}
                   </p>
                 </div>
               </div>
@@ -1027,97 +1106,172 @@ export function AffiliateDashboardClient({
           {/* ═══════════════════════════════════════════════════════════ */}
           {activeTab === "REFERRAL" && (
             <div className="space-y-6 animate-in fade-in">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Box 1: Link & Kode Referral */}
-                <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-3xl space-y-5">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                    <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-purple-400" />
-                      <span>Kode & Link Referral Anda</span>
+              {/* Header Box */}
+              <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-3xl space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                      <Share2 className="w-5 h-5 text-purple-400" />
+                      <span>Pusat Link Promosi & Kode Referral Affiliate</span>
                     </h3>
-                    {isCodeChangeLocked ? (
-                      <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Paten (1x)
-                      </span>
-                    ) : (
+                    <p className="text-xs text-slate-400 mt-1">
+                      Bagikan link khusus di bawah ini. Ketika calon pembeli mengklik link, form pemesanan akan otomatis terbuka dengan kode referral Anda terkunci!
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-slate-400 font-bold">Kode Anda:</span>
+                    <span className="font-mono text-base font-black text-purple-300 px-3 py-1 rounded-xl bg-purple-500/20 border border-purple-500/30">
+                      {affiliate.referralCode}
+                    </span>
+                    {!isCodeChangeLocked && (
                       <button
                         onClick={() => {
                           setNewCodeInput(affiliate.referralCode);
                           setIsChangeCodeModalOpen(true);
                         }}
-                        className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 text-xs font-bold text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors flex items-center gap-1 cursor-pointer border border-purple-500/30"
                       >
                         <Edit2 className="w-3 h-3" />
-                        <span>Ubah Kode (1x)</span>
+                        <span>Ubah</span>
                       </button>
                     )}
                   </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-[11px] text-slate-400 block mb-1">Kode Referral Unik:</span>
-                      <div className="p-3 bg-slate-950 rounded-2xl border border-purple-500/30 flex items-center justify-between">
-                        <span className="font-mono text-xl font-black text-purple-300 tracking-wider">
-                          {affiliate.referralCode}
-                        </span>
-                        <button
-                          onClick={handleCopyCode}
-                          className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                        >
-                          {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedCode ? "Tersalin" : "Salin Kode"}</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[11px] text-slate-400 block mb-1">Link Referral Langsung:</span>
-                      <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs text-slate-300 truncate">
-                          {referralLink}
-                        </span>
-                        <button
-                          onClick={handleCopyLink}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0"
-                        >
-                          {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                          <span>{copiedLink ? "Tersalin" : "Salin Link"}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
+              </div>
 
-                {/* Box 2: Bagikan Cepat ke WhatsApp */}
-                <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-3xl space-y-4">
-                  <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-emerald-400" />
-                    <span>Bagikan Promo ke WhatsApp</span>
-                  </h3>
+              {/* 2 Dedicated Link Cards (Satuan vs Reseller) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 1. KARTU LINK PESAN SATUAN (RETAIL) */}
+                <div className="p-6 bg-slate-900/90 border border-sky-500/30 rounded-3xl space-y-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center font-bold">
+                          🛍️
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-white">Link Pesan Satuan (Retail)</h4>
+                          <span className="text-[11px] text-sky-400 font-semibold">Target: Kafe, Resto, Salon, Toko (1–3 Pcs)</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                        Komisi {affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs}%` : "15%"}
+                      </span>
+                    </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Template pesan ini sudah dilengkapi kode referral Anda dan penawaran subsidi ongkir resmi untuk menarik calon pembeli:
-                  </p>
-
-                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs text-slate-300 font-mono space-y-2">
-                    <p>
-                      Mau bisnismu kebanjiran ulasan Bintang 5 di Google Maps secara instan? Coba pakai Smart QR Review Card!
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Saat pembeli membuka link ini, sistem akan <strong>otomatis langsung membuka Form Pemesanan Satuan</strong> dan memberikan subsidi diskon ongkir Rp {(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")}.
                     </p>
-                    <p className="text-emerald-400 font-semibold">
-                      Dapatkan subsidi diskon ongkir Rp {(siteSetting?.affiliateShippingDiscount ?? 10000).toLocaleString("id-ID")} dengan kode: {affiliate.referralCode}
-                    </p>
-                    <p className="text-sky-400 underline truncate">{referralLink}</p>
+
+                    {/* URL Input Box */}
+                    <div className="p-3 bg-slate-950 rounded-2xl border border-sky-500/30 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Link Satuan Khusus:</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs text-sky-300 truncate select-all">
+                          {retailReferralLink}
+                        </span>
+                        <button
+                          onClick={handleCopyRetailLink}
+                          className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow"
+                        >
+                          {copiedRetailLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedRetailLink ? "Tersalin!" : "Salin Link"}</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
+                  {/* WA Share Button */}
                   <a
-                    href={shareWaUrl}
+                    href={shareRetailWaUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 hover:scale-[1.01] active:scale-[0.99]"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Kirim Pesan Promo Sekarang</span>
+                    <MessageCircle className="w-4 h-4 text-emerald-300" />
+                    <span>Share Promo Satuan ke WhatsApp</span>
                   </a>
+                </div>
+
+                {/* 2. KARTU LINK PESAN PAKET RESELLER (GROSIR) */}
+                <div className="p-6 bg-slate-900/90 border border-purple-500/30 rounded-3xl space-y-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold">
+                          📦
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-sm text-white">Link Pesan Paket Reseller</h4>
+                          <span className="text-[11px] text-purple-400 font-semibold">Target: Calon Mitra Reseller / Admin Lapangan</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+                        Komisi {affiliate.commissionPerPcs <= 100 ? `${affiliate.commissionPerPcs / 2}%` : "7.5%"}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Saat calon partner membuka link ini, sistem akan <strong>otomatis langsung membuka Form Pemesanan Paket Reseller</strong> dengan pilihan paket usaha & diskon ongkir.
+                    </p>
+
+                    {/* URL Input Box */}
+                    <div className="p-3 bg-slate-950 rounded-2xl border border-purple-500/30 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Link Reseller Khusus:</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs text-purple-300 truncate select-all">
+                          {resellerReferralLink}
+                        </span>
+                        <button
+                          onClick={handleCopyResellerLink}
+                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow"
+                        >
+                          {copiedResellerLink ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedResellerLink ? "Tersalin!" : "Salin Link"}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WA Share Button */}
+                  <a
+                    href={shareResellerWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    <MessageCircle className="w-4 h-4 text-emerald-300" />
+                    <span>Share Promo Reseller ke WhatsApp</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Box 3: Panduan Promosi Cerdas */}
+              <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-3xl space-y-4">
+                <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Tips Maksimalisasi Komisi Affiliate:</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300">
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+                    <strong className="text-white block font-bold">1. Pasang di Bio Medsos</strong>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      Tempelkan Link Satuan di bio Instagram, TikTok, atau status WhatsApp agar calon klien langsung diarahkan checkout.
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+                    <strong className="text-white block font-bold">2. Tawarkan ke Pemilik Usaha</strong>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      Kirim pesan langsung ke owner kafe/resto lokal dan jelaskan pentingnya ulasan bintang 5 Google Maps.
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
+                    <strong className="text-white block font-bold">3. Ajak Calon Reseller</strong>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      Bagikan Link Reseller ke teman-teman yang ingin cari penghasilan sampingan dengan menjual Smart QR.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

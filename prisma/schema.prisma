@@ -496,6 +496,7 @@ model AffiliateAccount {
   referralCodeChangeCount Int @default(0) // Maksimal 1x diubah oleh affiliator
   socialMediaUrl   String?
   followersCount   Int      @default(0)
+  totalClicks      Int      @default(0) // Hitungan berapa kali link affiliate diklik
   commissionPerPcs Int      @default(5000) // Setting komisi per pcs kartu terjual
   totalEarned      Int      @default(0)
   totalWithdrawn   Int      @default(0)
