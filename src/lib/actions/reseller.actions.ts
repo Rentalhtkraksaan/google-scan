@@ -64,6 +64,9 @@ export async function updateResellerModuleSettingsAction(data: {
   resellerModulePrice?: number;
   resellerVipDiscountPerCard?: number;
   resellerCardBasePrice?: number;
+  resellerMinOrder?: number;
+  resellerShippingFee?: number;
+  orderPackingFee?: number;
   resellerModuleTitle?: string;
   resellerModuleDesc?: string;
   resellerModulePdfUrl?: string;
@@ -80,6 +83,9 @@ export async function updateResellerModuleSettingsAction(data: {
         resellerModulePrice: data.resellerModulePrice !== undefined ? Number(data.resellerModulePrice) : undefined,
         resellerVipDiscountPerCard: data.resellerVipDiscountPerCard !== undefined ? Number(data.resellerVipDiscountPerCard) : undefined,
         resellerCardBasePrice: data.resellerCardBasePrice !== undefined ? Number(data.resellerCardBasePrice) : undefined,
+        resellerMinOrder: data.resellerMinOrder !== undefined ? Number(data.resellerMinOrder) : undefined,
+        resellerShippingFee: data.resellerShippingFee !== undefined ? Number(data.resellerShippingFee) : undefined,
+        orderPackingFee: data.orderPackingFee !== undefined ? Number(data.orderPackingFee) : undefined,
         resellerModuleTitle: data.resellerModuleTitle !== undefined ? data.resellerModuleTitle.trim() : undefined,
         resellerModuleDesc: data.resellerModuleDesc !== undefined ? data.resellerModuleDesc.trim() : undefined,
         resellerModulePdfUrl: data.resellerModulePdfUrl !== undefined ? data.resellerModulePdfUrl.trim() : undefined,
@@ -88,12 +94,26 @@ export async function updateResellerModuleSettingsAction(data: {
         id: "default",
         resellerModulePrice: Number(data.resellerModulePrice) || 150000,
         resellerVipDiscountPerCard: Number(data.resellerVipDiscountPerCard) || 5000,
-        resellerCardBasePrice: Number(data.resellerCardBasePrice) || 25000,
+        resellerCardBasePrice: Number(data.resellerCardBasePrice) || 20000,
+        resellerMinOrder: data.resellerMinOrder !== undefined ? Number(data.resellerMinOrder) : 2,
+        resellerShippingFee: Number(data.resellerShippingFee) || 20000,
+        orderPackingFee: Number(data.orderPackingFee) || 5000,
         resellerModuleTitle: data.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR",
         resellerModuleDesc: data.resellerModuleDesc || "",
         resellerModulePdfUrl: data.resellerModulePdfUrl || "",
       },
     });
+
+    // Sinkronisasi otomatis harga kartu dan min order master ke katalog produk reseller
+    if (data.resellerCardBasePrice !== undefined || data.resellerMinOrder !== undefined) {
+      await prisma.resellerProduct.updateMany({
+        where: { isActive: true },
+        data: {
+          ...(data.resellerCardBasePrice !== undefined ? { price: Number(data.resellerCardBasePrice) } : {}),
+          ...(data.resellerMinOrder !== undefined ? { minOrder: Number(data.resellerMinOrder) } : {}),
+        },
+      }).catch(() => {});
+    }
 
     await prisma.activityLog.create({
       data: {
@@ -101,17 +121,19 @@ export async function updateResellerModuleSettingsAction(data: {
         userName: session.user.name || "Super Admin",
         userRole: "SUPER_ADMIN",
         action: "UPDATE_STATUS",
-        title: "Perbarui Tarif & Modul Reseller 💼",
-        description: `Super Admin memperbarui tarif modul reseller menjadi Rp ${(data.resellerModulePrice || 150000).toLocaleString("id-ID")}, harga kartu Rp ${(data.resellerCardBasePrice || 25000).toLocaleString("id-ID")}, dan diskon VIP Rp ${(data.resellerVipDiscountPerCard || 5000).toLocaleString("id-ID")}.`,
+        title: "Perbarui Tarif & Harga Master Reseller 💼",
+        description: `Super Admin memperbarui tarif: Harga Kartu Rp ${(data.resellerCardBasePrice || 20000).toLocaleString("id-ID")}, Min Order ${data.resellerMinOrder ?? 2} pcs, Biaya Packing Rp ${(data.orderPackingFee || 5000).toLocaleString("id-ID")}, Diskon VIP Rp ${(data.resellerVipDiscountPerCard || 5000).toLocaleString("id-ID")}.`,
       },
     }).catch(() => {});
 
     revalidatePath("/super-admin");
     revalidatePath("/admin");
+    revalidatePath("/reseller");
+    revalidatePath("/");
 
     return {
       success: true,
-      message: "Pengaturan Modul Reseller & Tarif berhasil disimpan.",
+      message: "Pengaturan Harga Master, Min Order & Tarif Packing berhasil disimpan dan disinkronkan ke seluruh sistem!",
     };
   } catch (error) {
     console.error("updateResellerModuleSettingsAction error:", error);

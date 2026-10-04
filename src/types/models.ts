@@ -54,7 +54,9 @@ export interface SiteSettingModel {
   resellerModulePrice?: number;
   resellerVipDiscountPerCard?: number;
   resellerCardBasePrice?: number;
+  resellerMinOrder?: number;
   resellerShippingFee?: number;
+  orderPackingFee?: number;
   resellerModuleTitle?: string;
   resellerModuleDesc?: string | null;
   resellerModulePdfUrl?: string | null;
@@ -97,6 +99,14 @@ export interface OutletModel {
   allowSmartFilter?: boolean;
   soundEffect?: string | null;
   customGreetingText?: string | null;
+  instagramUrl?: string | null;
+  enableInstagram?: boolean;
+  tiktokUrl?: string | null;
+  enableTiktok?: boolean;
+  menuUrl?: string | null;
+  menuImages?: string | null;
+  menuTitle?: string | null;
+  enableMenu?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   owner?: {
@@ -433,6 +443,7 @@ export interface ResellerOrderModel {
   subtotal: number;
   discountAmount: number;
   shippingFee: number;
+  packingFee?: number;
   totalAmount: number;
   receiptImageUrl?: string | null;
   midtransSnapToken?: string | null;

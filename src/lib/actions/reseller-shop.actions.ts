@@ -9,6 +9,10 @@ import { sendWebPushToSuperAdmins } from "@/lib/web-push";
  * Auto-seeds default products if database has none
  */
 async function ensureDefaultProducts() {
+  const setting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+  const masterPrice = setting?.resellerCardBasePrice ?? 20000;
+  const masterMin = setting?.resellerMinOrder ?? 2;
+
   const count = await prisma.resellerProduct.count();
   if (count === 0) {
     await prisma.resellerProduct.createMany({
@@ -16,9 +20,9 @@ async function ensureDefaultProducts() {
         {
           name: "Kartu Akrilik Standar (c-Series)",
           description: "Kartu QR Akrilik Meja ukuran standar (8.5 x 5.5 cm) dengan chip NFC ntag213 & dynamic QR code anti air dan tahan gores.",
-          price: 25000,
+          price: masterPrice,
           retailPrice: 49000,
-          minOrder: 8,
+          minOrder: masterMin,
           unit: "pcs",
           isActive: true,
           sortOrder: 1,
@@ -27,9 +31,9 @@ async function ensureDefaultProducts() {
         {
           name: "Kartu Akrilik Standee Besar",
           description: "Kartu QR Akrilik Standee Meja ukuran lebih besar (10 x 7 cm) dengan visibilitas ulasan lebih mencolok untuk meja kasir & resto ramai.",
-          price: 28000,
+          price: masterPrice + 3000,
           retailPrice: 55000,
-          minOrder: 8,
+          minOrder: masterMin,
           unit: "pcs",
           isActive: true,
           sortOrder: 2,
@@ -343,9 +347,13 @@ export async function createResellerOrderAction(data: {
       return { success: false, message: "Keranjang belanja paket reseller masih kosong." };
     }
 
+    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    const masterMinOrder = siteSetting?.resellerMinOrder ?? 2;
+    const packingFee = siteSetting?.orderPackingFee ?? 5000;
+
     const totalQuantity = data.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-    if (totalQuantity < 8) {
-      return { success: false, message: `Pemesanan paket reseller wajib minimal 8 pcs (saat ini ${totalQuantity} pcs).` };
+    if (totalQuantity < masterMinOrder) {
+      return { success: false, message: `Pemesanan paket reseller minimal ${masterMinOrder} pcs (saat ini ${totalQuantity} pcs).` };
     }
 
     if (!sanitizedName || !sanitizedPhone || !sanitizedEmail) {
@@ -389,8 +397,6 @@ export async function createResellerOrderAction(data: {
       return { success: false, message: "Produk yang dipilih tidak valid." };
     }
 
-    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    
     // Hitung tarif ongkir berdasarkan zona wilayah
     const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
     let baseShippingFee = 20000;
@@ -462,7 +468,7 @@ export async function createResellerOrderAction(data: {
     }
 
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee);
+    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee);
     const orderNumber = await generateUniqueOrderCode(); // Format unik 6 karakter: A9PC1A
 
     // Handle Midtrans QRIS
@@ -518,7 +524,17 @@ export async function createResellerOrderAction(data: {
                   id: "SHIPPING-FEE",
                   price: Math.round(finalShippingFee),
                   quantity: 1,
-                  name: "Biaya Ongkir & Packing",
+                  name: `Ongkos Kirim (${data.province || "Jawa Timur"})`,
+                },
+              ]
+            : []),
+          ...(packingFee > 0
+            ? [
+                {
+                  id: "PACKING-FEE",
+                  price: Math.round(packingFee),
+                  quantity: 1,
+                  name: "Biaya Packing & Proteksi Paket",
                 },
               ]
             : []),
@@ -580,6 +596,7 @@ export async function createResellerOrderAction(data: {
         subtotal: calculatedSubtotal,
         discountAmount,
         shippingFee: finalShippingFee,
+        packingFee: packingFee,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,
@@ -760,8 +777,9 @@ export async function createRetailOrderAction(data: {
       }
     }
 
+    const packingFee = siteSetting?.orderPackingFee ?? 5000;
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const finalTotalAmount = calculatedSubtotal + finalShippingFee;
+    const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee;
     const orderNumber = await generateUniqueOrderCode(); // Format 6 karakter: A9PC1A
 
     // Handle Midtrans QRIS
@@ -813,6 +831,16 @@ export async function createRetailOrderAction(data: {
             quantity: 1,
             name: `Ongkir (${data.province || "Jawa Timur"})`,
           },
+          ...(packingFee > 0
+            ? [
+                {
+                  id: "PACKING-FEE",
+                  price: Math.round(packingFee),
+                  quantity: 1,
+                  name: "Biaya Packing & Proteksi Paket",
+                },
+              ]
+            : []),
         ],
       };
 
@@ -863,6 +891,7 @@ export async function createRetailOrderAction(data: {
         totalQuantity,
         subtotal: calculatedSubtotal,
         shippingFee: finalShippingFee,
+        packingFee: packingFee,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,

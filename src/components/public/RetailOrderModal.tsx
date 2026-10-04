@@ -242,8 +242,9 @@ export function RetailOrderModal({
     ? (referralStatus?.discount ?? siteSetting?.affiliateShippingDiscount ?? 10000)
     : 0;
 
+  const packingFee = siteSetting?.orderPackingFee ?? 5000;
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-  const finalTotalAmount = calculatedSubtotal + finalShippingFee;
+  const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee;
 
   // Step 1: Produk & Referral -> Step 2
   const handleGoToStep2 = (e: React.FormEvent) => {
@@ -923,6 +924,12 @@ export function RetailOrderModal({
                       Rp {baseShippingFee.toLocaleString("id-ID")}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Biaya Packing & Proteksi:</span>
+                    <span className="font-mono text-white font-semibold">
+                      Rp {packingFee.toLocaleString("id-ID")}
+                    </span>
+                  </div>
                   {shippingDiscount > 0 && (
                     <div className="flex items-center justify-between text-emerald-400">
                       <span className="flex items-center gap-1">
@@ -1334,6 +1341,13 @@ export function RetailOrderModal({
                     <span>Ongkos Kirim ({province}):</span>
                     <span className="font-mono text-white font-semibold">
                       Rp {baseShippingFee.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span>Biaya Packing & Proteksi:</span>
+                    <span className="font-mono text-white font-semibold">
+                      Rp {packingFee.toLocaleString("id-ID")}
                     </span>
                   </div>
 

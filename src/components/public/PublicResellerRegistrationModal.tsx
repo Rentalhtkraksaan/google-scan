@@ -277,8 +277,10 @@ export function PublicResellerRegistrationModal({
   const isAffiliateApplied = !!(referralStatus?.valid || (defaultReferralCode && defaultReferralCode.trim()));
   const shippingDiscount = isAffiliateApplied ? (siteSetting?.affiliateShippingDiscount ?? 10000) : 0;
   const shippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-  const totalAmount = subtotal + shippingFee;
-  const isMinOrderMet = totalQuantity >= 8;
+  const minOrder = siteSetting?.resellerMinOrder ?? products[0]?.minOrder ?? 2;
+  const packingFee = siteSetting?.orderPackingFee ?? 5000;
+  const totalAmount = subtotal + shippingFee + packingFee;
+  const isMinOrderMet = totalQuantity >= minOrder;
 
   const handleQtyChange = (productId: string, delta: number) => {
     setCartQuantities((prev) => {
@@ -674,13 +676,15 @@ export function PublicResellerRegistrationModal({
                       Pilih Produk & Jumlah Kartu Grosir
                     </h4>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Minimal total pesanan adalah <strong>8 pcs</strong> untuk mendapatkan harga grosir kemitraan
+                      {minOrder > 0
+                        ? `Minimal total pesanan adalah ${minOrder} pcs untuk mendapatkan harga grosir kemitraan`
+                        : "Bebas pilih jumlah kartu tanpa batasan minimum order"}
                     </p>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-slate-400 block">Total Item:</span>
                     <span className={`font-mono font-bold text-xs ${isMinOrderMet ? "text-emerald-400" : "text-amber-400"}`}>
-                      {totalQuantity} pcs {isMinOrderMet ? "✅" : `(Kurang ${8 - totalQuantity})`}
+                      {totalQuantity} pcs {isMinOrderMet ? "✅" : `(Kurang ${Math.max(0, minOrder - totalQuantity)})`}
                     </span>
                   </div>
                 </div>
@@ -757,7 +761,7 @@ export function PublicResellerRegistrationModal({
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
                     <span>
-                      Minimal total pesanan adalah <strong className="text-white">8 pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{8 - totalQuantity} pcs</strong> lagi untuk melanjutkan.
+                      Minimal total pesanan adalah <strong className="text-white">{minOrder} pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{minOrder - totalQuantity} pcs</strong> lagi untuk melanjutkan.
                     </span>
                   </div>
                 )}
@@ -1022,6 +1026,13 @@ export function PublicResellerRegistrationModal({
                       Ongkos Kirim ({province}):
                     </span>
                     <span className="font-mono font-semibold text-white">Rp {baseShippingFee.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Package className="w-3.5 h-3.5 text-teal-400" />
+                      Biaya Packing & Proteksi:
+                    </span>
+                    <span className="font-mono font-semibold text-white">Rp {packingFee.toLocaleString("id-ID")}</span>
                   </div>
                   {shippingDiscount > 0 && (
                     <div className="flex items-center justify-between text-xs text-emerald-400">

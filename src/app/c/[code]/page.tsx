@@ -33,6 +33,14 @@ const getCardByCode = cache(async (code: string) => {
           enableSmartFilter: true,
           soundEffect: true,
           customGreetingText: true,
+          instagramUrl: true,
+          enableInstagram: true,
+          tiktokUrl: true,
+          enableTiktok: true,
+          menuUrl: true,
+          menuImages: true,
+          menuTitle: true,
+          enableMenu: true,
           owner: {
             select: {
               id: true,
@@ -224,6 +232,11 @@ export default async function SmartReviewPage({
         isMember: isMemberActive,
         soundEffect: card.outlet.soundEffect || "BELL_DOUBLE",
         customGreetingText: card.outlet.customGreetingText || null,
+        instagramUrl: card.outlet.enableInstagram !== false ? (card.outlet.instagramUrl || null) : null,
+        tiktokUrl: card.outlet.enableTiktok !== false ? (card.outlet.tiktokUrl || null) : null,
+        menuUrl: card.outlet.enableMenu !== false ? (card.outlet.menuUrl || null) : null,
+        menuImages: card.outlet.enableMenu !== false ? (card.outlet.menuImages || null) : null,
+        menuTitle: card.outlet.menuTitle || "Buku Menu & Katalog Digital",
       }}
     />
   );

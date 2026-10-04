@@ -892,6 +892,14 @@ export async function updateOutletVipSettingsAction(data: {
   enableSmartFilter?: boolean;
   allowSmartFilter?: boolean;
   logoUrl?: string | null;
+  instagramUrl?: string | null;
+  enableInstagram?: boolean;
+  tiktokUrl?: string | null;
+  enableTiktok?: boolean;
+  menuUrl?: string | null;
+  menuImages?: string | null;
+  menuTitle?: string | null;
+  enableMenu?: boolean;
 }) {
   try {
     const session = await auth();
@@ -918,12 +926,28 @@ export async function updateOutletVipSettingsAction(data: {
       enableSmartFilter?: boolean;
       allowSmartFilter?: boolean;
       logoUrl?: string | null;
+      instagramUrl?: string | null;
+      enableInstagram?: boolean;
+      tiktokUrl?: string | null;
+      enableTiktok?: boolean;
+      menuUrl?: string | null;
+      menuImages?: string | null;
+      menuTitle?: string | null;
+      enableMenu?: boolean;
     } = {};
 
     if (data.soundEffect !== undefined) updateData.soundEffect = data.soundEffect;
     if (data.customGreetingText !== undefined) updateData.customGreetingText = data.customGreetingText;
     if (data.enableSmartFilter !== undefined) updateData.enableSmartFilter = data.enableSmartFilter;
     if (data.logoUrl !== undefined) updateData.logoUrl = data.logoUrl;
+    if (data.instagramUrl !== undefined) updateData.instagramUrl = data.instagramUrl ? data.instagramUrl.trim() : null;
+    if (data.enableInstagram !== undefined) updateData.enableInstagram = data.enableInstagram;
+    if (data.tiktokUrl !== undefined) updateData.tiktokUrl = data.tiktokUrl ? data.tiktokUrl.trim() : null;
+    if (data.enableTiktok !== undefined) updateData.enableTiktok = data.enableTiktok;
+    if (data.menuUrl !== undefined) updateData.menuUrl = data.menuUrl ? data.menuUrl.trim() : null;
+    if (data.menuImages !== undefined) updateData.menuImages = data.menuImages;
+    if (data.menuTitle !== undefined) updateData.menuTitle = data.menuTitle ? data.menuTitle.trim() : "Buku Menu & Katalog Digital";
+    if (data.enableMenu !== undefined) updateData.enableMenu = data.enableMenu;
 
     // Izin khusus allowSmartFilter hanya bisa diatur oleh Admin atau Super Admin
     if (data.allowSmartFilter !== undefined && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN")) {

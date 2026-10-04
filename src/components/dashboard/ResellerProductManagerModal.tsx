@@ -46,9 +46,9 @@ export function ResellerProductManagerModal({
   // Form State
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [formPrice, setFormPrice] = useState<number>(25000);
+  const [formPrice, setFormPrice] = useState<number>(20000);
   const [formRetailPrice, setFormRetailPrice] = useState<number>(49000);
-  const [formMinOrder, setFormMinOrder] = useState<number>(8);
+  const [formMinOrder, setFormMinOrder] = useState<number>(2);
   const [formUnit, setFormUnit] = useState("pcs");
   const [formImage, setFormImage] = useState<string | null>(null);
   const [formIsActive, setFormIsActive] = useState(true);
@@ -78,9 +78,9 @@ export function ResellerProductManagerModal({
     setEditingProduct(null);
     setFormName("");
     setFormDesc("");
-    setFormPrice(25000);
+    setFormPrice(20000);
     setFormRetailPrice(49000);
-    setFormMinOrder(8);
+    setFormMinOrder(2);
     setFormUnit("pcs");
     setFormImage(null);
     setFormIsActive(true);

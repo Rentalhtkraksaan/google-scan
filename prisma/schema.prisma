@@ -120,8 +120,10 @@ model SiteSetting {
   // Reseller Module & Pricing Settings
   resellerModulePrice        Int      @default(150000)
   resellerVipDiscountPerCard Int      @default(5000)
-  resellerCardBasePrice      Int      @default(25000)
-  resellerShippingFee        Int      @default(20000) // Biaya Ongkir & Packing Tetap (Rp 20.000)
+  resellerCardBasePrice      Int      @default(20000)
+  resellerMinOrder           Int      @default(2) // Minimal Order Kartu Reseller Master
+  resellerShippingFee        Int      @default(20000) // Biaya Ongkir Dasar Jatim & Bali
+  orderPackingFee            Int      @default(5000) // Biaya Packing Master Tetap per Pesanan (Rp 5.000)
   resellerModuleTitle        String   @default("Starter Kit & Modul Resmi Kemitraan Smart QR")
   resellerModuleDesc         String?  @db.Text
   resellerModulePdfUrl       String?  @db.LongText
@@ -158,6 +160,16 @@ model Outlet {
   soundEffect         String    @default("BELL_DOUBLE") // BELL_DOUBLE | CHA_CHING | LUXURY_CHIME | CELEBRATION
   customGreetingText  String?   @db.Text
   staffPairingToken   String?   @unique
+
+  // Fitur VIP: Media Sosial & Mini Katalog / E-Menu Digital
+  instagramUrl        String?   @db.Text
+  enableInstagram     Boolean   @default(true)
+  tiktokUrl           String?   @db.Text
+  enableTiktok        Boolean   @default(true)
+  menuUrl             String?   @db.Text
+  menuImages          String?   @db.LongText // JSON array string URL foto-foto menu
+  menuTitle           String?   @default("Buku Menu & Katalog Digital")
+  enableMenu          Boolean   @default(true)
 
   qrCards            QrCard[]
   feedbacks          CustomerFeedback[]
@@ -402,9 +414,9 @@ model ResellerProduct {
   name        String
   description String?  @db.Text
   imageUrl    String?  @db.LongText
-  price       Int      @default(25000) // Harga Grosir Reseller (Min 8 pcs)
+  price       Int      @default(20000) // Harga Grosir Reseller Master (Default Rp 20.000)
   retailPrice Int?     @default(49000) // Harga Eceran Outlet / Pembeli Umum (Beli 1 atau 2 pcs)
-  minOrder    Int      @default(8)
+  minOrder    Int      @default(2)     // Minimal Order Reseller Master (Default 2 pcs)
   unit        String   @default("pcs")
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
@@ -445,6 +457,7 @@ model ResellerOrder {
   subtotal              Int
   discountAmount        Int                 @default(0)
   shippingFee           Int                 @default(20000)
+  packingFee            Int                 @default(5000) // Biaya packing master tetap (Rp 5.000)
   totalAmount           Int
   receiptImageUrl       String?             @db.LongText
   midtransSnapToken     String?             @db.Text

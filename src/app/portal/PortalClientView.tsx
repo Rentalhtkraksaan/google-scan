@@ -96,6 +96,14 @@ interface PortalClientViewProps {
     enableSmartFilter?: boolean;
     allowSmartFilter?: boolean;
     staffPairingToken?: string | null;
+    instagramUrl?: string | null;
+    enableInstagram?: boolean;
+    tiktokUrl?: string | null;
+    enableTiktok?: boolean;
+    menuUrl?: string | null;
+    menuImages?: string | null;
+    menuTitle?: string | null;
+    enableMenu?: boolean;
     hasPendingPayment?: boolean;
     qrCards?: {
       code: string;
@@ -139,6 +147,26 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isUploadingVipLogo, setIsUploadingVipLogo] = useState(false);
   const vipLogoInputRef = useRef<HTMLInputElement>(null);
   const [isSavingVipSettings, setIsSavingVipSettings] = useState(false);
+
+  // Medsos & Buku Menu State
+  const [instagramUrl, setInstagramUrl] = useState<string>(outlet?.instagramUrl || "");
+  const [enableInstagram, setEnableInstagram] = useState<boolean>(outlet?.enableInstagram ?? true);
+  const [tiktokUrl, setTiktokUrl] = useState<string>(outlet?.tiktokUrl || "");
+  const [enableTiktok, setEnableTiktok] = useState<boolean>(outlet?.enableTiktok ?? true);
+  const [menuUrl, setMenuUrl] = useState<string>(outlet?.menuUrl || "");
+  const [menuTitle, setMenuTitle] = useState<string>(outlet?.menuTitle || "Buku Menu & Katalog Digital");
+  const [enableMenu, setEnableMenu] = useState<boolean>(outlet?.enableMenu ?? true);
+  const [menuImagesList, setMenuImagesList] = useState<string[]>(() => {
+    if (!outlet?.menuImages) return [];
+    try {
+      const parsed = JSON.parse(outlet.menuImages);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isUploadingMenuImage, setIsUploadingMenuImage] = useState(false);
+  const menuImageInputRef = useRef<HTMLInputElement>(null);
 
   // Staff Pairing QR State
   const [activePairingToken, setActivePairingToken] = useState<string>(outlet?.staffPairingToken || "");
@@ -267,6 +295,63 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     }
   };
 
+  const handleUploadMenuImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingMenuImage(true);
+    try {
+      const compressed = await compressImageInBrowser(file, {
+        maxWidth: 1200,
+        maxHeight: 1600,
+        quality: 0.85,
+        outputType: "base64",
+      });
+      const res = await fetch("/api/upload/cloudinary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: compressed.base64,
+          folder: "outlet_menus",
+        }),
+      });
+      const data = await res.json();
+      const finalUrl = data.success && data.url ? data.url : compressed.base64;
+      const updatedList = [...menuImagesList, finalUrl];
+      setMenuImagesList(updatedList);
+      
+      if (outlet?.id) {
+        await updateOutletVipSettingsAction({
+          outletId: outlet.id,
+          menuImages: JSON.stringify(updatedList),
+        });
+      }
+      showSuccessAlert("Foto Menu Berhasil Diunggah! 📖", "Foto lembar buku menu telah ditambahkan ke katalog.");
+    } catch (err) {
+      console.error("Error upload menu image:", err);
+      showErrorAlert("Gagal Upload", "Terjadi kesalahan saat memproses foto menu.");
+    } finally {
+      setIsUploadingMenuImage(false);
+      if (menuImageInputRef.current) menuImageInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveMenuImage = async (indexToRemove: number) => {
+    const updatedList = menuImagesList.filter((_, idx) => idx !== indexToRemove);
+    setMenuImagesList(updatedList);
+    if (outlet?.id) {
+      setIsSavingVipSettings(true);
+      try {
+        await updateOutletVipSettingsAction({
+          outletId: outlet.id,
+          menuImages: JSON.stringify(updatedList),
+        });
+        showSuccessAlert("Foto Dihapus", "Foto lembar menu berhasil dihapus.");
+      } finally {
+        setIsSavingVipSettings(false);
+      }
+    }
+  };
+
   const handleSaveVipSettings = async (overrideFilterVal?: boolean) => {
     if (!outlet?.id) return;
     const filterToSave = overrideFilterVal !== undefined ? overrideFilterVal : enableSmartFilter;
@@ -278,9 +363,17 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         customGreetingText: customGreetingText.trim() || undefined,
         enableSmartFilter: filterToSave,
         logoUrl: vipLogoUrl || undefined,
+        instagramUrl: instagramUrl.trim() || null,
+        enableInstagram: enableInstagram,
+        tiktokUrl: tiktokUrl.trim() || null,
+        enableTiktok: enableTiktok,
+        menuUrl: menuUrl.trim() || null,
+        menuImages: JSON.stringify(menuImagesList),
+        menuTitle: menuTitle.trim() || "Buku Menu & Katalog Digital",
+        enableMenu: enableMenu,
       });
       if (res.success) {
-        showSuccessAlert("Berhasil Disimpan! 🎉", "Pengaturan nada dering, suara AI, logo ulasan, dan filter rating toko Anda telah diperbarui.");
+        showSuccessAlert("Berhasil Disimpan! 🎉", "Pengaturan VIP, nada dering, logo ulasan, medsos (IG/TikTok), dan buku menu toko Anda telah diperbarui.");
       } else {
         showErrorAlert("Gagal Menyimpan", res.message || "Terjadi kesalahan.");
       }
@@ -2002,9 +2095,203 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                         </button>
                       </div>
                     </div>
+
+                    {/* PANEL 4: MEDIA SOSIAL OUTLET (INSTAGRAM & TIKTOK) */}
+                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between h-full">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-bold shrink-0">
+                              📸
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">4. Media Sosial Outlet</h3>
+                              <p className="text-[11px] text-slate-400">Tautan Instagram & TikTok di halaman ulasan</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            VIP
+                          </span>
+                        </div>
+
+                        {/* Instagram Input */}
+                        <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-2xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-pink-400 flex items-center gap-1.5">
+                              <span>📸 Instagram</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-slate-300 font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={enableInstagram}
+                                onChange={(e) => setEnableInstagram(e.target.checked)}
+                                className="rounded accent-pink-500"
+                              />
+                              <span>{enableInstagram ? "Tampilkan" : "Disembunyikan"}</span>
+                            </label>
+                          </div>
+                          <input
+                            type="text"
+                            value={instagramUrl}
+                            onChange={(e) => setInstagramUrl(e.target.value)}
+                            placeholder="@namaoutlet atau link profil IG"
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-pink-500"
+                          />
+                        </div>
+
+                        {/* TikTok Input */}
+                        <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-2xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                              <span>🎵 TikTok</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 text-[11px] text-slate-300 font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={enableTiktok}
+                                onChange={(e) => setEnableTiktok(e.target.checked)}
+                                className="rounded accent-cyan-500"
+                              />
+                              <span>{enableTiktok ? "Tampilkan" : "Disembunyikan"}</span>
+                            </label>
+                          </div>
+                          <input
+                            type="text"
+                            value={tiktokUrl}
+                            onChange={(e) => setTiktokUrl(e.target.value)}
+                            placeholder="@namaoutlet atau link profil TikTok"
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          disabled={isSavingVipSettings}
+                          onClick={() => handleSaveVipSettings()}
+                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Link Medsos"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* PANEL 5: BUKU MENU & KATALOG DIGITAL */}
+                    <div className="p-5 sm:p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4 shadow-xl flex flex-col justify-between h-full md:col-span-2 lg:col-span-1">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
+                              📖
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-white">5. Buku Menu Digital</h3>
+                              <p className="text-[11px] text-slate-400">Katalog menu / promo untuk pengunjung</p>
+                            </div>
+                          </div>
+                          <label className="flex items-center gap-1.5 text-[11px] text-amber-300 font-semibold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={enableMenu}
+                              onChange={(e) => setEnableMenu(e.target.checked)}
+                              className="rounded accent-amber-500"
+                            />
+                            <span>{enableMenu ? "Aktif" : "Nonaktif"}</span>
+                          </label>
+                        </div>
+
+                        <div className="space-y-2.5">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                              Judul Tombol Menu:
+                            </label>
+                            <input
+                              type="text"
+                              value={menuTitle}
+                              onChange={(e) => setMenuTitle(e.target.value)}
+                              placeholder="Buku Menu & Katalog Digital"
+                              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                              Link URL E-Menu Eksternal (Opsional):
+                            </label>
+                            <input
+                              type="url"
+                              value={menuUrl}
+                              onChange={(e) => setMenuUrl(e.target.value)}
+                              placeholder="https://... link web / PDF menu"
+                              className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+
+                          {/* Multi-Photo Upload Lembar Menu */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[11px] font-bold text-slate-300">
+                                Galeri Foto Lembar Menu ({menuImagesList.length} foto):
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => menuImageInputRef.current?.click()}
+                                disabled={isUploadingMenuImage}
+                                className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/40 flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <Upload className="w-3 h-3" />
+                                <span>{isUploadingMenuImage ? "Upload..." : "+ Tambah Foto"}</span>
+                              </button>
+                              <input
+                                ref={menuImageInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleUploadMenuImage}
+                              />
+                            </div>
+
+                            {menuImagesList.length > 0 ? (
+                              <div className="grid grid-cols-3 gap-2 p-2 bg-slate-950/70 border border-slate-800 rounded-xl max-h-36 overflow-y-auto custom-scrollbar">
+                                {menuImagesList.map((imgUrl, idx) => (
+                                  <div key={idx} className="relative group rounded-lg overflow-hidden border border-slate-800 aspect-3/4">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={imgUrl} alt={`Menu ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveMenuImage(idx)}
+                                      className="absolute top-1 right-1 p-1 rounded-md bg-black/80 hover:bg-rose-600 text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                      title="Hapus foto"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-slate-950/40 border border-dashed border-slate-800 rounded-xl text-center text-[10px] text-slate-500">
+                                Belum ada foto lembar menu. Upload foto buku menu makanan/minuman Anda.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          disabled={isSavingVipSettings || isUploadingMenuImage}
+                          onClick={() => handleSaveVipSettings()}
+                          className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                        >
+                          {isSavingVipSettings ? "Menyimpan..." : "💾 Simpan Pengaturan Menu"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* PANEL 4: MULTI-KASIR PAIRING (QR STAF) */}
+                  {/* PANEL 6: MULTI-KASIR PAIRING (QR STAF) */}
                   <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-amber-500/30 space-y-6 shadow-2xl">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
                       <div className="flex items-center gap-3">

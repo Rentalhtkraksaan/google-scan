@@ -13,6 +13,13 @@ interface EditOutletModalProps {
     name: string;
     googleReviewUrl: string;
     logoUrl?: string | null;
+    instagramUrl?: string | null;
+    enableInstagram?: boolean;
+    tiktokUrl?: string | null;
+    enableTiktok?: boolean;
+    menuUrl?: string | null;
+    menuTitle?: string | null;
+    enableMenu?: boolean;
     owner: {
       fullName: string;
       whatsappNumber: string | null;
@@ -33,6 +40,13 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
   const [fullName, setFullName] = useState(outlet.owner.fullName);
   const [email, setEmail] = useState(outlet.owner.email || "");
   const [whatsappNumber, setWhatsappNumber] = useState(outlet.owner.whatsappNumber || "");
+  const [instagramUrl, setInstagramUrl] = useState(outlet.instagramUrl || "");
+  const [enableInstagram, setEnableInstagram] = useState(outlet.enableInstagram ?? true);
+  const [tiktokUrl, setTiktokUrl] = useState(outlet.tiktokUrl || "");
+  const [enableTiktok, setEnableTiktok] = useState(outlet.enableTiktok ?? true);
+  const [menuUrl, setMenuUrl] = useState(outlet.menuUrl || "");
+  const [menuTitle, setMenuTitle] = useState(outlet.menuTitle || "Buku Menu & Katalog Digital");
+  const [enableMenu, setEnableMenu] = useState(outlet.enableMenu ?? true);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -97,6 +111,13 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
       formData.set("name", name);
       formData.set("googleReviewUrl", googleReviewUrl);
       formData.set("logoUrl", logoUrl || "");
+      formData.set("instagramUrl", instagramUrl || "");
+      formData.set("enableInstagram", enableInstagram ? "1" : "0");
+      formData.set("tiktokUrl", tiktokUrl || "");
+      formData.set("enableTiktok", enableTiktok ? "1" : "0");
+      formData.set("menuUrl", menuUrl || "");
+      formData.set("menuTitle", menuTitle || "Buku Menu & Katalog Digital");
+      formData.set("enableMenu", enableMenu ? "1" : "0");
       formData.set("fullName", fullName);
       formData.set("email", email);
       formData.set("whatsappNumber", whatsappNumber);
@@ -219,6 +240,93 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
                   accept="image/png,image/jpeg,image/webp,image/jpg"
                   className="hidden"
                   onChange={handleLogoSelect}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Media Sosial & Buku Menu Digital Outlet */}
+          <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Media Sosial & E-Menu Outlet (Tampil di Halaman Scan)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-pink-300">Instagram Outlet</label>
+                  <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableInstagram}
+                      onChange={(e) => setEnableInstagram(e.target.checked)}
+                      className="rounded accent-pink-500"
+                    />
+                    <span>Aktif</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="@namaoutlet atau link IG"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-cyan-300">TikTok Outlet</label>
+                  <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableTiktok}
+                      onChange={(e) => setEnableTiktok(e.target.checked)}
+                      className="rounded accent-cyan-500"
+                    />
+                    <span>Aktif</span>
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={tiktokUrl}
+                  onChange={(e) => setTiktokUrl(e.target.value)}
+                  placeholder="@namaoutlet atau link TikTok"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-amber-300">Link Buku Menu / Katalog Digital</label>
+                <label className="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableMenu}
+                    onChange={(e) => setEnableMenu(e.target.checked)}
+                    className="rounded accent-amber-500"
+                  />
+                  <span>Aktif</span>
+                </label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={menuTitle}
+                  onChange={(e) => setMenuTitle(e.target.value)}
+                  placeholder="Judul: Buku Menu & Katalog Digital"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
+                />
+                <input
+                  type="url"
+                  value={menuUrl}
+                  onChange={(e) => setMenuUrl(e.target.value)}
+                  placeholder="https://drive.google.com/... atau URL menu"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>

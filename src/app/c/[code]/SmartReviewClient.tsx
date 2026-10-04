@@ -14,6 +14,10 @@ import {
   CheckCircle2,
   User,
   Volume2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  BookOpen,
 } from "lucide-react";
 import { playSoundEffect } from "@/lib/notification-sound";
 
@@ -29,7 +33,44 @@ interface SmartReviewClientProps {
     isMember?: boolean;
     soundEffect?: string | null;
     customGreetingText?: string | null;
+    instagramUrl?: string | null;
+    tiktokUrl?: string | null;
+    menuUrl?: string | null;
+    menuImages?: string | null;
+    menuTitle?: string | null;
   };
+}
+
+function formatInstagramUrl(input?: string | null): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  const handle = trimmed.replace(/^@/, "");
+  return `https://instagram.com/${handle}`;
+}
+
+function formatTiktokUrl(input?: string | null): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  const handle = trimmed.replace(/^@/, "");
+  return `https://tiktok.com/@${handle}`;
+}
+
+function formatMenuUrl(input?: string | null): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
 }
 
 const RATING_INFO: Record<
@@ -157,6 +198,43 @@ export function SmartReviewClient({ cardCode, outlet }: SmartReviewClientProps) 
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
+  // E-Menu Gallery Lightbox State
+  const [showMenuGallery, setShowMenuGallery] = useState(false);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+
+  // Parse menu images safely
+  let parsedMenuImages: string[] = [];
+  if (outlet.menuImages) {
+    try {
+      const parsed = JSON.parse(outlet.menuImages);
+      if (Array.isArray(parsed)) {
+        parsedMenuImages = parsed.filter(
+          (u): u is string => typeof u === "string" && u.trim().length > 0
+        );
+      }
+    } catch {
+      if (typeof outlet.menuImages === "string" && outlet.menuImages.startsWith("http")) {
+        parsedMenuImages = [outlet.menuImages];
+      }
+    }
+  }
+
+  // Handle keyboard navigation for Lightbox
+  useEffect(() => {
+    if (!showMenuGallery || parsedMenuImages.length === 0) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : parsedMenuImages.length - 1));
+      } else if (e.key === "ArrowRight") {
+        setActivePhotoIdx((prev) => (prev < parsedMenuImages.length - 1 ? prev + 1 : 0));
+      } else if (e.key === "Escape") {
+        setShowMenuGallery(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showMenuGallery, parsedMenuImages.length]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -494,6 +572,137 @@ ${feedbackMessage.trim()}`;
         </div>
       )}
 
+      {/* POP-UP MODAL: LIGHTBOX E-MENU / KATALOG DIGITAL */}
+      {showMenuGallery && parsedMenuImages.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-5 animate-in fade-in duration-200">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between w-full max-w-4xl mx-auto py-2 px-1 text-white border-b border-slate-800/80">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="p-1.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <BookOpen className="w-4 h-4" />
+              </span>
+              <div className="truncate">
+                <h3 className="font-bold text-sm sm:text-base text-white truncate">
+                  {outlet.menuTitle || "Buku Menu & Katalog Digital"}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Halaman {activePhotoIdx + 1} dari {parsedMenuImages.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {formatMenuUrl(outlet.menuUrl) && (
+                <a
+                  href={formatMenuUrl(outlet.menuUrl)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all"
+                >
+                  <span>Link Menu</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowMenuGallery(false)}
+                className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                aria-label="Tutup Galeri Menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Main Photo View with Left/Right Navigation Arrows */}
+          <div className="relative flex-1 flex items-center justify-center my-2 max-w-4xl mx-auto w-full overflow-hidden">
+            {parsedMenuImages.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setActivePhotoIdx((prev) =>
+                    prev > 0 ? prev - 1 : parsedMenuImages.length - 1
+                  )
+                }
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2.5 sm:p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-white shadow-xl backdrop-blur-sm transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                aria-label="Halaman Sebelumnya"
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            )}
+
+            <div className="w-full h-full flex items-center justify-center p-1 sm:p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={parsedMenuImages[activePhotoIdx]}
+                src={parsedMenuImages[activePhotoIdx]}
+                alt={`Menu ${outlet.name} - Halaman ${activePhotoIdx + 1}`}
+                className="max-h-[72vh] max-w-full object-contain rounded-2xl shadow-2xl shadow-black border border-slate-800/80 animate-in zoom-in-95 duration-200"
+              />
+            </div>
+
+            {parsedMenuImages.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setActivePhotoIdx((prev) =>
+                    prev < parsedMenuImages.length - 1 ? prev + 1 : 0
+                  )
+                }
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2.5 sm:p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-white shadow-xl backdrop-blur-sm transition-all hover:scale-110 active:scale-95 cursor-pointer"
+                aria-label="Halaman Selanjutnya"
+              >
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Footer Strip: Thumbnails & Action Button */}
+          <div className="w-full max-w-4xl mx-auto space-y-2">
+            {parsedMenuImages.length > 1 && (
+              <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 px-1 max-w-full custom-scrollbar">
+                {parsedMenuImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActivePhotoIdx(idx)}
+                    className={`relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                      activePhotoIdx === idx
+                        ? "border-amber-400 scale-105 shadow-md shadow-amber-500/30"
+                        : "border-slate-800 opacity-50 hover:opacity-100"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img}
+                      alt={`Thumb ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-0 right-0 px-1 py-0.2 bg-black/70 text-[9px] font-mono text-white">
+                      {idx + 1}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {formatMenuUrl(outlet.menuUrl) && (
+              <div className="sm:hidden text-center pt-1">
+                <a
+                  href={formatMenuUrl(outlet.menuUrl)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold"
+                >
+                  <span>Buka Link Menu Lengkap</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <main className="w-full max-w-md relative z-10 my-auto">
         {/* OUTLET BRANDING */}
         <div className="text-center mb-6">
@@ -716,6 +925,122 @@ ${feedbackMessage.trim()}`;
             </div>
           )}
         </div>
+
+        {/* MEDIA SOSIAL & BUKU MENU DIGITAL OUTLET */}
+        {Boolean(
+          parsedMenuImages.length > 0 ||
+          formatMenuUrl(outlet.menuUrl) ||
+          formatInstagramUrl(outlet.instagramUrl) ||
+          formatTiktokUrl(outlet.tiktokUrl)
+        ) && (
+          <div className="mt-4 p-3.5 sm:p-4 rounded-3xl bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 shadow-xl space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span>Jelajahi {outlet.name}</span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {/* E-Menu: Tombol Galeri Foto (Jika ada gambar) atau Link Eksternal (Jika hanya link) */}
+              {parsedMenuImages.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActivePhotoIdx(0);
+                    setShowMenuGallery(true);
+                  }}
+                  className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white transition-all group flex items-center justify-between shadow-sm hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-lg shrink-0 group-hover:rotate-6 transition-transform">
+                      📖
+                    </span>
+                    <div className="text-left truncate">
+                      <div className="font-extrabold text-amber-300 text-xs sm:text-sm group-hover:text-white transition-colors truncate">
+                        {outlet.menuTitle || "Buku Menu & Katalog Digital"}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal truncate">
+                        {parsedMenuImages.length} Halaman Foto • Sentuh untuk Membuka
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-bold group-hover:bg-amber-500 group-hover:text-slate-950 transition-all shrink-0">
+                    Lihat Menu
+                  </span>
+                </button>
+              ) : formatMenuUrl(outlet.menuUrl) ? (
+                <a
+                  href={formatMenuUrl(outlet.menuUrl)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border border-amber-500/40 hover:border-amber-400 text-amber-200 hover:text-white transition-all group flex items-center justify-between shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-lg shrink-0 group-hover:rotate-6 transition-transform">
+                      📖
+                    </span>
+                    <div className="text-left truncate">
+                      <div className="font-extrabold text-amber-300 text-xs sm:text-sm group-hover:text-white transition-colors truncate">
+                        {outlet.menuTitle || "Buku Menu & Katalog Digital"}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-normal truncate">
+                        Daftar menu, harga, dan promo spesial hari ini
+                      </div>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                </a>
+              ) : null}
+
+              {(formatInstagramUrl(outlet.instagramUrl) || formatTiktokUrl(outlet.tiktokUrl)) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {formatInstagramUrl(outlet.instagramUrl) && (
+                    <a
+                      href={formatInstagramUrl(outlet.instagramUrl)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-2xl bg-slate-950/80 border border-pink-500/30 hover:border-pink-400/60 text-slate-200 hover:text-white transition-all group flex items-center justify-between hover:scale-[1.01] active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-8 h-8 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 text-sm shrink-0 group-hover:scale-110 transition-transform">
+                          📸
+                        </span>
+                        <div className="text-left truncate">
+                          <div className="text-pink-300 text-[11px] font-bold">Instagram</div>
+                          <div className="text-[10px] text-slate-400 font-normal truncate">
+                            {outlet.instagramUrl?.replace(/^https?:\/\/(www\.)?instagram\.com\//, "@") || "Ikuti Kami"}
+                          </div>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-pink-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </a>
+                  )}
+
+                  {formatTiktokUrl(outlet.tiktokUrl) && (
+                    <a
+                      href={formatTiktokUrl(outlet.tiktokUrl)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 hover:border-cyan-400/60 text-slate-200 hover:text-white transition-all group flex items-center justify-between hover:scale-[1.01] active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-sm shrink-0 group-hover:scale-110 transition-transform">
+                          🎵
+                        </span>
+                        <div className="text-left truncate">
+                          <div className="text-cyan-300 text-[11px] font-bold">TikTok</div>
+                          <div className="text-[10px] text-slate-400 font-normal truncate">
+                            {outlet.tiktokUrl?.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "@") || "Ikuti Kami"}
+                          </div>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-cyan-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* FOOTER */}
         <div className="text-center mt-6 space-y-1">

@@ -129,7 +129,9 @@ export function MembershipManagementModal({
 
   // Tab Settings: Reseller Module & VIP Rewards
   const [resellerModulePrice, setResellerModulePrice] = useState(siteSetting?.resellerModulePrice ?? 150000);
-  const [resellerCardBasePrice, setResellerCardBasePrice] = useState(siteSetting?.resellerCardBasePrice ?? 25000);
+  const [resellerCardBasePrice, setResellerCardBasePrice] = useState(siteSetting?.resellerCardBasePrice ?? 20000);
+  const [resellerMinOrder, setResellerMinOrder] = useState<number>(siteSetting?.resellerMinOrder ?? 2);
+  const [orderPackingFee, setOrderPackingFee] = useState<number>(siteSetting?.orderPackingFee ?? 5000);
   const [resellerVipDiscountPerCard, setResellerVipDiscountPerCard] = useState(siteSetting?.resellerVipDiscountPerCard ?? 5000);
   const [resellerModuleTitle, setResellerModuleTitle] = useState(siteSetting?.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR");
   const [resellerModuleDesc, setResellerModuleDesc] = useState(siteSetting?.resellerModuleDesc || "");
@@ -541,7 +543,9 @@ export function MembershipManagementModal({
         ),
         updateResellerModuleSettingsAction({
           resellerModulePrice: Number(resellerModulePrice) || 150000,
-          resellerCardBasePrice: Number(resellerCardBasePrice) || 25000,
+          resellerCardBasePrice: Number(resellerCardBasePrice) || 20000,
+          resellerMinOrder: Number(resellerMinOrder) >= 0 ? Number(resellerMinOrder) : 2,
+          orderPackingFee: Number(orderPackingFee) >= 0 ? Number(orderPackingFee) : 5000,
           resellerVipDiscountPerCard: Number(resellerVipDiscountPerCard) || 5000,
           resellerModuleTitle: resellerModuleTitle.trim() || undefined,
           resellerModuleDesc: resellerModuleDesc.trim() || undefined,
@@ -1639,7 +1643,61 @@ export function MembershipManagementModal({
                   💼 <strong>Sistem Kemitraan & Diskon VIP</strong>: Super Admin mendaftarkan akun Admin Lapangan (Reseller). Reseller wajib membeli Modul Aktivasi Akun (atau dibuka manual oleh Super Admin). Setiap outlet yang didaftarkan reseller menjadi <strong>VIP Aktif</strong>, reseller mendapatkan reward diskon pembelian kartu berikutnya (1x klaim per outlet VIP).
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Harga Dasar Kartu Reseller (Rp/Pcs) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Rp</span>
+                      <input
+                        type="number"
+                        value={resellerCardBasePrice}
+                        onChange={(e) => setResellerCardBasePrice(Number(e.target.value))}
+                        required
+                        min={0}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-bold text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Tarif master harga grosir per kartu (misal 20.000 / 15.000)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Minimal Order Reseller (Pcs) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Min</span>
+                      <input
+                        type="number"
+                        value={resellerMinOrder}
+                        onChange={(e) => setResellerMinOrder(Number(e.target.value))}
+                        required
+                        min={0}
+                        className="w-full pl-12 pr-3 py-2.5 rounded-xl bg-slate-900 border border-sky-500/40 text-sky-300 font-bold text-xs focus:outline-none focus:border-sky-400"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Syarat min. order reseller (isi 0 atau 1 jika tanpa minimum)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      Biaya Packing Master (Rp/Pesanan) <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Rp</span>
+                      <input
+                        type="number"
+                        value={orderPackingFee}
+                        onChange={(e) => setOrderPackingFee(Number(e.target.value))}
+                        required
+                        min={0}
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-teal-500/40 text-teal-300 font-bold text-xs focus:outline-none focus:border-teal-400"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Biaya packing & proteksi setiap pesanan (default Rp 5.000)</span>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-200 mb-1">
                       Harga Modul Reseller (Rp) <span className="text-rose-400">*</span>
@@ -1655,25 +1713,7 @@ export function MembershipManagementModal({
                         className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-xs focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1 block">Biaya aktivasi akun reseller</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-200 mb-1">
-                      Harga Dasar Kartu (Rp/Pcs) <span className="text-rose-400">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">Rp</span>
-                      <input
-                        type="number"
-                        value={resellerCardBasePrice}
-                        onChange={(e) => setResellerCardBasePrice(Number(e.target.value))}
-                        required
-                        min={0}
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-xs focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1 block">Tarif order kartu normal</span>
+                    <span className="text-[10px] text-slate-500 mt-1 block">Biaya aktivasi akun modul reseller</span>
                   </div>
 
                   <div>

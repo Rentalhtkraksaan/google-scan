@@ -234,12 +234,14 @@ export function ResellerShopModal({
   const discountedCardsCount = Math.min(totalQuantity, availableVipDiscountsCount);
   const discountAmount = discountedCardsCount * vipDiscountPerCard;
 
+  const minOrder = siteSetting?.resellerMinOrder ?? 2;
+  const packingFee = siteSetting?.orderPackingFee ?? 5000;
   const shippingFee = 0; // Bebas ongkir untuk reseller
-  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
+  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee + packingFee);
 
-  // Minimal order reseller adalah 8 pcs total
-  const isMinOrderMet = totalQuantity >= 8;
-  const missingQty = Math.max(0, 8 - totalQuantity);
+  // Minimal order reseller adalah minOrder pcs total
+  const isMinOrderMet = totalQuantity >= minOrder;
+  const missingQty = Math.max(0, minOrder - totalQuantity);
 
   // Helper Cart
   const handleAddToCart = (product: ResellerProductModel) => {
@@ -918,7 +920,9 @@ export function ResellerShopModal({
                             Rincian Paket Kartu & Jumlah Pembelian
                           </h4>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            Minimal total pengambilan adalah <strong>8 pcs</strong> kartu untuk mendapatkan harga grosir reseller
+                            {minOrder > 0
+                              ? `Minimal total pengambilan adalah ${minOrder} pcs kartu untuk mendapatkan harga grosir reseller`
+                              : "Bebas ambil jumlah kartu tanpa batasan minimum order"}
                           </p>
                         </div>
                         <div className="text-right">
@@ -1002,7 +1006,7 @@ export function ResellerShopModal({
                         <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2">
                           <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
                           <span>
-                            Minimal total pesanan adalah <strong className="text-white">8 pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{missingQty} pcs</strong> lagi untuk melanjutkan ke pembayaran.
+                            Minimal total pesanan adalah <strong className="text-white">{minOrder} pcs</strong> (saat ini {totalQuantity} pcs). Tambahkan <strong className="text-amber-200 font-bold">{missingQty} pcs</strong> lagi untuk melanjutkan ke pembayaran.
                           </span>
                         </div>
                       )}
@@ -1082,6 +1086,16 @@ export function ResellerShopModal({
                           </span>
                           <span className="font-semibold text-emerald-400 text-xs">
                             Rp 0 (Bebas Ongkir / Diurus Sendiri)
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <Package className="w-3.5 h-3.5 text-teal-400" />
+                            Biaya Packing & Proteksi:
+                          </span>
+                          <span className="font-mono font-bold text-teal-300">
+                            Rp {packingFee.toLocaleString("id-ID")}
                           </span>
                         </div>
 

@@ -1145,6 +1145,14 @@ export async function updateOutletAction(
     const enableSmartFilterRaw = formData.get("enableSmartFilter");
     const allowSmartFilterRaw = formData.get("allowSmartFilter");
     const logoUrlRaw = formData.get("logoUrl");
+    const instagramUrlRaw = formData.get("instagramUrl");
+    const enableInstagramRaw = formData.get("enableInstagram");
+    const tiktokUrlRaw = formData.get("tiktokUrl");
+    const enableTiktokRaw = formData.get("enableTiktok");
+    const menuUrlRaw = formData.get("menuUrl");
+    const menuImagesRaw = formData.get("menuImages");
+    const menuTitleRaw = formData.get("menuTitle");
+    const enableMenuRaw = formData.get("enableMenu");
 
     const outletUpdateData: {
       name: string;
@@ -1152,6 +1160,14 @@ export async function updateOutletAction(
       logoUrl?: string | null;
       enableSmartFilter?: boolean;
       allowSmartFilter?: boolean;
+      instagramUrl?: string | null;
+      enableInstagram?: boolean;
+      tiktokUrl?: string | null;
+      enableTiktok?: boolean;
+      menuUrl?: string | null;
+      menuImages?: string | null;
+      menuTitle?: string | null;
+      enableMenu?: boolean;
     } = {
       name: name.trim(),
       googleReviewUrl: finalReviewUrl,
@@ -1159,6 +1175,31 @@ export async function updateOutletAction(
 
     if (logoUrlRaw !== null) {
       outletUpdateData.logoUrl = (logoUrlRaw as string).trim() || null;
+    }
+
+    if (instagramUrlRaw !== null) {
+      outletUpdateData.instagramUrl = (instagramUrlRaw as string).trim() || null;
+    }
+    if (enableInstagramRaw !== null) {
+      outletUpdateData.enableInstagram = enableInstagramRaw === "true" || enableInstagramRaw === "1";
+    }
+    if (tiktokUrlRaw !== null) {
+      outletUpdateData.tiktokUrl = (tiktokUrlRaw as string).trim() || null;
+    }
+    if (enableTiktokRaw !== null) {
+      outletUpdateData.enableTiktok = enableTiktokRaw === "true" || enableTiktokRaw === "1";
+    }
+    if (menuUrlRaw !== null) {
+      outletUpdateData.menuUrl = (menuUrlRaw as string).trim() || null;
+    }
+    if (menuImagesRaw !== null) {
+      outletUpdateData.menuImages = (menuImagesRaw as string).trim() || null;
+    }
+    if (menuTitleRaw !== null) {
+      outletUpdateData.menuTitle = (menuTitleRaw as string).trim() || "Buku Menu & Katalog Digital";
+    }
+    if (enableMenuRaw !== null) {
+      outletUpdateData.enableMenu = enableMenuRaw === "true" || enableMenuRaw === "1";
     }
 
     if (enableSmartFilterRaw !== null) {
