@@ -4519,6 +4519,8 @@ Tim Layanan Smart QR`;
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="SUPER_ADMIN"
+        currentUserRole="SUPER_ADMIN"
+        isSuperAdminMaster={isMaster}
       />
 
       {/* Reseller Orders Manager Modal (Super Admin 1 & 2) */}

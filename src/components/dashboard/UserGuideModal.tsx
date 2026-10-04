@@ -31,7 +31,23 @@ import {
   Printer,
   Globe,
   ShieldAlert,
+  Plus,
+  Edit,
+  Trash2,
+  RotateCcw,
+  Loader2,
+  Save,
+  Eye,
 } from "lucide-react";
+import { GuideArticleModel } from "@/types/models";
+import {
+  getGuideArticlesAction,
+  createGuideArticleAction,
+  updateGuideArticleAction,
+  deleteGuideArticleAction,
+  resetDefaultGuidesAction,
+} from "@/lib/actions/guide.actions";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 
 export type GuideRole = "SUPER_ADMIN" | "ADMIN" | "OUTLET" | "FAQ";
 
@@ -39,37 +55,76 @@ interface UserGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialRole?: GuideRole;
+  currentUserRole?: string;
+  isSuperAdminMaster?: boolean;
 }
 
-interface GuideSection {
-  id: string;
-  title: string;
-  icon: any;
-  tag: string;
-  tagColor: string;
-  summary: string;
-  content: React.ReactNode;
-}
+const TAG_COLOR_MAP: Record<string, { bg: string; text: string; border: string }> = {
+  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/25" },
+  indigo: { bg: "bg-indigo-500/10", text: "text-indigo-400", border: "border-indigo-500/25" },
+  teal: { bg: "bg-teal-500/10", text: "text-teal-400", border: "border-teal-500/25" },
+  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/25" },
+  sky: { bg: "bg-sky-500/10", text: "text-sky-400", border: "border-sky-500/25" },
+  amber: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/25" },
+  rose: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/25" },
+};
 
 export function UserGuideModal({
   isOpen,
   onClose,
   initialRole = "SUPER_ADMIN",
+  currentUserRole = "SUPER_ADMIN",
+  isSuperAdminMaster = false,
 }: UserGuideModalProps) {
   const [activeTab, setActiveTab] = useState<GuideRole>(initialRole);
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    "sa-1": true,
-    "admin-1": true,
-    "outlet-1": true,
-    "faq-1": true,
-  });
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [articles, setArticles] = useState<GuideArticleModel[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Pastikan saat modal dibuka selalu reset tab ke role pengguna yang bersangkutan
+  // Editor Modal State (Super Admin 1 & 2)
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<GuideArticleModel | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form States
+  const [formCategory, setFormCategory] = useState<string>("SUPER_ADMIN");
+  const [formTitle, setFormTitle] = useState("");
+  const [formTag, setFormTag] = useState("Panduan");
+  const [formTagColor, setFormTagColor] = useState("indigo");
+  const [formSummary, setFormSummary] = useState("");
+  const [formContentHtml, setFormContentHtml] = useState("");
+  const [formOrderNumber, setFormOrderNumber] = useState<number>(0);
+  const [showEditorPreview, setShowEditorPreview] = useState(false);
+
+  const isSuperAdminUser = currentUserRole === "SUPER_ADMIN";
+
+  // Load articles from database
+  const loadArticles = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getGuideArticlesAction();
+      if (res.success && res.data) {
+        setArticles(res.data as GuideArticleModel[]);
+        // Auto-expand first 2 items
+        const initialExpand: Record<string, boolean> = {};
+        (res.data as GuideArticleModel[]).slice(0, 3).forEach((a) => {
+          initialExpand[a.id] = true;
+        });
+        setExpandedSections(initialExpand);
+      }
+    } catch (err) {
+      console.error("Gagal load artikel:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       setActiveTab(initialRole);
       setSearchQuery("");
+      loadArticles();
     }
   }, [isOpen, initialRole]);
 
@@ -82,7 +137,7 @@ export function UserGuideModal({
 
   const expandAll = () => {
     const all: Record<string, boolean> = {};
-    activeSections.forEach((s) => (all[s.id] = true));
+    filteredSections.forEach((s) => (all[s.id] = true));
     setExpandedSections(all);
   };
 
@@ -90,648 +145,152 @@ export function UserGuideModal({
     setExpandedSections({});
   };
 
-  // 1. DATA MODUL SUPER ADMIN
-  const superAdminSections: GuideSection[] = [
-    {
-      id: "sa-1",
-      title: "1. Tingkatan Hak Akses: Super Admin 1 vs Super Admin 2",
-      icon: ShieldCheck,
-      tag: "Keamanan Sistem",
-      tagColor: "emerald",
-      summary: "Memahami wewenang Master Founder (SA 1) dan operasional sistem (SA 2).",
-      content: (
-        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Sistem Smart QR Review membedakan peran Super Admin menjadi dua tingkatan hierarki untuk menjamin keamanan database dan stabilitas operasional:
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
-              <div className="flex items-center gap-1.5 font-bold text-amber-300">
-                <Sparkles className="w-4 h-4" />
-                <span>Super Admin 1 (Master / Founder)</span>
-              </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11.5px]">
-                <li><strong>Otoritas Tertinggi:</strong> Pemegang akun utama sistem.</li>
-                <li><strong>Izin Hapus Data Permanen:</strong> Satu-satunya role yang memiliki tombol hapus untuk Kartu QR, Outlet, Admin Lapangan, dan Invoice.</li>
-                <li><strong>Delegasi Hak Akses:</strong> Dapat memberikan/mencabut izin edit landing page, manajemen template cetak, dan analitik untuk SA 2.</li>
-                <li><strong>Backup & Pulihkan Database:</strong> Akses menu pencadangan data otomatis.</li>
-              </ul>
-            </div>
+  // Open Create Form (Super Admin 1 & 2)
+  const handleOpenCreate = (targetCategory?: string) => {
+    setEditingArticle(null);
+    setFormCategory(targetCategory || activeTab);
+    setFormTitle("");
+    setFormTag("Panduan");
+    setFormTagColor("indigo");
+    setFormSummary("");
+    setFormContentHtml("<p>Tuliskan isi panduan di sini...</p>");
+    setFormOrderNumber((filteredSections.length || 0) + 1);
+    setIsEditorOpen(true);
+  };
 
-            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 space-y-2">
-              <div className="flex items-center gap-1.5 font-bold text-indigo-300">
-                <Briefcase className="w-4 h-4" />
-                <span>Super Admin 2 (Operasional Harian)</span>
-              </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11.5px]">
-                <li><strong>Manajemen Operasional:</strong> Input kartu baru, alokasi kartu ke admin lapangan, dan registrasi outlet.</li>
-                <li><strong>Cetak & Kelola Invoice:</strong> Bebas membuat, mengedit, dan mengunduh invoice penjualan JPG resolusi tinggi.</li>
-                <li><strong>Proteksi Tanpa Tombol Hapus:</strong> Tombol hapus disembunyikan total untuk mencegah kecelakaan kehilangan data penting.</li>
-                <li><strong>Akses Fitur Terbatas:</strong> Fitur sensitif (seperti ganti landing page atau template cetak) memerlukan izin dari SA 1.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "sa-2",
-      title: "2. Manajemen Kartu QR NFC & Alokasi Jatah Mitra",
-      icon: QrCode,
-      tag: "Inventori Kartu",
-      tagColor: "indigo",
-      summary: "Cara input kartu baru (Satuan / Massal), alokasi ke admin, dan scanning kartu.",
-      content: (
-        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Semua kartu fisik NFC yang dicetak wajib didaftarkan ke sistem terlebih dahulu sebelum dapat digunakan oleh admin lapangan atau dipasang di outlet mitra:
-          </p>
-          <div className="space-y-2.5">
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-              <strong className="text-white block mb-1">A. Input Kartu Baru (Satuan & Massal / Batch):</strong>
-              <p className="text-[11.5px] text-slate-400 mb-2">
-                Klik tombol <strong>"Input Kartu Baru"</strong> di kanan atas dashboard. Anda dapat memasukkan 1 kode kartu atau menggunakan fitur Batch Input untuk mengenerate ratusan kode kartu acak/berurutan secara otomatis.
-              </p>
-              <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[11px] font-mono text-emerald-300">
-                Kolam Pusat (Unassigned) ➜ Ditugaskan ke Admin Lapangan ➜ Terhubung ke Outlet Mitra
-              </div>
-            </div>
+  // Open Edit Form (Super Admin 1 & 2)
+  const handleOpenEdit = (article: GuideArticleModel) => {
+    setEditingArticle(article);
+    setFormCategory(article.category);
+    setFormTitle(article.title);
+    setFormTag(article.tag || "Panduan");
+    setFormTagColor(article.tagColor || "indigo");
+    setFormSummary(article.summary || "");
+    setFormContentHtml(article.contentHtml || "");
+    setFormOrderNumber(article.orderNumber || 0);
+    setIsEditorOpen(true);
+  };
 
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-              <strong className="text-white block mb-1">B. Alokasi Kartu ke Admin Lapangan:</strong>
-              <p className="text-[11.5px] text-slate-400">
-                Pilih kartu di tabel kartu, klik menu <em>"Tugaskan Admin"</em>, lalu pilih Admin Lapangan yang akan membawa fisik kartu tersebut. Kartu akan langsung masuk ke kuota kosong milik admin tersebut.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-              <strong className="text-white block mb-1">C. Scanner Kamera & Pulihkan Kartu:</strong>
-              <p className="text-[11.5px] text-slate-400">
-                Gunakan tombol <strong>"Scan / Pulihkan Kartu"</strong> untuk membuka kamera laptop/HP. Sangat berguna untuk mengecek status kartu fisik atau mengembalikan kartu bekas ke kolam kartu kosong siap pakai.
-              </p>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "sa-3",
-      title: "3. Cetak Invoice Penjualan Resmi (JPG Resolusi Tinggi)",
-      icon: Receipt,
-      tag: "Penjualan & Keuangan",
-      tagColor: "teal",
-      summary: "Panduan menerbitkan invoice, edit rekening & logo, status Lunas/DP, dan simpan DB.",
-      content: (
-        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Super Admin 1 & 2 dapat mencetak lembar invoice resmi beresolusi tinggi (Retina 2x, 300 DPI) yang langsung tersimpan di galeri/download perangkat:
-          </p>
-          <div className="space-y-2 text-[11.5px]">
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-300 flex items-center justify-center shrink-0 font-bold">1</span>
-              <div>
-                <strong>Buka Form Invoice:</strong> Klik menu <em>"Cetak Invoice"</em> di sidebar atau tombol hijau di header dashboard.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-300 flex items-center justify-center shrink-0 font-bold">2</span>
-              <div>
-                <strong>Pilih Outlet / Ketik Pemesan:</strong> Bisa pilih langsung dari daftar outlet mitra atau ketik nama pemesan dan nomor WhatsApp secara manual.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-300 flex items-center justify-center shrink-0 font-bold">3</span>
-              <div>
-                <strong>Rincian Pesanan & Status Bayar:</strong> Tambah item barang atau gunakan preset cepat (Standee Akrilik A5, A6, Kartu PVC). Pilih status <strong>LUNAS</strong> atau <strong>DP (Uang Muka)</strong>. Sistem otomatis menghitung sisa pelunasan.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-300 flex items-center justify-center shrink-0 font-bold">4</span>
-              <div>
-                <strong>Pengaturan Rekening Fleksibel:</strong> Nama bank (BCA, Mandiri, BRI, QRIS, dll), nomor rekening, dan nama pemilik (a/n) dapat diedit bebas untuk setiap invoice.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-300 flex items-center justify-center shrink-0 font-bold">5</span>
-              <div>
-                <strong>Logo Invoice:</strong> Otomatis menggunakan Logo Landing Page website. Tersedia tombol upload jika ingin memakai logo khusus pesanan tersebut.
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-teal-500/10 text-teal-300 flex items-center justify-center shrink-0 font-bold">6</span>
-              <div>
-                <strong>Unduh JPG & Kirim WhatsApp:</strong> Klik <em>"Unduh JPG"</em> untuk menyimpan file gambar atau klik <em>"Kirim WhatsApp"</em> untuk membagikan ringkasan transaksi ke nomor pelanggan secara otomatis. Seluruh invoice tersimpan di database tab <strong>"Riwayat DB"</strong>.
-              </div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "sa-4",
-      title: "4. Pengaturan Website Landing Page, Logo & SEO",
-      icon: Globe,
-      tag: "Branding & Web",
-      tagColor: "purple",
-      summary: "Kustomisasi tampilan depan website, nomor kontak CS, logo navbar, dan favicon.",
-      content: (
-        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Super Admin dapat mengubah teks dan identitas brand di halaman publik (Landing Page):
-          </p>
-          <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-[11.5px]">
-            <li><strong>WhatsApp CS Admin:</strong> Nomor WhatsApp utama untuk menerima pesanan dan konsultasi dari calon klien di landing page.</li>
-            <li><strong>Headline & Subheadline Hero:</strong> Teks promosi utama penarik minat pengunjung website.</li>
-            <li><strong>Logo Landing Page & Favicon:</strong> Upload logo gambar PNG transparan persegi agar tampil jernih di navbar atas dan ikon tab browser.</li>
-            <li><strong>SEO Meta Tag:</strong> Atur judul Google Search dan meta deskripsi agar website mudah ditemukan di pencarian Google.</li>
-          </ul>
-        </div>
-      ),
-    },
-    {
-      id: "sa-5",
-      title: "5. Live Ticker Realtime & Leaderboard Admin Lapangan",
-      icon: Clock,
-      tag: "Monitoring & KPI",
-      tagColor: "sky",
-      summary: "Memantau arus scan ulasan live dan apresiasi performa admin lapangan terbaik.",
-      content: (
-        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Sistem dilengkapi fitur pemantauan aktivitas langsung tanpa perlu reload halaman:
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <strong className="text-emerald-400 block font-bold">🟢 Live Activity Ticker</strong>
-              <p className="text-[11px] text-slate-400">
-                Menampilkan running text real-time aktivitas sistem seperti: ada ulasan kartu baru, registrasi outlet baru oleh mitra lapangan, dan alokasi kartu. Auto-polling setiap 15 detik.
-              </p>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <strong className="text-amber-400 block font-bold">🏆 Leaderboard Gamifikasi</strong>
-              <p className="text-[11px] text-slate-400">
-                Peringkat podium (🥇 Emas, 🥈 Perak, 🥉 Perunggu) bagi Admin Lapangan dengan total pendaftaran outlet dan jumlah ulasan terbanyak. Dilengkapi tombol chat WhatsApp 1-klik untuk memberi ucapan apresiasi.
-              </p>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ];
-
-  // 2. DATA MODUL ADMIN LAPANGAN
-  const adminSections: GuideSection[] = [
-    {
-      id: "admin-1",
-      title: "1. Alur Kerja & Tanggung Jawab Admin Lapangan",
-      icon: Briefcase,
-      tag: "Distribusi Lapangan",
-      tagColor: "emerald",
-      summary: "Peran utama mitra lapangan dari terima kartu hingga aktivasi di outlet klien.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Sebagai Admin Lapangan (Mitra Distribusi), tugas utama Anda adalah mendampingi pemilik usaha kuliner, cafe, hotel, dan toko untuk melipatgandakan ulasan bintang 5 Google Maps mereka:
-          </p>
-          <div className="space-y-2 text-[11.5px]">
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold font-mono">LANGKAH 1</span>
-              <span>Terima jatah kartu NFC fisik kosong dari Super Admin Pusat.</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold font-mono">LANGKAH 2</span>
-              <span>Kunjungi calon klien, lakukan demo tap HP di meja mereka.</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold font-mono">LANGKAH 3</span>
-              <span>Daftarkan outlet baru melalui dashboard Admin Lapangan.</span>
-            </div>
-            <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800">
-              <span className="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 font-bold font-mono">LANGKAH 4</span>
-              <span>Kirim detail akun login portal ke WhatsApp pemilik outlet dengan 1 klik.</span>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "admin-2",
-      title: "2. Pendaftaran Outlet Baru (1-Click WhatsApp Onboarding)",
-      icon: UserCheck,
-      tag: "Registrasi Outlet",
-      tagColor: "teal",
-      summary: "Cara mendaftarkan outlet dan mengirimkan kredensial login otomatis via WhatsApp.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Pendaftaran outlet mitra kini sangat cepat dan otomatis:
-          </p>
-          <ol className="list-decimal list-inside space-y-1.5 text-[11.5px] text-slate-300 pl-1">
-            <li>Klik tombol hijau <strong>"+ Daftarkan Outlet Baru"</strong> di dashboard Anda.</li>
-            <li>Pilih salah satu <strong>Kode Kartu Kosong</strong> dari kuota kartu yang Anda pegang.</li>
-            <li>Isi nama outlet, nama pemilik, nomor WhatsApp aktif pemilik, dan buat password sementara.</li>
-            <li>Masukkan link resmi <strong>Google Review</strong> toko (bisa diambil dari menu "Minta Ulasan" di Google Maps pemilik toko).</li>
-            <li>Klik <strong>"Simpan & Aktifkan Outlet"</strong>.</li>
-            <li>
-              <strong>Pemberitahuan Otomatis ke WhatsApp:</strong> Sesaat setelah tersimpan, akan muncul tombol <span className="text-emerald-400 font-bold">"📲 Kirim Detail Akses ke WhatsApp Klien"</span>. Sekali klik, WhatsApp otomatis terbuka dengan pesan sambutan ramah berisi link login portal mitra, email, kode kartu, dan link scan ulasan!
-            </li>
-          </ol>
-        </div>
-      ),
-    },
-    {
-      id: "admin-3",
-      title: "3. Cara Mengajukan Tambahan Jatah Kuota Kartu",
-      icon: Layers,
-      tag: "Stok Kartu",
-      tagColor: "emerald",
-      summary: "Prosedur pemesanan kartu fisik & standee grosir melalui Keranjang Reseller.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Jika kuota kartu kosong Anda habis atau ingin menambah stok lapangan:
-          </p>
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11.5px] space-y-2">
-            <div className="flex items-center gap-1.5 font-bold text-emerald-300">
-              <ShoppingCart className="w-4 h-4" />
-              <span>Menu "Keranjang Reseller / Beli Kartu"</span>
-            </div>
-            <p>
-              Klik tombol keranjang di dashboard Anda untuk memilih paket kartu atau standee dengan harga grosir resmi. Data akun Anda otomatis terhubung sehingga pesanan langsung diproses dan dikirim oleh Super Admin.
-            </p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "admin-4",
-      title: "4. Tips Edukasi & Penempatan Standee di Outlet",
-      icon: Lightbulb,
-      tag: "Tips Lapangan",
-      tagColor: "purple",
-      summary: "Posisi ideal kartu standee agar menghasilkan ratusan review ulasan setiap minggu.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-[11.5px]">
-            <li><strong>Meja Kasir:</strong> Tempatkan standee akrilik A5 tepat di depan kasir saat pelanggan menunggu struk atau kembalian.</li>
-            <li><strong>Tengah Meja Makan:</strong> Untuk restoran/cafe, pasang standee mini di tengah meja bersama nomor meja. Pelanggan yang menunggu makanan sangat suka mencoba tap NFC.</li>
-            <li><strong>Instruksi Singkat Staf Kasir:</strong> Edukasi kasir agar berkata: <em>"Kak, boleh minta tolong tap kartu di sini sebentar ya untuk bintang ulasannya, terima kasih banyak!"</em>.</li>
-            <li><strong>Edukasi Hak Cipta Desain:</strong> Berikan pemahaman kepada pemilik outlet bahwa seluruh desain fisik standee akrilik dan kartu Smart QR dilindungi oleh <strong>Hak Cipta (HAKI)</strong>. Outlet dilarang keras mencetak sendiri atau menggandakan desain secara mandiri. Penambahan kartu wajib dipesan resmi melalui Anda/sistem.</li>
-          </ul>
-        </div>
-      ),
-    },
-  ];
-
-  // 3. DATA MODUL OUTLET
-  const outletSections: GuideSection[] = [
-    {
-      id: "outlet-1",
-      title: "1. Cara Kerja Kartu NFC & Standee Akrilik di Meja",
-      icon: Smartphone,
-      tag: "Teknologi Tap",
-      tagColor: "indigo",
-      summary: "Kemudahan pengunjung memberikan ulasan hanya dengan menempelkan HP.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Kartu Smart QR Review menggabungkan dua teknologi canggih tanpa perlu menginstal aplikasi apa pun:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-              <div className="flex items-center gap-1.5 text-indigo-400 font-bold">
-                <Smartphone className="w-4 h-4" />
-                <span>Teknologi Tap NFC</span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Pengunjung cukup menempelkan bagian belakang HP (iPhone / Android) ke logo kartu. Layar HP akan langsung memunculkan pop-up formulir ulasan dalam hitungan detik.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-              <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                <QrCode className="w-4 h-4" />
-                <span>Scan Kode QR Kamera</span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Untuk HP yang belum memiliki fitur NFC, pengunjung cukup membuka kamera bawaan HP dan mengarahkan ke kode QR yang tercetak di standee akrilik.
-              </p>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "outlet-2",
-      title: "2. Sistem Filter Ulasan Cerdas (Bintang 5 vs Bintang 1-3)",
-      icon: Star,
-      tag: "Perlindungan Rating",
-      tagColor: "amber",
-      summary: "Bagaimana sistem melindungi reputasi toko Anda dari ulasan negatif publik.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Sistem kami dirancang khusus agar rating toko Anda di Google Maps selalu terjaga tinggi:
-          </p>
-          <div className="space-y-2.5">
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1.5">
-              <div className="flex items-center gap-2 text-emerald-300 font-bold">
-                <Star className="w-4 h-4 fill-emerald-400 text-emerald-400" />
-                <span>Jika Pengunjung Memilih Bintang 4 atau 5 (Puas / Senang)</span>
-              </div>
-              <p className="text-[11.5px] text-slate-300">
-                Muncul animasi perayaan confetti dan pop-up ramah: <em>"Tunggu sebentar ya... Anda sedang dialihkan ke Google Review..."</em>. Pengunjung otomatis dibawa langsung ke kolom ulasan resmi Google Maps toko Anda untuk menaruh bintang 5 secara publik.
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-1.5">
-              <div className="flex items-center gap-2 text-rose-300 font-bold">
-                <AlertTriangle className="w-4 h-4 text-rose-400" />
-                <span>Jika Pengunjung Memilih Bintang 1, 2, atau 3 (Kritik / Kurang Puas)</span>
-              </div>
-              <p className="text-[11.5px] text-slate-300">
-                Pengunjung <strong>TIDAK AKAN dialihkan ke Google Review</strong> sehingga reputasi Google toko Anda aman dari bintang 1 publik! Sebagai gantinya, muncul form privat santun: pengunjung cukup mengisi nama dan isi kritik, lalu pesan akan <strong>langsung terkirim privat ke WhatsApp Pemilik Toko</strong>.
-              </p>
-              <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[10.5px] text-slate-400">
-                🔒 <strong>Privasi Terjaga:</strong> Kritik pengunjung tidak disimpan ke database server demi menghemat memori penyimpanan dan menjaga kerahasiaan evaluasi internal Anda.
-              </div>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "outlet-3",
-      title: "3. Menambah Kartu Fisik untuk Meja Baru",
-      icon: CreditCard,
-      tag: "Pengembangan Usaha",
-      tagColor: "sky",
-      summary: "Langkah mudah memesan tambahan standee akrilik jika usaha Anda bertambah meja.",
-      content: (
-        <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-          <p>
-            Jika outlet Anda menambah cabang atau meja makan baru:
-          </p>
-          <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 text-[11.5px] space-y-2">
-            <p>
-              Cukup klik tombol <strong>"Minta Tambah Kartu QR"</strong> di portal ini. WhatsApp otomatis terbuka menghubungi Admin Pendamping resmi Anda untuk pengiriman standee tambahan yang langsung siap pakai tanpa setting ulang.
-            </p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "outlet-4",
-      title: "4. Peringatan Hak Cipta & Larangan Menggandakan Desain Fisik",
-      icon: ShieldAlert,
-      tag: "Hak Cipta (HAKI)",
-      tagColor: "rose",
-      summary: "Ketentuan hukum perlindungan Hak Kekayaan Intelektual dan larangan keras menduplikasi desain.",
-      content: (
-        <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed">
-          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
-            <div className="flex items-center gap-2 text-rose-300 font-bold text-xs sm:text-sm">
-              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>Dilarang Keras Menggandakan / Meniru Desain Fisik</span>
-            </div>
-            <p className="text-[11.5px] text-slate-300">
-              Seluruh bentuk desain fisik standee akrilik, tata letak visual kartu NFC, tipografi, logo, kombinasi warna, dan elemen visual <strong>Smart QR Review</strong> merupakan karya cipta yang <strong>dilindungi oleh Undang-Undang Hak Cipta & Hak Kekayaan Intelektual (HAKI)</strong>.
-            </p>
-          </div>
-
-          <div className="space-y-2 text-[11.5px] text-slate-300">
-            <strong className="text-white block font-bold">Ketentuan & Larangan Bagi Pengguna / Pemilik Outlet:</strong>
-            <ul className="list-disc list-inside space-y-2 pl-1 text-slate-300">
-              <li>
-                <strong>Dilarang Cetak Mandiri / Duplikasi:</strong> Pemilik outlet dilarang keras memfoto, memindai (scan), merekayasa ulang, mencetak ulang secara mandiri, atau memperbanyak desain fisik standee akrilik & kartu melalui vendor percetakan mana pun tanpa izin lisensi tertulis dari manajemen pusat.
-              </li>
-              <li>
-                <strong>Dilarang Meniru Elemen Visual:</strong> Dilarang membuat tiruan desain atau memanfaatkan aset visual sistem untuk produk/layanan serupa di luar ekosistem resmi Smart QR Review.
-              </li>
-              <li>
-                <strong>Wajib Menggunakan Jalur Pemesanan Resmi:</strong> Setiap penambahan unit kartu meja baru atau penggantian unit yang rusak <strong>wajib dipesan secara resmi</strong> melalui tombol <em>"Minta Tambah Kartu QR"</em> di portal atau melalui Admin Lapangan pendamping Anda agar mendapatkan chip NFC asli terenkripsi.
-              </li>
-              <li>
-                <strong>Sanksi Hukum & Penonaktifan:</strong> Pelanggaran terhadap hak cipta ini dapat mengakibatkan penonaktifan/pemblokiran akun outlet secara permanen dan pemutusan layanan sistem, serta dapat diproses sesuai regulasi hukum perlindungan hak cipta yang berlaku di Republik Indonesia.
-              </li>
-            </ul>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "outlet-5",
-      title: "5. Panduan Lengkap Fitur Member VIP & Eksklusif",
-      icon: Sparkles,
-      tag: "Fitur VIP",
-      tagColor: "amber",
-      summary: "Panduan lengkap Suara AI Sebut Toko, Efek Kasir, Multi-Kasir, Medsos, & E-Menu Digital.",
-      content: (
-        <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-950/30 border border-amber-500/40 space-y-2">
-            <div className="flex items-center gap-2 font-black text-amber-300 text-sm">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Apa Itu Keanggotaan Member Premium VIP?</span>
-            </div>
-            <p className="text-[11.5px] text-slate-200 leading-relaxed">
-              <strong>Member VIP</strong> adalah paket keanggotaan eksklusif yang membuka seluruh kecanggihan teknologi interaktif ulasan. Outlet Anda akan memiliki fitur sekelas restoran dan cafe waralaba internasional modern untuk memukau pengunjung meja serta mempermudah staf kasir memantau ulasan secara real-time.
-            </p>
-          </div>
-
-          <div className="space-y-3 pt-1 text-[11.5px]">
-            {/* Poin 1: Suara AI */}
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <div className="flex items-center gap-2 text-indigo-300 font-bold">
-                <span>🎙️ 1. Suara AI Sambutan Ramah & Sebut Brand Toko</span>
-              </div>
-              <p className="text-slate-300">
-                <strong>Cara Kerja:</strong> Saat pengunjung menekan Bintang 5 di mejanya, HP pengunjung secara otomatis memutar suara AI ramah berbahasa Indonesia menyebutkan nama usaha Anda: <em>&ldquo;Terima kasih banyak kak sudah mampir ke [Nama Toko Anda]! Ulasan bintang 5 kakak sangat berharga bagi kemajuan usaha kami.&rdquo;</em>
-              </p>
-              <p className="text-slate-400 text-[11px]">
-                <strong>Cara Atur:</strong> Buka tab <em>&ldquo;Keanggotaan VIP&rdquo;</em> di portal, ketik kalimat kustom di Panel 2 jika ingin pesan khusus, lalu klik <em>&ldquo;Simpan AI&rdquo;</em>.
-              </p>
-            </div>
-
-            {/* Poin 2: Nada Dering Kasir */}
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <div className="flex items-center gap-2 text-amber-300 font-bold">
-                <span>🔔 2. Pilihan 4 Efek Suara Kasir Sensasi Cuan</span>
-              </div>
-              <p className="text-slate-300">
-                <strong>Cara Kerja:</strong> Memberikan efek audio langsung saat pelanggan submit ulasan bintang 5.
-              </p>
-              <ul className="list-disc list-inside pl-2 space-y-0.5 text-slate-400 text-[11px]">
-                <li><strong>Cha-Ching! Register Uang (💵):</strong> Efek register kasir uang masuk yang membakar semangat staf.</li>
-                <li><strong>Lonceng Kasir Ganda (🔔):</strong> Denting lonceng ramah khas meja barista.</li>
-                <li><strong>Lonceng Kristal (✨):</strong> Suara ding elegan nan mewah.</li>
-                <li><strong>Nada Fanfare (🎺):</strong> Melodi kemenangan perayaan 5 bintang.</li>
-              </ul>
-            </div>
-
-            {/* Poin 3: Multi-Kasir Pairing */}
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <div className="flex items-center gap-2 text-emerald-300 font-bold">
-                <span>📲 3. Multi-Kasir QR Pairing (Bebas Bagi-Bagi Password)</span>
-              </div>
-              <p className="text-slate-300">
-                <strong>Cara Kerja:</strong> Hubungkan 3-5 smartphone milik kasir, barista, atau pelayan tanpa perlu memberikan email/password toko. Cukup arahkan kamera HP kasir ke QR Pairing di Panel 4 atau kirim link via WhatsApp.
-              </p>
-              <p className="text-slate-400 text-[11px]">
-                <strong>Keamanan:</strong> Jika ada staf yang resign, Anda cukup menekan tombol <em>&ldquo;Reset QR Kasir&rdquo;</em> untuk memutus akses staf tersebut seketika.
-              </p>
-            </div>
-
-            {/* Poin 4: Logo Outlet, Instagram & TikTok */}
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <div className="flex items-center gap-2 text-pink-300 font-bold">
-                <span>📸 4. Logo Usaha & Tautan Media Sosial (Instagram / TikTok)</span>
-              </div>
-              <p className="text-slate-300">
-                Upload logo outlet di Panel 3 agar tampil anggun di atas tombol rating ulasan. Masukkan username Instagram (`@namaoutlet`) dan TikTok di Panel 4 agar pengunjung di meja langsung mem-follow media sosial toko Anda.
-              </p>
-            </div>
-
-            {/* Poin 5: E-Menu Digital */}
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-              <div className="flex items-center gap-2 text-amber-300 font-bold">
-                <span>📖 5. Buku Menu & Katalog Digital Multi-Foto</span>
-              </div>
-              <p className="text-slate-300">
-                Unggah banyak foto lembar menu makanan/minuman Anda di Panel 5. Pengunjung di meja bisa membuka <strong>Galeri Menu Interaktif</strong> (slider geser foto next/prev) langsung dari halaman scan tanpa perlu meminta buku menu fisik ke pelayan.
-              </p>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ];
-
-  // 4. DATA FAQ & TROUBLESHOOTING
-  const faqSections: GuideSection[] = [
-    {
-      id: "faq-1",
-      title: "Bagaimana jika HP Pengunjung tidak merespons saat ditempelkan NFC?",
-      icon: HelpCircle,
-      tag: "Hardware & NFC",
-      tagColor: "amber",
-      summary: "Penyebab umum dan panduan cepat bagi pengunjung saat tap NFC.",
-      content: (
-        <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
-          <p>Lakukan pengecekan berikut:</p>
-          <ul className="list-disc list-inside space-y-1 pl-1 text-slate-400">
-            <li><strong>NFC Belum Aktif (Khusus Android):</strong> Pastikan fitur "NFC" sudah diaktifkan di panel pengaturan cepat (pull-down menu atas). Pada iPhone (tipe iPhone X ke atas), fitur NFC otomatis selalu menyala.</li>
-            <li><strong>Letak Sensor NFC Berbeda:</strong>
-              <ul className="list-circle list-inside pl-4 text-slate-400">
-                <li>iPhone: Sensor berada di ujung atas belakang kamera.</li>
-                <li>Samsung / Xiaomi / Oppo: Umumnya di tengah punggung bodi HP.</li>
-              </ul>
-            </li>
-            <li><strong>Casing HP Terlalu Tebal:</strong> Casing berbahan logam tebal atau dompet kartu tebal dapat menghalangi sinyal gelombang radio NFC.</li>
-            <li><strong>Solusi Cadangan:</strong> Pengunjung selalu bisa menggunakan kamera HP untuk scan <strong>Kode QR</strong> yang ada di standee.</li>
-          </ul>
-        </div>
-      ),
-    },
-    {
-      id: "faq-2",
-      title: "Bagaimana cara mengubah Link Google Review jika toko ganti nama / URL?",
-      icon: HelpCircle,
-      tag: "Pengaturan URL",
-      tagColor: "indigo",
-      summary: "Prosedur memperbarui link tujuan ulasan kartu yang sudah beredar.",
-      content: (
-        <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
-          <p>
-            Keunggulan utama Smart QR Review adalah kartu Anda bersifat <strong>Cloud-Dynamic</strong>! Anda tidak perlu mencetak kartu baru jika link Google toko berubah:
-          </p>
-          <ul className="list-disc list-inside space-y-1 pl-1 text-slate-400">
-            <li>Hubungi Admin Lapangan atau Super Admin.</li>
-            <li>Admin dapat mengedit URL Google Review langsung melalui dashboard.</li>
-            <li>Semua kartu fisik di meja akan otomatis terhubung ke link baru saat itu juga!</li>
-          </ul>
-        </div>
-      ),
-    },
-    {
-      id: "faq-3",
-      title: "Apakah data pelanggan yang memberi kritik aman?",
-      icon: HelpCircle,
-      tag: "Privasi & Database",
-      tagColor: "emerald",
-      summary: "Kebijakan nol penyimpanan database untuk masukan kritik pengunjung.",
-      content: (
-        <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
-          <p>
-            Sangat aman! Kritik dan masukan pengunjung pada bintang 1-3 <strong>tidak disimpan di database server</strong>. Pesan tersebut langsung dikompilasi ke format teks chat WhatsApp dan dikirim langsung ke nomor pengelola outlet. Hal ini menjamin privasi internal outlet dan menghemat kapasitas database.
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: "faq-4",
-      title: "Bagaimana cara menyimpan invoice JPG di HP?",
-      icon: HelpCircle,
-      tag: "Download Invoice",
-      tagColor: "teal",
-      summary: "Cara mengunduh lembar invoice berkualitas tinggi langsung dari smartphone.",
-      content: (
-        <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
-          <p>
-            Saat tombol <strong>"Unduh JPG"</strong> diklik, sistem menggunakan teknologi render Canvas beresolusi tinggi (Retina 2x). Browser HP Anda akan otomatis mengunduh file gambar tersebut dan menyimpannya di folder <em>Downloads</em> atau aplikasi <em>Galeri Foto</em> Anda.
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: "faq-5",
-      title: "Apakah outlet boleh mencetak sendiri standee akrilik atau menduplikasi desain kartu?",
-      icon: ShieldAlert,
-      tag: "Hak Cipta (HAKI)",
-      tagColor: "rose",
-      summary: "Ketentuan resmi mengenai larangan keras mencetak mandiri atau meniru desain produk.",
-      content: (
-        <div className="space-y-2 text-xs text-slate-300 text-[11.5px]">
-          <p className="text-rose-400 font-bold">
-            🚫 DILARANG KERAS (TIDAK DIPERBOLEHKAN).
-          </p>
-          <p>
-            Seluruh bentuk desain fisik kartu Smart QR Review, tata letak standee akrilik meja, dan visual sistem merupakan <strong>Kekayaan Intelektual resmi yang dilindungi oleh Undang-Undang Hak Cipta</strong>. Penggandaan, pencetakan ulang secara mandiri, atau peniruan desain tanpa izin tertulis merupakan pelanggaran hukum hak cipta.
-          </p>
-          <p>
-            Jika outlet Anda membutuhkan tambahan standee atau kartu untuk meja baru, silakan ajukan secara resmi melalui tombol <strong>&ldquo;Minta Tambah Kartu QR&rdquo;</strong> di portal toko Anda atau hubungi Admin Lapangan Anda.
-          </p>
-        </div>
-      ),
-    },
-  ];
-
-  // Current active list based on tab (guarded by role)
-  const activeSections = useMemo(() => {
-    switch (activeTab) {
-      case "SUPER_ADMIN":
-        return initialRole === "SUPER_ADMIN"
-          ? superAdminSections
-          : initialRole === "ADMIN"
-          ? adminSections
-          : outletSections;
-      case "ADMIN":
-        return initialRole === "OUTLET" ? outletSections : adminSections;
-      case "OUTLET":
-        return outletSections;
-      case "FAQ":
-        return initialRole === "SUPER_ADMIN"
-          ? faqSections
-          : faqSections.filter((f) => f.id !== "faq-4");
-      default:
-        return initialRole === "OUTLET"
-          ? outletSections
-          : initialRole === "ADMIN"
-          ? adminSections
-          : superAdminSections;
+  // Save Article (Create or Update)
+  const handleSaveArticle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formTitle.trim() || !formContentHtml.trim()) {
+      showErrorAlert("Form Belum Lengkap", "Judul dan isi konten panduan wajib diisi.");
+      return;
     }
-  }, [activeTab, initialRole]);
 
-  // Filtered by Search Query
+    setIsSaving(true);
+    try {
+      if (editingArticle) {
+        // Edit Article
+        const res = await updateGuideArticleAction(editingArticle.id, {
+          category: formCategory,
+          title: formTitle,
+          tag: formTag,
+          tagColor: formTagColor,
+          summary: formSummary,
+          contentHtml: formContentHtml,
+          orderNumber: formOrderNumber,
+        });
+
+        if (res.success) {
+          showSuccessAlert("Berhasil Diperbarui", res.message, 1500);
+          setIsEditorOpen(false);
+          loadArticles();
+        } else {
+          showErrorAlert("Gagal Menyimpan", res.message);
+        }
+      } else {
+        // Create Article
+        const res = await createGuideArticleAction({
+          category: formCategory,
+          title: formTitle,
+          tag: formTag,
+          tagColor: formTagColor,
+          summary: formSummary,
+          contentHtml: formContentHtml,
+          orderNumber: formOrderNumber,
+        });
+
+        if (res.success) {
+          showSuccessAlert("Berhasil Ditambahkan", res.message, 1500);
+          setIsEditorOpen(false);
+          loadArticles();
+        } else {
+          showErrorAlert("Gagal Menambahkan", res.message);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showErrorAlert("Kesalahan Sistem", "Terjadi kesalahan saat memproses data.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete Article (Super Admin 1 Only)
+  const handleDeleteArticle = async (article: GuideArticleModel) => {
+    if (!isSuperAdminMaster) {
+      showErrorAlert(
+        "Akses Dibatasi",
+        "Hanya Super Admin 1 (Master / Founder) yang memiliki wewenang untuk menghapus bab panduan."
+      );
+      return;
+    }
+
+    const confirmed = await showConfirmAlert(
+      "Hapus Bab Panduan Ini?",
+      `Anda akan menghapus "${article.title}" secara permanen dari sistem.`,
+      "Ya, Hapus Sekarang"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const res = await deleteGuideArticleAction(article.id);
+      if (res.success) {
+        showSuccessAlert("Berhasil Dihapus", res.message, 1500);
+        loadArticles();
+      } else {
+        showErrorAlert("Gagal Menghapus", res.message);
+      }
+    } catch (err) {
+      console.error(err);
+      showErrorAlert("Kesalahan Sistem", "Gagal menghapus bab panduan.");
+    }
+  };
+
+  // Reset All to Default Seeds (Super Admin 1 Only)
+  const handleResetDefaults = async () => {
+    if (!isSuperAdminMaster) return;
+
+    const confirmed = await showConfirmAlert(
+      "Reset ke Buku Panduan Standar?",
+      "Seluruh artikel panduan kustom akan digantikan kembali ke modul standar bawaan sistem.",
+      "Ya, Reset Standar"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const res = await resetDefaultGuidesAction();
+      if (res.success) {
+        showSuccessAlert("Berhasil Direset", res.message, 1800);
+        loadArticles();
+      } else {
+        showErrorAlert("Gagal Reset", res.message);
+      }
+    } catch (err) {
+      console.error(err);
+      showErrorAlert("Kesalahan Sistem", "Gagal mereset buku panduan.");
+    }
+  };
+
+  // Filtered by Tab and Search Query
+  const activeSections = useMemo(() => {
+    return articles.filter((a) => a.category === activeTab);
+  }, [articles, activeTab]);
+
   const filteredSections = useMemo(() => {
     if (!searchQuery.trim()) return activeSections;
     const q = searchQuery.toLowerCase();
@@ -742,38 +301,6 @@ export function UserGuideModal({
         s.tag.toLowerCase().includes(q)
     );
   }, [activeSections, searchQuery]);
-
-  // Dynamic header information based on initialRole
-  const headerInfo = useMemo(() => {
-    if (initialRole === "OUTLET") {
-      return {
-        title: "Buku Panduan Outlet Mitra",
-        badge: "PANDUAN OUTLET",
-        badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-        gradient: "from-sky-500 to-blue-600",
-        icon: Store,
-        description: "Panduan lengkap penggunaan standee / kartu Smart QR ulasan Google Maps, tips bintang 5, dan pengelolaan ulasan toko Anda.",
-      };
-    }
-    if (initialRole === "ADMIN") {
-      return {
-        title: "Buku Panduan Admin Lapangan",
-        badge: "PANDUAN MITRA",
-        badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-        gradient: "from-emerald-500 to-teal-600",
-        icon: Briefcase,
-        description: "Panduan operasional lapangan, registrasi outlet binaan, aktivasi kartu, kirim akses WhatsApp 1-klik, dan SOP mitra.",
-      };
-    }
-    return {
-      title: "Buku Modul & Panduan Sistem",
-      badge: "SUPER ADMIN",
-      badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
-      gradient: "from-indigo-500 to-purple-600",
-      icon: ShieldCheck,
-      description: "Panduan alur kerja dan wewenang operasional lengkap seluruh ekosistem Smart QR Review.",
-    };
-  }, [initialRole]);
 
   // Tab filter strictly based on role
   const availableTabs = useMemo(() => {
@@ -864,6 +391,38 @@ export function UserGuideModal({
     ];
   }, [initialRole]);
 
+  // Dynamic header info
+  const headerInfo = useMemo(() => {
+    if (initialRole === "OUTLET") {
+      return {
+        title: "Buku Panduan Outlet Mitra",
+        badge: "PANDUAN OUTLET",
+        badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+        gradient: "from-sky-500 to-blue-600",
+        icon: Store,
+        description: "Panduan lengkap penggunaan standee / kartu Smart QR ulasan Google Maps, tips bintang 5, dan pengelolaan ulasan toko Anda.",
+      };
+    }
+    if (initialRole === "ADMIN") {
+      return {
+        title: "Buku Panduan Admin Lapangan",
+        badge: "PANDUAN MITRA",
+        badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+        gradient: "from-emerald-500 to-teal-600",
+        icon: Briefcase,
+        description: "Panduan operasional lapangan, registrasi outlet binaan, aktivasi kartu, kirim akses WhatsApp 1-klik, dan SOP mitra.",
+      };
+    }
+    return {
+      title: "Buku Modul & Panduan Sistem",
+      badge: isSuperAdminMaster ? "SUPER ADMIN 1 (MASTER)" : "SUPER ADMIN 2 (OPERASIONAL)",
+      badgeColor: isSuperAdminMaster ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+      gradient: "from-indigo-500 to-purple-600",
+      icon: ShieldCheck,
+      description: "Kelola, edit, tambah, dan pantau seluruh alur operasional ekosistem Smart QR Review.",
+    };
+  }, [initialRole, isSuperAdminMaster]);
+
   if (!isOpen) return null;
 
   const HeaderIcon = headerInfo.icon;
@@ -878,7 +437,7 @@ export function UserGuideModal({
               <HeaderIcon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <h2 className="text-sm sm:text-xl font-black text-white tracking-tight truncate">
                   {headerInfo.title}
                 </h2>
@@ -886,45 +445,67 @@ export function UserGuideModal({
                   {headerInfo.badge}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate hidden sm:block">
+              <p className="text-[11px] sm:text-xs text-slate-400 line-clamp-1 mt-0.5">
                 {headerInfo.description}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Super Admin Action Toolbar */}
+            {isSuperAdminUser && (
+              <div className="hidden sm:flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenCreate()}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Panduan</span>
+                </button>
+
+                {isSuperAdminMaster && (
+                  <button
+                    type="button"
+                    onClick={handleResetDefaults}
+                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    title="Reset Panduan ke Default"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Tutup Panduan"
+              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+              aria-label="Tutup Panduan"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Role Tab Navigation Bar */}
-        <div className="px-3.5 sm:px-6 pt-3 sm:pt-4 pb-2.5 sm:pb-3 border-b border-slate-800 bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shrink-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none flex-nowrap w-full sm:w-auto">
+        {/* Tab Selector Bar */}
+        <div className="px-4 sm:px-6 pt-3 pb-2 bg-slate-950/40 border-b border-slate-800/80 flex items-center justify-between gap-3 overflow-x-auto custom-scrollbar shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {availableTabs.map((tab) => {
-              const Icon = tab.icon;
+              const TabIcon = tab.icon;
               const isActive = activeTab === tab.key;
               return (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => {
-                    setActiveTab(tab.key);
-                    setSearchQuery("");
-                  }}
-                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
                     isActive
                       ? tab.activeClass
-                      : "bg-slate-950 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isActive ? "text-white" : tab.colorClass} shrink-0`} />
+                  <TabIcon className={`w-4 h-4 ${isActive ? "text-white" : tab.colorClass}`} />
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden">{tab.shortLabel}</span>
                 </button>
@@ -932,104 +513,169 @@ export function UserGuideModal({
             })}
           </div>
 
-          <div className="flex items-center gap-2 justify-end shrink-0">
+          {/* Mobile Super Admin Add Button */}
+          {isSuperAdminUser && (
             <button
               type="button"
-              onClick={expandAll}
-              className="text-[10px] sm:text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-950 border border-slate-800 cursor-pointer"
+              onClick={() => handleOpenCreate()}
+              className="sm:hidden px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shrink-0"
             >
-              Buka Semua
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah</span>
             </button>
-            <button
-              type="button"
-              onClick={collapseAll}
-              className="text-[10px] sm:text-[11px] font-semibold text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-950 border border-slate-800 cursor-pointer"
-            >
-              Tutup Semua
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Quick Search Bar & Intro Banner */}
-        <div className="px-5 sm:px-6 py-3.5 bg-slate-950/40 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+        {/* Search & Action Bar */}
+        <div className="p-3 sm:p-4 bg-slate-900/90 border-b border-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari topik modul... (misal: invoice, alokasi, bintang 1, nfc, hak akses)"
-              className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              placeholder="Cari materi panduan, tips, atau solusi..."
+              className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs font-bold cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
               >
                 ✕
               </button>
             )}
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center gap-1.5 shrink-0">
-            <span>Ditemukan:</span>
-            <strong className="text-white">{filteredSections.length}</strong>
-            <span>topik materi</span>
+          <div className="flex items-center gap-2 justify-end text-xs text-slate-400">
+            <button
+              type="button"
+              onClick={expandAll}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-[11px]"
+            >
+              Buka Semua
+            </button>
+            <button
+              type="button"
+              onClick={collapseAll}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-[11px]"
+            >
+              Tutup Semua
+            </button>
           </div>
         </div>
 
-        {/* Body Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 scrollbar-thin">
-          {filteredSections.length === 0 ? (
-            <div className="py-16 text-center p-6 rounded-2xl bg-slate-950/40 border border-slate-800 space-y-2">
-              <Search className="w-8 h-8 text-slate-600 mx-auto" />
-              <h4 className="text-sm font-bold text-slate-300">Topik Tidak Ditemukan</h4>
-              <p className="text-xs text-slate-500">
-                Tidak ada topik yang cocok dengan kata kunci "{searchQuery}". Coba kata kunci lain atau pilih tab modul berbeda.
-              </p>
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5 custom-scrollbar">
+          {isLoading ? (
+            <div className="py-20 text-center text-slate-400 space-y-2">
+              <Loader2 className="w-8 h-8 mx-auto text-indigo-400 animate-spin" />
+              <p className="text-xs font-medium">Memuat modul panduan...</p>
+            </div>
+          ) : filteredSections.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-slate-950/60 border border-slate-800 text-center space-y-3 my-4">
+              <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
+              <div className="text-sm font-bold text-slate-300">
+                {searchQuery ? "Tidak ada materi panduan yang cocok dengan pencarian Anda." : "Belum ada bab panduan untuk kategori ini."}
+              </div>
+              {isSuperAdminUser && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenCreate()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Buat Bab Panduan Sekarang</span>
+                </button>
+              )}
             </div>
           ) : (
             filteredSections.map((sec) => {
-              const isExpanded = !!expandedSections[sec.id];
-              const IconComponent = sec.icon;
+              const isExpanded = Boolean(expandedSections[sec.id]);
+              const tagStyle = TAG_COLOR_MAP[sec.tagColor] || TAG_COLOR_MAP.indigo;
 
               return (
                 <div
                   key={sec.id}
-                  className="rounded-2xl bg-slate-950/50 border border-slate-800/90 overflow-hidden transition-all hover:border-slate-700"
+                  className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                    isExpanded
+                      ? "bg-slate-900/95 border-slate-700/80 shadow-lg shadow-black/20"
+                      : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+                  }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => toggleSection(sec.id)}
-                    className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left hover:bg-slate-900/40 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-400 shrink-0">
-                        <IconComponent className="w-4 h-4" />
+                  {/* Section Title Header */}
+                  <div className="p-4 sm:p-5 flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(sec.id)}
+                      className="flex-1 flex items-start gap-3 text-left cursor-pointer group"
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center text-slate-300 group-hover:text-white shrink-0 mt-0.5">
+                        <BookOpen className="w-4 h-4" />
                       </div>
-                      <div className="min-w-0">
+
+                      <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-xs sm:text-sm font-bold text-white truncate">
-                            {sec.title}
-                          </h3>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-900 text-slate-300 border border-slate-800">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border font-mono ${tagStyle.bg} ${tagStyle.text} ${tagStyle.border}`}>
                             {sec.tag}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                          {sec.title}
+                        </h3>
+                        <p className="text-[11px] text-slate-400 line-clamp-1">
                           {sec.summary}
                         </p>
                       </div>
-                    </div>
+                    </button>
 
-                    <div className="p-1 rounded-lg text-slate-400 bg-slate-900 shrink-0">
-                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    </div>
-                  </button>
+                    <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                      {/* Super Admin 1 & 2: Edit Button */}
+                      {isSuperAdminUser && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(sec)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                          title="Edit Bab Panduan Ini"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                      )}
 
+                      {/* Super Admin 1 Only: Delete Button */}
+                      {isSuperAdminUser && isSuperAdminMaster && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteArticle(sec)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-300 transition-colors cursor-pointer"
+                          title="Hapus Bab Panduan Ini (Super Admin 1)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(sec.id)}
+                        className="p-1.5 text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-amber-400" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section Expanded Content */}
                   {isExpanded && (
-                    <div className="p-4 sm:p-5 pt-0 border-t border-slate-800/80 bg-slate-900/20">
-                      <div className="pt-3.5">{sec.content}</div>
+                    <div className="px-4 sm:px-6 pb-5 pt-1 border-t border-slate-800/80 animate-in fade-in duration-150">
+                      <div
+                        className="prose prose-invert prose-xs max-w-none text-slate-300 text-xs leading-relaxed space-y-2.5 pt-2"
+                        dangerouslySetInnerHTML={{ __html: sec.contentHtml }}
+                      />
                     </div>
                   )}
                 </div>
@@ -1038,22 +684,266 @@ export function UserGuideModal({
           )}
         </div>
 
-        {/* Footer Bar */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-950/80 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Smart QR Review Official System Handbook • All Roles Connected</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
-          >
-            Mengerti & Tutup Modul
-          </button>
+        {/* Footer info */}
+        <div className="p-3 sm:p-4 border-t border-slate-800/80 bg-slate-950/80 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+          <span>Smart QR Review Official Knowledge Base</span>
+          <span>© Hak Cipta Dilindungi (HAKI)</span>
         </div>
       </div>
+
+      {/* MODAL EDITOR: TAMBAH & EDIT PANDUAN (SUPER ADMIN) */}
+      {isEditorOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    {editingArticle ? "Edit Bab Panduan" : "Tambah Bab Panduan Baru"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {editingArticle ? "Perbarui materi buku panduan untuk seluruh portal pengguna" : "Tambahkan bab materi baru ke modul buku panduan"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditorOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveArticle} className="space-y-3.5">
+              {/* Kategori & Urutan */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Kategori Modul <span className="text-rose-400">*</span>
+                  </label>
+                  <select
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="SUPER_ADMIN">👑 Modul Super Admin</option>
+                    <option value="ADMIN">💼 Modul Admin Lapangan (Mitra)</option>
+                    <option value="OUTLET">🏪 Modul Outlet Mitra</option>
+                    <option value="FAQ">❓ FAQ & Solusi Toko</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Urutan Nomor
+                  </label>
+                  <input
+                    type="number"
+                    value={formOrderNumber}
+                    onChange={(e) => setFormOrderNumber(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Judul Bab Panduan */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Judul Bab Panduan <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="Contoh: 1. Cara Kerja Kartu NFC di Meja"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Tag Label & Tag Color */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Label Tag
+                  </label>
+                  <input
+                    type="text"
+                    value={formTag}
+                    onChange={(e) => setFormTag(e.target.value)}
+                    placeholder="Contoh: Teknologi Tap"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Warna Badge Tag
+                  </label>
+                  <select
+                    value={formTagColor}
+                    onChange={(e) => setFormTagColor(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="emerald">🟢 Emerald (Hijau)</option>
+                    <option value="indigo">🟣 Indigo (Ungu Tua)</option>
+                    <option value="teal">🌊 Teal (Biru Laut)</option>
+                    <option value="purple">🔮 Purple (Ungu)</option>
+                    <option value="sky">🌌 Sky (Biru Langit)</option>
+                    <option value="amber">🟡 Amber (Emas/Kuning)</option>
+                    <option value="rose">🔴 Rose (Merah)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Ringkasan Singkat */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Ringkasan Singkat (Subtitle)
+                </label>
+                <input
+                  type="text"
+                  value={formSummary}
+                  onChange={(e) => setFormSummary(e.target.value)}
+                  placeholder="Ringkasan 1 kalimat yang muncul di bawah judul"
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Isi Konten Lengkap (HTML Formatted) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Isi Materi Lengkap (Format HTML) <span className="text-rose-400">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditorPreview(!showEditorPreview)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      showEditorPreview
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                        : "bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>{showEditorPreview ? "Tutup Preview" : "Lihat Preview"}</span>
+                  </button>
+                </div>
+
+                {/* Quick Snippet Chips */}
+                {!showEditorPreview && (
+                  <div className="flex items-center gap-1.5 flex-wrap pb-1">
+                    <span className="text-[10px] text-slate-500 font-semibold mr-0.5">Quick Insert:</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormContentHtml((prev) => prev + "\n<p>Teks paragraf baru di sini...</p>")}
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono cursor-pointer border border-slate-700"
+                    >
+                      + &lt;p&gt; Paragraf
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormContentHtml(
+                          (prev) =>
+                            prev +
+                            '\n<ul class="list-disc list-inside space-y-1.5 text-slate-300 text-[11.5px]">\n  <li><strong>Poin 1:</strong> Deskripsi...</li>\n  <li><strong>Poin 2:</strong> Deskripsi...</li>\n</ul>'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono cursor-pointer border border-slate-700"
+                    >
+                      + &lt;ul&gt; Bullet List
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormContentHtml(
+                          (prev) =>
+                            prev +
+                            '\n<div class="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-[11.5px] text-slate-300 space-y-1">\n  <strong class="text-indigo-300 block">💡 Informasi:</strong>\n  <p>Teks informasi...</p>\n</div>'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 text-[10px] font-mono cursor-pointer border border-indigo-700/50"
+                    >
+                      + Box Info Ungu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormContentHtml(
+                          (prev) =>
+                            prev +
+                            '\n<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11.5px] text-slate-300 space-y-1">\n  <strong class="text-emerald-300 block">✅ Berhasil / Rekomendasi:</strong>\n  <p>Teks rekomendasi...</p>\n</div>'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-[10px] font-mono cursor-pointer border border-emerald-700/50"
+                    >
+                      + Box Sukses Hijau
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormContentHtml(
+                          (prev) =>
+                            prev +
+                            '\n<div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-slate-300 space-y-1">\n  <strong class="text-amber-300 block">⚠️ Perhatian Khusus:</strong>\n  <p>Peringatan keamanan...</p>\n</div>'
+                        )
+                      }
+                      className="px-2 py-0.5 rounded bg-amber-950/80 hover:bg-amber-900 text-amber-300 text-[10px] font-mono cursor-pointer border border-amber-700/50"
+                    >
+                      + Box Peringatan Kuning
+                    </button>
+                  </div>
+                )}
+
+                {showEditorPreview ? (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-700 min-h-[200px] max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2 border-b border-slate-800 pb-1">
+                      Live Preview Tampilan:
+                    </div>
+                    <div
+                      className="prose prose-invert prose-xs max-w-none text-slate-300 text-xs leading-relaxed space-y-2.5"
+                      dangerouslySetInnerHTML={{ __html: formContentHtml || "<p className='text-slate-500 italic'>Konten masih kosong...</p>" }}
+                    />
+                  </div>
+                ) : (
+                  <textarea
+                    rows={9}
+                    required
+                    value={formContentHtml}
+                    onChange={(e) => setFormContentHtml(e.target.value)}
+                    placeholder="<p>Penjelasan detail materi panduan...</p>"
+                    className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white font-mono leading-relaxed focus:outline-none focus:border-indigo-500"
+                  />
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEditorOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>{editingArticle ? "Simpan Perubahan" : "Tambahkan Panduan"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -454,4 +454,21 @@ export interface ResellerOrderModel {
   updatedAt: string | Date;
 }
 
+export interface GuideArticleModel {
+  id: string;
+  category: "SUPER_ADMIN" | "ADMIN" | "OUTLET" | "FAQ" | string;
+  orderNumber: number;
+  title: string;
+  tag: string;
+  tagColor: string;
+  summary: string;
+  contentHtml: string;
+  iconName?: string | null;
+  isPublished: boolean;
+  createdById?: string | null;
+  updatedById?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 

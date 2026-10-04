@@ -1682,6 +1682,8 @@ Tim Layanan Smart QR`;
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="ADMIN"
+        currentUserRole="ADMIN"
+        isSuperAdminMaster={false}
       />
     </div>
   );

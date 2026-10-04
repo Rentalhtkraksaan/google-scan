@@ -2906,6 +2906,8 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
         initialRole="OUTLET"
+        currentUserRole="OUTLET"
+        isSuperAdminMaster={false}
       />
 
       {/* Modal Upgrade Member & Kirim Bukti Transfer */}

@@ -589,4 +589,26 @@ model FinanceSettlementHistory {
   @@map("finance_settlement_histories")
 }
 
+model GuideArticle {
+  id          String   @id @default(cuid())
+  category    String   @default("OUTLET") // "SUPER_ADMIN" | "ADMIN" | "OUTLET" | "FAQ"
+  orderNumber Int      @default(0)
+  title       String   @db.VarChar(255)
+  tag         String   @default("Panduan") @db.VarChar(100)
+  tagColor    String   @default("indigo") @db.VarChar(50) // emerald, indigo, teal, purple, sky, amber, rose
+  summary     String   @db.Text
+  contentHtml String   @db.LongText
+  iconName    String?  @default("BookOpen") @db.VarChar(50)
+  isPublished Boolean  @default(true)
+  createdById String?
+  updatedById String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, orderNumber])
+  @@index([isPublished])
+  @@map("guide_articles")
+}
+
 
