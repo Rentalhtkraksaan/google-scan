@@ -52,6 +52,25 @@ function formatInstagramUrl(input?: string | null): string | null {
   return `https://instagram.com/${handle}`;
 }
 
+function getCleanInstagramHandle(input?: string | null): string {
+  if (!input) return "Instagram";
+  const trimmed = input.trim();
+  if (!trimmed) return "Instagram";
+  
+  let clean = trimmed;
+  try {
+    if (clean.startsWith("http://") || clean.startsWith("https://")) {
+      const url = new URL(clean);
+      clean = url.pathname.replace(/^\/+|\/+$/g, "");
+    }
+  } catch {
+    clean = clean.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "");
+    clean = clean.split("?")[0].split("#")[0].replace(/\/+$/, "");
+  }
+  clean = clean.split("?")[0].split("#")[0].replace(/\/+$/, "").replace(/^@/, "").trim();
+  return clean ? `@${clean}` : "Instagram";
+}
+
 function formatTiktokUrl(input?: string | null): string | null {
   if (!input) return null;
   const trimmed = input.trim();
@@ -61,6 +80,25 @@ function formatTiktokUrl(input?: string | null): string | null {
   }
   const handle = trimmed.replace(/^@/, "");
   return `https://tiktok.com/@${handle}`;
+}
+
+function getCleanTiktokHandle(input?: string | null): string {
+  if (!input) return "TikTok";
+  const trimmed = input.trim();
+  if (!trimmed) return "TikTok";
+  
+  let clean = trimmed;
+  try {
+    if (clean.startsWith("http://") || clean.startsWith("https://")) {
+      const url = new URL(clean);
+      clean = url.pathname.replace(/^\/+|\/+$/g, "");
+    }
+  } catch {
+    clean = clean.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/i, "");
+    clean = clean.split("?")[0].split("#")[0].replace(/\/+$/, "");
+  }
+  clean = clean.split("?")[0].split("#")[0].replace(/\/+$/, "").replace(/^@/, "").trim();
+  return clean ? `@${clean}` : "TikTok";
 }
 
 function formatMenuUrl(input?: string | null): string | null {
@@ -998,16 +1036,38 @@ ${feedbackMessage.trim()}`;
                       href={formatInstagramUrl(outlet.instagramUrl)!}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2.5 rounded-2xl bg-slate-950/80 border border-pink-500/30 hover:border-pink-400/60 text-slate-200 hover:text-white transition-all group flex items-center justify-between hover:scale-[1.01] active:scale-[0.99]"
+                      className="p-2.5 rounded-2xl bg-slate-950/80 border border-pink-500/30 hover:border-pink-400/60 text-slate-200 hover:text-white transition-all group flex items-center justify-between hover:scale-[1.01] active:scale-[0.99] shadow-sm"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-8 h-8 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400 text-sm shrink-0 group-hover:scale-110 transition-transform">
-                          📸
-                        </span>
-                        <div className="text-left truncate">
+                        {/* Official Instagram Gradient Logo */}
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1.5px] shrink-0 shadow-md shadow-pink-500/20 group-hover:scale-105 transition-transform flex items-center justify-center">
+                          <div className="w-full h-full rounded-[10px] bg-slate-950 flex items-center justify-center">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="url(#ig-grad)"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="w-4 h-4"
+                            >
+                              <defs>
+                                <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="#f59e0b" />
+                                  <stop offset="50%" stopColor="#ec4899" />
+                                  <stop offset="100%" stopColor="#8b5cf6" />
+                                </linearGradient>
+                              </defs>
+                              <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
                           <div className="text-pink-300 text-[11px] font-bold">Instagram</div>
-                          <div className="text-[10px] text-slate-400 font-normal truncate">
-                            {outlet.instagramUrl?.replace(/^https?:\/\/(www\.)?instagram\.com\//, "@") || "Ikuti Kami"}
+                          <div className="text-[10px] text-slate-400 font-normal truncate max-w-[130px] sm:max-w-[140px]">
+                            {getCleanInstagramHandle(outlet.instagramUrl)}
                           </div>
                         </div>
                       </div>
@@ -1020,16 +1080,23 @@ ${feedbackMessage.trim()}`;
                       href={formatTiktokUrl(outlet.tiktokUrl)!}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 hover:border-cyan-400/60 text-slate-200 hover:text-white transition-all group flex items-center justify-between hover:scale-[1.01] active:scale-[0.99]"
+                      className="p-2.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 hover:border-cyan-400/60 text-slate-200 hover:text-white transition-all group flex items-center justify-between hover:scale-[1.01] active:scale-[0.99] shadow-sm"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-sm shrink-0 group-hover:scale-110 transition-transform">
-                          🎵
-                        </span>
-                        <div className="text-left truncate">
+                        {/* Official TikTok Logo Badge */}
+                        <div className="w-8 h-8 rounded-xl bg-slate-900 border border-cyan-500/40 p-1 flex items-center justify-center text-cyan-400 shadow-md shadow-cyan-500/10 shrink-0 group-hover:scale-105 transition-transform">
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="w-4 h-4 text-cyan-300"
+                            fill="currentColor"
+                          >
+                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43 6.3 6.3 0 0 0 1.91-4.42V8.65a8.28 8.28 0 0 0 4.82 1.54V6.76c-.33-.02-.67-.04-1-.07z" />
+                          </svg>
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
                           <div className="text-cyan-300 text-[11px] font-bold">TikTok</div>
-                          <div className="text-[10px] text-slate-400 font-normal truncate">
-                            {outlet.tiktokUrl?.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, "@") || "Ikuti Kami"}
+                          <div className="text-[10px] text-slate-400 font-normal truncate max-w-[130px] sm:max-w-[140px]">
+                            {getCleanTiktokHandle(outlet.tiktokUrl)}
                           </div>
                         </div>
                       </div>

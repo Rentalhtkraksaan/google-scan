@@ -519,6 +519,91 @@ export function UserGuideModal({
         </div>
       ),
     },
+    {
+      id: "outlet-5",
+      title: "5. Panduan Lengkap Fitur Member VIP & Eksklusif",
+      icon: Sparkles,
+      tag: "Fitur VIP",
+      tagColor: "amber",
+      summary: "Panduan lengkap Suara AI Sebut Toko, Efek Kasir, Multi-Kasir, Medsos, & E-Menu Digital.",
+      content: (
+        <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-950/30 border border-amber-500/40 space-y-2">
+            <div className="flex items-center gap-2 font-black text-amber-300 text-sm">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Apa Itu Keanggotaan Member Premium VIP?</span>
+            </div>
+            <p className="text-[11.5px] text-slate-200 leading-relaxed">
+              <strong>Member VIP</strong> adalah paket keanggotaan eksklusif yang membuka seluruh kecanggihan teknologi interaktif ulasan. Outlet Anda akan memiliki fitur sekelas restoran dan cafe waralaba internasional modern untuk memukau pengunjung meja serta mempermudah staf kasir memantau ulasan secara real-time.
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-1 text-[11.5px]">
+            {/* Poin 1: Suara AI */}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-indigo-300 font-bold">
+                <span>🎙️ 1. Suara AI Sambutan Ramah & Sebut Brand Toko</span>
+              </div>
+              <p className="text-slate-300">
+                <strong>Cara Kerja:</strong> Saat pengunjung menekan Bintang 5 di mejanya, HP pengunjung secara otomatis memutar suara AI ramah berbahasa Indonesia menyebutkan nama usaha Anda: <em>&ldquo;Terima kasih banyak kak sudah mampir ke [Nama Toko Anda]! Ulasan bintang 5 kakak sangat berharga bagi kemajuan usaha kami.&rdquo;</em>
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                <strong>Cara Atur:</strong> Buka tab <em>&ldquo;Keanggotaan VIP&rdquo;</em> di portal, ketik kalimat kustom di Panel 2 jika ingin pesan khusus, lalu klik <em>&ldquo;Simpan AI&rdquo;</em>.
+              </p>
+            </div>
+
+            {/* Poin 2: Nada Dering Kasir */}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-amber-300 font-bold">
+                <span>🔔 2. Pilihan 4 Efek Suara Kasir Sensasi Cuan</span>
+              </div>
+              <p className="text-slate-300">
+                <strong>Cara Kerja:</strong> Memberikan efek audio langsung saat pelanggan submit ulasan bintang 5.
+              </p>
+              <ul className="list-disc list-inside pl-2 space-y-0.5 text-slate-400 text-[11px]">
+                <li><strong>Cha-Ching! Register Uang (💵):</strong> Efek register kasir uang masuk yang membakar semangat staf.</li>
+                <li><strong>Lonceng Kasir Ganda (🔔):</strong> Denting lonceng ramah khas meja barista.</li>
+                <li><strong>Lonceng Kristal (✨):</strong> Suara ding elegan nan mewah.</li>
+                <li><strong>Nada Fanfare (🎺):</strong> Melodi kemenangan perayaan 5 bintang.</li>
+              </ul>
+            </div>
+
+            {/* Poin 3: Multi-Kasir Pairing */}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-emerald-300 font-bold">
+                <span>📲 3. Multi-Kasir QR Pairing (Bebas Bagi-Bagi Password)</span>
+              </div>
+              <p className="text-slate-300">
+                <strong>Cara Kerja:</strong> Hubungkan 3-5 smartphone milik kasir, barista, atau pelayan tanpa perlu memberikan email/password toko. Cukup arahkan kamera HP kasir ke QR Pairing di Panel 4 atau kirim link via WhatsApp.
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                <strong>Keamanan:</strong> Jika ada staf yang resign, Anda cukup menekan tombol <em>&ldquo;Reset QR Kasir&rdquo;</em> untuk memutus akses staf tersebut seketika.
+              </p>
+            </div>
+
+            {/* Poin 4: Logo Outlet, Instagram & TikTok */}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-pink-300 font-bold">
+                <span>📸 4. Logo Usaha & Tautan Media Sosial (Instagram / TikTok)</span>
+              </div>
+              <p className="text-slate-300">
+                Upload logo outlet di Panel 3 agar tampil anggun di atas tombol rating ulasan. Masukkan username Instagram (`@namaoutlet`) dan TikTok di Panel 4 agar pengunjung di meja langsung mem-follow media sosial toko Anda.
+              </p>
+            </div>
+
+            {/* Poin 5: E-Menu Digital */}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+              <div className="flex items-center gap-2 text-amber-300 font-bold">
+                <span>📖 5. Buku Menu & Katalog Digital Multi-Foto</span>
+              </div>
+              <p className="text-slate-300">
+                Unggah banyak foto lembar menu makanan/minuman Anda di Panel 5. Pengunjung di meja bisa membuka <strong>Galeri Menu Interaktif</strong> (slider geser foto next/prev) langsung dari halaman scan tanpa perlu meminta buku menu fisik ke pelayan.
+              </p>
+            </div>
+          </div>
+        </div>
+      ),
+    },
   ];
 
   // 4. DATA FAQ & TROUBLESHOOTING

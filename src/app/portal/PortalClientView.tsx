@@ -29,6 +29,7 @@ import {
   Loader2,
   Menu,
   ChevronRight,
+  ChevronDown,
   Globe,
   Bell,
   CheckCircle2,
@@ -138,6 +139,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
+  const [isVipExplainerExpanded, setIsVipExplainerExpanded] = useState(true);
 
   // VIP Sound, Greeting, Logo & Smart Filter Settings State
   const [selectedSoundEffect, setSelectedSoundEffect] = useState<string>(outlet?.soundEffect || "BELL_DOUBLE");
@@ -1781,11 +1783,140 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
           {/* TAB 5: MEMBERSHIP (Keanggotaan Member Premium VIP) */}
           {activeTab === "MEMBERSHIP" && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="pb-3 border-b border-slate-800">
-                <h2 className="text-lg sm:text-xl font-bold text-white">Status & Keanggotaan Member Premium VIP</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Buka fitur suara AI sebut nama brand toko, 4 pilihan efek suara kasir, dan pairing QR multi-kasir.
-                </p>
+              <div className="pb-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-amber-400" />
+                    <span>Status & Keanggotaan Member Premium VIP</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Buka fitur suara AI sebut nama brand toko, 4 efek suara kasir, pairing multi-kasir, dan e-menu digital.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsGuideModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] self-start sm:self-auto"
+                >
+                  <BookOpen className="w-4 h-4 text-sky-400" />
+                  <span>📖 Buka Buku Panduan VIP & Outlet</span>
+                </button>
+              </div>
+
+              {/* KARTU EDUKASI & PANDUAN: APA ITU VIP & CARA PAKAI */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-white">
+                        Apa itu Membership VIP & Bagaimana Cara Kerjanya?
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Penjelasan lengkap manfaat bisnis, fitur unggulan, dan panduan cara pakainya
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsVipExplainerExpanded(!isVipExplainerExpanded)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                  >
+                    <span>{isVipExplainerExpanded ? "Tutup Rincian" : "Lihat Rincian"}</span>
+                    {isVipExplainerExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {isVipExplainerExpanded && (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/25 text-xs text-slate-300 leading-relaxed space-y-2">
+                      <p>
+                        <strong className="text-amber-300">Membership VIP</strong> adalah layanan premium khusus untuk meningkatkan reputasi, profesionalisme, dan omzet toko/outlet Anda. Dengan VIP, setiap kali pengunjung di meja melakukan scan ulasan, sistem memberikan pengalaman interaktif yang memukau dan staf kasir dapat memantau secara real-time.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+                      {/* Fitur 1: Suara AI */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-indigo-300">
+                          <span className="p-1 rounded-lg bg-indigo-500/20 text-indigo-400">🎙️</span>
+                          <span>1. Suara AI Sebut Toko</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          HP pengunjung otomatis berbicara ramah menyebutkan brand toko saat memberi bintang 5. Kalimat ucapan bisa dikustomisasi bebas di Panel 2.
+                        </p>
+                      </div>
+
+                      {/* Fitur 2: 4 Efek Suara Kasir */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-amber-300">
+                          <span className="p-1 rounded-lg bg-amber-500/20 text-amber-400">🔔</span>
+                          <span>2. Efek Nada Kasir Cuan</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Pilihan nada dering kasir: <em>Cha-Ching Register Uang 💵</em>, Lonceng Ganda, Lonceng Kristal, atau Nada Fanfare di Panel 1.
+                        </p>
+                      </div>
+
+                      {/* Fitur 3: Mode Speaker Toko */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-teal-300">
+                          <span className="p-1 rounded-lg bg-teal-500/20 text-teal-400">📢</span>
+                          <span>3. Mode Speaker Bluetooth</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Hubungkan HP kasir ke sound system/speaker kafe via Bluetooth agar seluruh ulasan bintang 5 langsung terumumkan ke seluruh ruangan.
+                        </p>
+                      </div>
+
+                      {/* Fitur 4: Multi-Kasir QR Pairing */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-emerald-300">
+                          <span className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400">📲</span>
+                          <span>4. Multi-Kasir QR Pairing</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Karyawan/kasir cukup scan QR di Panel 6 untuk terhubung siaga ulasan. Anda tidak perlu membagikan password toko, dan ada tombol Reset QR jika staf resign.
+                        </p>
+                      </div>
+
+                      {/* Fitur 5: Medsos & E-Menu Multi-Foto */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-pink-300">
+                          <span className="p-1 rounded-lg bg-pink-500/20 text-pink-400">📸</span>
+                          <span>5. Medsos & E-Menu Digital</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Tampilkan link Instagram, TikTok, dan Galeri Foto Lembar Menu makanan/minuman langsung di halaman scan ulasan pengunjung meja.
+                        </p>
+                      </div>
+
+                      {/* Fitur 6: Proteksi Smart Rating Gate */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-sky-300">
+                          <span className="p-1 rounded-lg bg-sky-500/20 text-sky-400">🛡️</span>
+                          <span>6. Proteksi Rating Google</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Bintang 4-5 otomatis diarahkan publik ke Google Maps, sedangkan Bintang 1-3 disaring masuk privat langsung ke WhatsApp pribadi pemilik toko.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[11px] text-slate-400 border-t border-slate-800/80">
+                      <span>Ingin panduan langkah demi langkah yang lebih mendalam?</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsGuideModalOpen(true)}
+                        className="text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer"
+                      >
+                        Buka Modul Buku Panduan Lengkap ↗
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {outlet.isMember ? (
