@@ -1,5 +1,5 @@
 // Smart QR Review - Lightweight Service Worker
-const CACHE_NAME = "smartqr-cache-v2";
+const CACHE_NAME = "smartqr-cache-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -9,18 +9,18 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Push Notification Event (Handles incoming Push when App is Closed / Screen Off)
+// Push Notification Event (Handles incoming Push when App is Closed / Screen Off / Phone Locked)
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
   try {
     const data = event.data.json();
-    const title = data.title || "Smart QR System";
+    const title = data.title || "Smart QR Review";
     const targetUrl = data.url || "/portal";
     const options = {
       body: data.body || "Ada pembaruan penting di sistem.",
-      icon: data.icon || "/api/logo/landing",
-      badge: data.badge || "/api/logo/badge",
+      icon: data.icon || "/icon-192.png",
+      badge: data.badge || "/badge.png",
       vibrate: [500, 200, 500, 200, 500, 200, 800],
       sound: "/sounds/bell.wav",
       tag: data.tag || `smartqr-alert-${Date.now()}`,
@@ -40,14 +40,15 @@ self.addEventListener("push", (event) => {
   } catch (err) {
     const text = event.data.text();
     event.waitUntil(
-      self.registration.showNotification("Smart QR System", {
+      self.registration.showNotification("Smart QR Review", {
         body: text,
-        icon: "/api/logo/landing",
-        badge: "/api/logo/badge",
+        icon: "/icon-192.png",
+        badge: "/badge.png",
         vibrate: [500, 200, 500, 200, 800],
         sound: "/sounds/bell.wav",
         silent: false,
         renotify: true,
+        requireInteraction: true,
         data: {
           url: "/super-admin",
         },

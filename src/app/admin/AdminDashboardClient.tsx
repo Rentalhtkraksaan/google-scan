@@ -45,6 +45,7 @@ import { UserGuideModal } from "@/components/dashboard/UserGuideModal";
 import { ResellerModuleModal } from "@/components/dashboard/ResellerModuleModal";
 import { ResellerShopModal } from "@/components/dashboard/ResellerShopModal";
 import { InstallPwaButton } from "@/components/pwa/InstallPwaPrompt";
+import { NotificationPrompt } from "@/components/pwa/NotificationPrompt";
 import { deleteOutletUserAction, toggleUserActiveStatusAction, logLogoutAction } from "@/lib/actions/auth.actions";
 import { toggleCardStatusAction } from "@/lib/actions/qr.actions";
 import { playCashierDing, unlockAudioContext } from "@/lib/notification-sound";
@@ -504,6 +505,9 @@ Tim Layanan Smart QR`;
             {/* Pasang Aplikasi di HP (PWA) */}
             <InstallPwaButton variant="drawer" label="Pasang Aplikasi di HP" />
 
+            {/* Dering Notifikasi Smartphone */}
+            <NotificationPrompt className="w-full justify-between" />
+
             {/* Buka Landing Page Publik */}
             <a
               href="/?view=landing"
@@ -786,6 +790,9 @@ Tim Layanan Smart QR`;
                   <HelpCircle className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                   <span>Buku Panduan</span>
                 </button>
+
+                {/* Smartphone Notification & Dering Toggle */}
+                <NotificationPrompt />
               </div>
             </div>
           </div>
