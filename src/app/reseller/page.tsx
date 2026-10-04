@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: `Pendaftaran Kemitraan Reseller & Grosir Kartu — ${baseTitle}`,
-    description: "Program kemitraan reseller kartu Smart QR Google Review dengan harga grosir spesial minimal 8 pcs, akses dashboard mandiri, dan komisi reward.",
+    description: "Program kemitraan reseller kartu Smart QR Google Review dengan harga grosir spesial, akses dashboard mandiri, dan komisi reward.",
   };
 }
 

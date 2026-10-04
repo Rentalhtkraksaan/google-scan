@@ -282,7 +282,7 @@ export function ResellerProductManagerModal({
 
                 {/* Harga Grosir Reseller per pcs */}
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Harga Grosir Reseller (Min. 8 pcs) *</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Harga Grosir Reseller (Rp/pcs) *</label>
                   <input
                     type="number"
                     required

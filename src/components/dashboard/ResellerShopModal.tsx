@@ -328,7 +328,7 @@ export function ResellerShopModal({
     if (!isMinOrderMet) {
       showErrorAlert(
         "Minimal Order Belum Terpenuhi",
-        `Minimal total pengambilan kartu adalah 8 pcs untuk mendapatkan harga reseller. Silakan tambahkan ${missingQty} pcs lagi pada Form 2.`
+        `Minimal total pengambilan kartu adalah ${minOrder} pcs untuk mendapatkan harga reseller. Silakan tambahkan ${missingQty} pcs lagi pada Form 2.`
       );
       return false;
     }
@@ -357,7 +357,7 @@ export function ResellerShopModal({
     if (!isMinOrderMet) {
       showErrorAlert(
         "Minimal Order Belum Terpenuhi",
-        `Minimal total pengambilan kartu adalah 8 pcs untuk mendapatkan harga reseller. Silakan tambahkan ${missingQty} pcs lagi.`
+        `Minimal total pengambilan kartu adalah ${minOrder} pcs untuk mendapatkan harga reseller. Silakan tambahkan ${missingQty} pcs lagi.`
       );
       return;
     }
@@ -567,7 +567,7 @@ export function ResellerShopModal({
                     <h4 className="text-sm font-bold text-white">Ketentuan Harga Grosir Reseller</h4>
                   </div>
                   <p className="text-xs text-slate-300 mt-0.5">
-                    Minimal pengambilan <strong>8 pcs</strong> kartu fisik untuk checkout. Nikmati potongan reward otomatis jika Anda memiliki outlet binaan aktif berbayar!
+                    Minimal pengambilan <strong>{minOrder} pcs</strong> kartu fisik untuk checkout. Nikmati potongan reward otomatis jika Anda memiliki outlet binaan aktif berbayar!
                   </p>
                 </div>
 

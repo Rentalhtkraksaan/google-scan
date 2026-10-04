@@ -126,7 +126,7 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
           </h1>
 
           <p className="mt-5 text-sm sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Dapatkan paket perdana kartu ulasan Google Review mulai dari <strong>8 pcs</strong> dengan harga grosir khusus mitra, dashboard admin lapangan mandiri, dan reward potongan harga per outlet aktif.
+            Dapatkan paket perdana kartu ulasan Google Review dengan harga grosir khusus mitra, dashboard admin lapangan mandiri, dan reward potongan harga per outlet aktif.
           </p>
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
@@ -136,7 +136,7 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.03] active:scale-[0.98] cursor-pointer"
             >
               <ShoppingCart className="w-4 h-4" />
-              <span>Daftar & Pesan Paket (Min. 8 pcs)</span>
+              <span>Daftar & Pesan Paket</span>
             </button>
 
             <button
@@ -167,7 +167,7 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
             </div>
             <h3 className="font-extrabold text-base text-white">Harga Grosir Spesial</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Dapatkan harga modal kartu murah mulai 8 pcs dan tentukan harga jual bebas ke toko/resto di wilayah Anda.
+              Dapatkan harga modal kartu murah grosir dan tentukan harga jual bebas ke toko/resto di wilayah Anda.
             </p>
           </div>
 
@@ -209,7 +209,7 @@ export function ResellerPageClient({ siteSetting }: ResellerPageClientProps) {
               onClick={() => setIsRegisterModalOpen(true)}
               className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/30 transition-all hover:scale-105 cursor-pointer"
             >
-              Mulai Pesan Paket Reseller (Min. 8 pcs)
+              Mulai Pesan Paket Reseller
             </button>
 
             <a

@@ -348,8 +348,8 @@ export function PublicResellerRegistrationModal({
   const validateStep2 = () => {
     if (!isMinOrderMet) {
       showErrorAlert(
-        "Minimal Pengambilan 8 Pcs",
-        `Total kartu yang dipilih saat ini ${totalQuantity} pcs. Silakan tambah menjadi minimal 8 pcs untuk harga reseller.`
+        `Minimal Pengambilan ${minOrder} Pcs`,
+        `Total kartu yang dipilih saat ini ${totalQuantity} pcs. Silakan tambah menjadi minimal ${minOrder} pcs untuk harga reseller.`
       );
       return false;
     }

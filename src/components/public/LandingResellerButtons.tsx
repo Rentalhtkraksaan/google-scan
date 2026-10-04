@@ -113,7 +113,7 @@ export function LandingResellerButtons({ siteSetting, variant = "section" }: Lan
               Tertarik Menjadi Mitra Reseller Smart QR?
             </h3>
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              Dapatkan paket perdana kartu ulasan Google Review mulai dari 8 pcs dengan harga khusus mitra, dashboard admin lapangan mandiri, dan reward potongan harga per outlet aktif.
+              Dapatkan paket perdana kartu ulasan Google Review dengan harga khusus mitra, dashboard admin lapangan mandiri, dan reward potongan harga per outlet aktif.
             </p>
           </div>
 
