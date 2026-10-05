@@ -19,6 +19,7 @@ import {
   Layers,
   MessageCircle,
   LayoutDashboard,
+  ExternalLink,
 } from "lucide-react";
 
 import type { Metadata } from "next";
@@ -252,25 +253,53 @@ export default async function LandingPage({
           <div className="mt-8 flex flex-col items-center justify-center gap-3.5 max-w-xl mx-auto">
             <LandingRetailButtons siteSetting={siteSetting || undefined} variant="hero" />
 
-            <div className="flex items-center gap-3">
+            {/* Secondary Interactive Action Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-xl mt-1">
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold inline-flex items-center gap-1.5 py-1 hover:underline"
+                className="group relative flex items-center justify-center sm:justify-start gap-3 px-4 py-3 rounded-2xl bg-slate-900/85 hover:bg-emerald-950/40 border border-slate-800/90 hover:border-emerald-500/50 shadow-lg shadow-black/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>Konsultasi Pemesanan via WhatsApp</span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500/25 group-hover:border-emerald-400/60 group-hover:scale-105 transition-all shrink-0">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-100 group-hover:text-emerald-300 transition-colors truncate">
+                      Konsultasi WhatsApp
+                    </span>
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 group-hover:text-emerald-400/80 transition-colors block truncate">
+                    Tanya admin / custom kartu ulasan
+                  </span>
+                </div>
               </a>
-              <span className="text-slate-600">•</span>
+
               <a
                 href={ctaSecondaryUrl}
                 target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
                 rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="text-xs text-sky-400 hover:text-sky-300 font-semibold inline-flex items-center gap-1.5 py-1 hover:underline"
+                className="group relative flex items-center justify-center sm:justify-start gap-3 px-4 py-3 rounded-2xl bg-slate-900/85 hover:bg-sky-950/40 border border-slate-800/90 hover:border-sky-500/50 shadow-lg shadow-black/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-left overflow-hidden"
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>{ctaSecondaryText}</span>
+                <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 group-hover:bg-sky-500/25 group-hover:border-sky-400/60 group-hover:scale-105 transition-all shrink-0">
+                  <Smartphone className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-100 group-hover:text-sky-300 transition-colors truncate">
+                      {ctaSecondaryText}
+                    </span>
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </div>
+                  <span className="text-[11px] text-slate-400 group-hover:text-sky-400/80 transition-colors block truncate">
+                    Simulasi live buka pop-up ulasan
+                  </span>
+                </div>
               </a>
             </div>
           </div>

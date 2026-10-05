@@ -141,7 +141,7 @@ export function TrackOrderModal({ isOpen, onClose, initialQuery = "" }: TrackOrd
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ketik Nomor Pesanan (contoh: AP2AC6) atau No. WhatsApp..."
+              placeholder="Ketik Nomor Pesanan (contoh: A9C1-XK8P-7890) atau No. WhatsApp..."
               className="w-full pl-11 pr-28 py-3 bg-slate-950/80 border border-slate-800 focus:border-indigo-500/50 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 outline-none transition-all shadow-inner"
             />
             <button

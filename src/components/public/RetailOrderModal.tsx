@@ -404,6 +404,11 @@ export function RetailOrderModal({
       return;
     }
 
+    if (paymentMethod === "MANUAL_BANK_BNI" && !receiptImageUrl.trim()) {
+      setStep3Error("Foto struk / bukti transfer Bank BNI wajib diupload sebelum memproses pesanan.");
+      return;
+    }
+
     setStep3Error(null);
 
     const items = Object.entries(quantities)
@@ -1259,7 +1264,10 @@ export function RetailOrderModal({
                         <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
                           <span className="flex items-center gap-1.5">
                             <UploadCloud className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Upload Bukti Transfer Bank (Opsional)</span>
+                            <span>
+                              Upload Bukti Transfer Bank <span className="text-rose-400 font-bold">*</span>{" "}
+                              <span className="text-[11px] font-semibold text-rose-400/90">(Wajib)</span>
+                            </span>
                           </span>
                           {receiptImageUrl && (
                             <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">

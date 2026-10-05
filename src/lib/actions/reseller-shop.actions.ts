@@ -291,17 +291,26 @@ function validateReceiptImage(receiptUrlOrBase64?: string | null): boolean {
 }
 
 /**
- * Generator Kode Unik Pesanan 6 Karakter (contoh: AP2AC6, AP8K9Z)
- * Awalan 'AP' diikuti 4 karakter alfanumerik acak
+ * Generator Kode Unik Pesanan dengan format:
+ * A9C1-[4 KODE ACAK]-[4 ANGKA TERAKHIR NOMOR TELEPON]
+ * Contoh: A9C1-XK8P-7890
  */
-export async function generateUniqueOrderCode(): Promise<string> {
+export async function generateUniqueOrderCode(customerPhone?: string): Promise<string> {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  for (let attempt = 0; attempt < 25; attempt++) {
-    let suffix = "";
+  
+  // Ambil 4 digit terakhir nomor telepon
+  const digits = (customerPhone || "").replace(/\D/g, "");
+  let phoneSuffix = digits.slice(-4);
+  if (phoneSuffix.length < 4) {
+    phoneSuffix = (phoneSuffix + Math.floor(1000 + Math.random() * 9000)).slice(-4);
+  }
+
+  for (let attempt = 0; attempt < 30; attempt++) {
+    let randomPart = "";
     for (let j = 0; j < 4; j++) {
-      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    const code = `AP${suffix}`;
+    const code = `A9C1-${randomPart}-${phoneSuffix}`;
     const existing = await prisma.resellerOrder.findUnique({
       where: { orderNumber: code },
       select: { id: true },
@@ -310,7 +319,9 @@ export async function generateUniqueOrderCode(): Promise<string> {
       return code;
     }
   }
-  return `AP${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+  const fallbackRandom = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `A9C1-${fallbackRandom}-${phoneSuffix}`;
 }
 
 /**
@@ -469,7 +480,7 @@ export async function createResellerOrderAction(data: {
 
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
     const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee);
-    const orderNumber = await generateUniqueOrderCode(); // Format unik 6 karakter: A9PC1A
+    const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
     // Handle Midtrans QRIS
     let midtransSnapToken: string | null = null;
@@ -678,6 +689,10 @@ export async function createRetailOrderAction(data: {
     const sanitizedAffiliate = sanitizeInputText(data.affiliateCode, 30).toUpperCase();
     const sanitizedNotes = sanitizeInputText(data.notes, 300);
 
+    if (data.paymentMethod === "MANUAL_BANK_BNI" && (!data.receiptImageUrl || !data.receiptImageUrl.trim())) {
+      return { success: false, message: "Foto struk bukti transfer Bank BNI wajib diunggah." };
+    }
+
     if (data.receiptImageUrl && !validateReceiptImage(data.receiptImageUrl)) {
       return { success: false, message: "File struk bukti transfer tidak valid atau berbahaya. Gunakan file gambar JPG, PNG, atau WEBP." };
     }
@@ -780,7 +795,7 @@ export async function createRetailOrderAction(data: {
     const packingFee = siteSetting?.orderPackingFee ?? 5000;
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
     const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee;
-    const orderNumber = await generateUniqueOrderCode(); // Format 6 karakter: A9PC1A
+    const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
     // Handle Midtrans QRIS
     let midtransSnapToken: string | null = null;
@@ -1231,13 +1246,13 @@ export async function deleteResellerOrderRecordAction(orderId: string) {
 }
 
 /**
- * 12. Publik & Pembeli: Lacak Status Pesanan Berdasarkan Kode Pesanan (contoh: AP2AC6) atau Nomor WhatsApp
+ * 12. Publik & Pembeli: Lacak Status Pesanan Berdasarkan Kode Pesanan (contoh: A9C1-XK8P-7890) atau Nomor WhatsApp
  */
 export async function trackResellerOrderAction(query: string) {
   try {
     const cleanQuery = query.trim();
     if (!cleanQuery || cleanQuery.length < 3) {
-      return { success: false, message: "Masukkan Kode Pesanan (contoh: AP2AC6) atau Nomor WhatsApp yang valid." };
+      return { success: false, message: "Masukkan Kode Pesanan (contoh: A9C1-XK8P-7890) atau Nomor WhatsApp yang valid." };
     }
 
     const upperCode = cleanQuery.toUpperCase();
