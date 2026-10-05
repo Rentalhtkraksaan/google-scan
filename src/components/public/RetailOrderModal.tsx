@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   X,
   ShoppingCart,
@@ -121,15 +121,24 @@ export function RetailOrderModal({
     affiliateCode?: string | null;
   } | null>(null);
 
+  // Track previous isOpen state to only reset wizard when opened freshly
+  const prevIsOpenRef = useRef(false);
+
   // Load products & Snap JS
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      return;
+    }
 
-    // Reset wizard & success
-    setOrderSuccessData(null);
-    setCurrentStep(1);
-    setStep1Error(null);
-    setStep3Error(null);
+    // Only reset state when modal transitions from closed to open
+    if (!prevIsOpenRef.current) {
+      prevIsOpenRef.current = true;
+      setOrderSuccessData(null);
+      setCurrentStep(1);
+      setStep1Error(null);
+      setStep3Error(null);
+    }
 
     const loadData = async () => {
       setIsLoadingProducts(true);
@@ -138,11 +147,15 @@ export function RetailOrderModal({
         if (res.success && res.data && res.data.length > 0) {
           setProducts(res.data as ResellerProductModel[]);
           // Default: 1 pcs pada produk pertama jika belum ada
-          const initialQty: Record<string, number> = {};
-          res.data.forEach((p, idx) => {
-            initialQty[p.id] = idx === 0 ? 1 : 0;
+          setQuantities((prev) => {
+            const hasExisting = Object.values(prev).some((q) => q > 0);
+            if (hasExisting) return prev;
+            const initialQty: Record<string, number> = {};
+            res.data?.forEach((p, idx) => {
+              initialQty[p.id] = idx === 0 ? 1 : 0;
+            });
+            return initialQty;
           });
-          setQuantities(initialQty);
         }
       } catch (err) {
         console.error("Gagal memuat produk eceran:", err);
@@ -195,7 +208,7 @@ export function RetailOrderModal({
       script.async = true;
       document.body.appendChild(script);
     }
-  }, [isOpen, siteSetting, defaultReferralCode]);
+  }, [isOpen]);
 
   // Synchronize when defaultReferralCode changes dynamically
   useEffect(() => {
