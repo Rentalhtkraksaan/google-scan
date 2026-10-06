@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { sendWebPushToSuperAdmins } from "@/lib/web-push";
-
+import { getDefaultSeptember30Expiry, formatMembershipExpiry } from "@/lib/membership-utils";
 /**
  * Outlet mengunggah bukti transfer pembayaran membership
  */
@@ -88,8 +88,6 @@ export async function submitPaymentProofAction(
     return { success: false, message: "Gagal mengirim bukti pembayaran." };
   }
 }
-
-import { getDefaultSeptember30Expiry, isOutletMemberActive, formatMembershipExpiry } from "@/lib/membership-utils";
 
 /**
  * Super Admin: 1-Klik Menyetujui bukti transfer & mengaktifkan status member outlet
