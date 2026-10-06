@@ -48,6 +48,7 @@ export const getCachedSiteSetting = unstable_cache(
         midtransServerKey: true,
         midtransClientKey: true,
         midtransIsProduction: true,
+        midtransAdminFee: true,
         trialDurationDays: true,
         autoVipTrialOnActivation: true,
         resellerModulePrice: true,

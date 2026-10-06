@@ -479,7 +479,8 @@ export async function createResellerOrderAction(data: {
     }
 
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee);
+    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+    const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee + adminFee);
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
     // Handle Midtrans QRIS
@@ -549,6 +550,16 @@ export async function createResellerOrderAction(data: {
                 },
               ]
             : []),
+          ...(adminFee > 0
+            ? [
+                {
+                  id: "ADMIN-FEE",
+                  price: Math.round(adminFee),
+                  quantity: 1,
+                  name: "Biaya Layanan Midtrans",
+                },
+              ]
+            : []),
         ];
       }
 
@@ -608,6 +619,7 @@ export async function createResellerOrderAction(data: {
         discountAmount,
         shippingFee: finalShippingFee,
         packingFee: packingFee,
+        adminFee: adminFee,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,
@@ -794,7 +806,8 @@ export async function createRetailOrderAction(data: {
 
     const packingFee = siteSetting?.orderPackingFee ?? 5000;
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee;
+    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+    const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee + adminFee;
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
     // Handle Midtrans QRIS
@@ -856,6 +869,16 @@ export async function createRetailOrderAction(data: {
                 },
               ]
             : []),
+          ...(adminFee > 0
+            ? [
+                {
+                  id: "ADMIN-FEE",
+                  price: Math.round(adminFee),
+                  quantity: 1,
+                  name: "Biaya Layanan Midtrans",
+                },
+              ]
+            : []),
         ],
       };
 
@@ -907,6 +930,7 @@ export async function createRetailOrderAction(data: {
         subtotal: calculatedSubtotal,
         shippingFee: finalShippingFee,
         packingFee: packingFee,
+        adminFee: adminFee,
         totalAmount: finalTotalAmount,
         receiptImageUrl: data.receiptImageUrl || null,
         midtransSnapToken: midtransSnapToken || null,

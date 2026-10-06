@@ -114,6 +114,7 @@ model SiteSetting {
   midtransServerKey        String?  @db.Text
   midtransClientKey        String?  @db.Text
   midtransIsProduction     Boolean  @default(false)
+  midtransAdminFee         Int      @default(4000) // Biaya Layanan / Admin Midtrans yang dibebankan ke pembeli (default Rp 4.000)
   trialDurationDays        Int      @default(30)
   autoVipTrialOnActivation Boolean  @default(true)
 
@@ -458,6 +459,7 @@ model ResellerOrder {
   discountAmount        Int                 @default(0)
   shippingFee           Int                 @default(20000)
   packingFee            Int                 @default(5000) // Biaya packing master tetap (Rp 5.000)
+  adminFee              Int                 @default(0)    // Biaya layanan/admin Midtrans jika via Gateway (Rp 4.000)
   totalAmount           Int
   receiptImageUrl       String?             @db.LongText
   midtransSnapToken     String?             @db.Text

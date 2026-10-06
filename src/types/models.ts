@@ -49,6 +49,7 @@ export interface SiteSettingModel {
   midtransServerKey?: string | null;
   midtransClientKey?: string | null;
   midtransIsProduction?: boolean;
+  midtransAdminFee?: number;
   trialDurationDays?: number;
   autoVipTrialOnActivation?: boolean;
   resellerModulePrice?: number;
@@ -444,6 +445,7 @@ export interface ResellerOrderModel {
   discountAmount: number;
   shippingFee: number;
   packingFee?: number;
+  adminFee?: number;
   totalAmount: number;
   receiptImageUrl?: string | null;
   midtransSnapToken?: string | null;

@@ -123,6 +123,7 @@ export function MembershipManagementModal({
   const [midtransServerKey, setMidtransServerKey] = useState(siteSetting?.midtransServerKey || "");
   const [midtransClientKey, setMidtransClientKey] = useState(siteSetting?.midtransClientKey || "");
   const [midtransIsProduction, setMidtransIsProduction] = useState(siteSetting?.midtransIsProduction || false);
+  const [midtransAdminFee, setMidtransAdminFee] = useState<number>(siteSetting?.midtransAdminFee ?? 4000);
   const [showServerKey, setShowServerKey] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
@@ -539,7 +540,8 @@ export function MembershipManagementModal({
           midtransIsProduction,
           Number(trialDurationDays) || 30,
           autoVipTrialOnActivation,
-          midtransEnabled
+          midtransEnabled,
+          Number(midtransAdminFee) >= 0 ? Number(midtransAdminFee) : 4000
         ),
         updateResellerModuleSettingsAction({
           resellerModulePrice: Number(resellerModulePrice) || 150000,
@@ -1601,6 +1603,32 @@ export function MembershipManagementModal({
                       Production (Live)
                     </button>
                   </div>
+                </div>
+
+                {/* Biaya Admin / Layanan Midtrans */}
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-white block">Biaya Layanan / Admin Midtrans (Rp)</span>
+                      <span className="text-[11px] text-slate-400 block">
+                        Biaya admin yang ditagihkan ke pembeli saat memilih pembayaran otomatis Midtrans (Virtual Account / QRIS)
+                      </span>
+                    </div>
+                    <div className="relative w-full sm:w-44 shrink-0">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="500"
+                        value={midtransAdminFee}
+                        onChange={(e) => setMidtransAdminFee(Number(e.target.value) || 0)}
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs font-bold focus:outline-none focus:border-amber-500 text-right"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    * Contoh: Isi <strong>4000</strong> jika ingin tagihan bertambah Rp 4.000 saat pembeli memilih Midtrans. Isi <strong>0</strong> jika admin fee gratis/ditanggung merchant.
+                  </p>
                 </div>
 
                 {/* Webhook URL Helper */}

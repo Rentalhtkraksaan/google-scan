@@ -257,7 +257,8 @@ export function RetailOrderModal({
 
   const packingFee = siteSetting?.orderPackingFee ?? 5000;
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-  const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee;
+  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+  const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee + midtransAdminFee;
 
   // Step 1: Produk & Referral -> Step 2
   const handleGoToStep2 = (e: React.FormEvent) => {
@@ -1224,9 +1225,16 @@ export function RetailOrderModal({
                           <CreditCard className="w-4 h-4" />
                         </div>
                         <div>
-                          <span className="font-bold text-xs text-white block">Midtrans QRIS Instan</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-white block">Midtrans Otomatis</span>
+                            {(siteSetting?.midtransAdminFee ?? 4000) > 0 && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                +Rp {(siteSetting?.midtransAdminFee ?? 4000).toLocaleString("id-ID")}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                            GoPay, OVO, Dana, ShopeePay & M-Banking (Otomatis)
+                            Virtual Account (BCA/BNI/BRI/Mandiri), QRIS & E-Wallet
                           </span>
                         </div>
                       </button>
@@ -1245,9 +1253,14 @@ export function RetailOrderModal({
                         <Building2 className="w-4 h-4" />
                       </div>
                       <div>
-                        <span className="font-bold text-xs text-white block">Transfer Manual BNI</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-white block">Transfer Manual BNI</span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Tanpa Biaya Admin
+                          </span>
+                        </div>
                         <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
-                          Transfer & Upload Bukti Pembayaran
+                          Transfer rekening toko & upload bukti
                         </span>
                       </div>
                     </button>
@@ -1380,6 +1393,18 @@ export function RetailOrderModal({
                       </span>
                       <span className="font-mono font-bold">
                         -Rp {shippingDiscount.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  )}
+
+                  {paymentMethod === "MIDTRANS_QRIS" && midtransAdminFee > 0 && (
+                    <div className="flex items-center justify-between text-xs text-indigo-300">
+                      <span className="flex items-center gap-1">
+                        <CreditCard className="w-3 h-3 text-indigo-400" />
+                        Biaya Layanan Midtrans:
+                      </span>
+                      <span className="font-mono font-bold text-indigo-300">
+                        +Rp {midtransAdminFee.toLocaleString("id-ID")}
                       </span>
                     </div>
                   )}

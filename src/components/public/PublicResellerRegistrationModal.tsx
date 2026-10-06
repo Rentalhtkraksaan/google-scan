@@ -279,7 +279,8 @@ export function PublicResellerRegistrationModal({
   const shippingFee = Math.max(0, baseShippingFee - shippingDiscount);
   const minOrder = siteSetting?.resellerMinOrder ?? products[0]?.minOrder ?? 2;
   const packingFee = siteSetting?.orderPackingFee ?? 5000;
-  const totalAmount = subtotal + shippingFee + packingFee;
+  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+  const totalAmount = subtotal + shippingFee + packingFee + midtransAdminFee;
   const isMinOrderMet = totalQuantity >= minOrder;
 
   const handleQtyChange = (productId: string, delta: number) => {
@@ -1052,6 +1053,18 @@ export function PublicResellerRegistrationModal({
                       <span className="font-mono font-bold">{referralStatus.code}</span>
                     </div>
                   )}
+                  {paymentMethod === "MIDTRANS_QRIS" && midtransAdminFee > 0 && (
+                    <div className="flex items-center justify-between text-xs text-indigo-300">
+                      <span className="flex items-center gap-1">
+                        <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
+                        Biaya Layanan Midtrans:
+                      </span>
+                      <span className="font-mono font-bold text-indigo-300">
+                        +Rp {midtransAdminFee.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                     <span className="text-xs font-bold text-white uppercase">Total Tagihan Pembayaran:</span>
                     <span className="text-base font-black text-emerald-400 font-mono">

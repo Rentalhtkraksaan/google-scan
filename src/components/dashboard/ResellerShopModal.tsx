@@ -237,7 +237,8 @@ export function ResellerShopModal({
   const minOrder = siteSetting?.resellerMinOrder ?? 2;
   const packingFee = siteSetting?.orderPackingFee ?? 5000;
   const shippingFee = 0; // Bebas ongkir untuk reseller
-  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee + packingFee);
+  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee + packingFee + midtransAdminFee);
 
   // Minimal order reseller adalah minOrder pcs total
   const isMinOrderMet = totalQuantity >= minOrder;
@@ -1098,6 +1099,18 @@ export function ResellerShopModal({
                             Rp {packingFee.toLocaleString("id-ID")}
                           </span>
                         </div>
+
+                        {paymentMethod === "MIDTRANS_QRIS" && midtransAdminFee > 0 && (
+                          <div className="flex items-center justify-between text-indigo-300">
+                            <span className="flex items-center gap-1">
+                              <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
+                              Biaya Layanan Midtrans:
+                            </span>
+                            <span className="font-mono font-bold text-indigo-300">
+                              +Rp {midtransAdminFee.toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                        )}
 
                         <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">
                           <span className="font-bold text-white uppercase">Total Tagihan Pembayaran:</span>

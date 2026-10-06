@@ -48,6 +48,7 @@ interface UpgradeMemberModalProps {
     midtransClientKey?: string | null;
     midtransIsProduction?: boolean;
     midtransEnabled?: boolean;
+    midtransAdminFee?: number;
   };
   onSuccess?: () => void;
 }
@@ -79,10 +80,11 @@ export function UpgradeMemberModal({
     }
   }, [siteSetting?.midtransEnabled]);
 
-  // Tentukan harga: customVipPrice jika ada (harga khusus), jika tidak gunakan harga master
   const isCustomPrice = !!(outlet.customVipPrice && outlet.customVipPrice > 0);
   const price = isCustomPrice ? (outlet.customVipPrice as number) : (siteSetting?.membershipPrice || 45000);
   const masterPrice = siteSetting?.membershipPrice || 45000;
+  const midtransAdminFee = siteSetting?.midtransAdminFee ?? 4000;
+  const qrisTotalPrice = price + midtransAdminFee;
 
   const bankName = siteSetting?.membershipBankName || "BNI";
   const accountNumber = siteSetting?.membershipAccountNumber || "1234567890";
@@ -436,6 +438,13 @@ export function UpgradeMemberModal({
                   </div>
                 </div>
 
+                {midtransAdminFee > 0 && (
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                    <span>Member VIP: <strong className="text-slate-200 font-mono">Rp {price.toLocaleString("id-ID")}</strong></span>
+                    <span>Biaya Layanan Midtrans: <strong className="text-indigo-300 font-mono">+Rp {midtransAdminFee.toLocaleString("id-ID")}</strong></span>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={handlePayMidtransQris}
@@ -450,7 +459,7 @@ export function UpgradeMemberModal({
                   ) : (
                     <>
                       <QrCode className="w-4 h-4" />
-                      <span>Bayar Rp {price.toLocaleString("id-ID")} dengan QRIS</span>
+                      <span>Bayar Rp {qrisTotalPrice.toLocaleString("id-ID")} dengan QRIS</span>
                     </>
                   )}
                 </button>

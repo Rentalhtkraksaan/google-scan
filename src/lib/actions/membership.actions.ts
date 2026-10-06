@@ -380,7 +380,8 @@ export async function updateMembershipSettingsAction(
   midtransIsProduction?: boolean,
   trialDurationDays?: number,
   autoVipTrialOnActivation?: boolean,
-  midtransEnabled?: boolean
+  midtransEnabled?: boolean,
+  midtransAdminFee?: number
 ) {
   try {
     const session = await auth();
@@ -418,6 +419,7 @@ export async function updateMembershipSettingsAction(
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
         midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
+        midtransAdminFee: midtransAdminFee !== undefined ? Number(midtransAdminFee) : 4000,
         midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : undefined,
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : undefined,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
@@ -436,6 +438,7 @@ export async function updateMembershipSettingsAction(
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
         midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
+        midtransAdminFee: midtransAdminFee !== undefined ? Number(midtransAdminFee) : 4000,
         midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : null,
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : null,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
@@ -575,6 +578,8 @@ export async function createMidtransVipTransactionAction(outletId: string) {
     const amount = outlet.customVipPrice && outlet.customVipPrice > 0
       ? outlet.customVipPrice
       : (siteSetting?.membershipPrice || 45000);
+    const adminFee = siteSetting?.midtransAdminFee ?? 4000;
+    const finalAmount = amount + adminFee;
 
     const orderId = `VIP-${outlet.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
@@ -587,7 +592,7 @@ export async function createMidtransVipTransactionAction(outletId: string) {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: amount,
+        gross_amount: finalAmount,
       },
       customer_details: {
         first_name: outlet.name,
@@ -601,6 +606,16 @@ export async function createMidtransVipTransactionAction(outletId: string) {
           quantity: 1,
           name: `VIP 1 Bulan - ${outlet.name.slice(0, 25)}`,
         },
+        ...(adminFee > 0
+          ? [
+              {
+                id: "ADMIN-FEE",
+                price: adminFee,
+                quantity: 1,
+                name: "Biaya Layanan Midtrans",
+              },
+            ]
+          : []),
       ],
     };
 

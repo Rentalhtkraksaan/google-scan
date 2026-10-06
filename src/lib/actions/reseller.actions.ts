@@ -204,6 +204,8 @@ export async function createResellerMidtransQrisAction() {
     }
 
     const amount = siteSetting?.resellerModulePrice || 150000;
+    const adminFee = siteSetting?.midtransAdminFee ?? 4000;
+    const finalAmount = amount + adminFee;
     const orderId = `MODUL-${session.user.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
     const snapEndpoint = isProduction
@@ -220,7 +222,7 @@ export async function createResellerMidtransQrisAction() {
     const payload = {
       transaction_details: {
         order_id: orderId,
-        gross_amount: amount,
+        gross_amount: finalAmount,
       },
       customer_details: {
         first_name: user?.fullName || session.user.name || "Mitra Reseller",
@@ -234,6 +236,16 @@ export async function createResellerMidtransQrisAction() {
           quantity: 1,
           name: (siteSetting?.resellerModuleTitle || "Modul Kemitraan Reseller").slice(0, 50),
         },
+        ...(adminFee > 0
+          ? [
+              {
+                id: "ADMIN-FEE",
+                price: adminFee,
+                quantity: 1,
+                name: "Biaya Layanan Midtrans",
+              },
+            ]
+          : []),
       ],
     };
 
@@ -260,7 +272,7 @@ export async function createResellerMidtransQrisAction() {
     await prisma.resellerModulePayment.create({
       data: {
         userId: session.user.id,
-        amount,
+        amount: finalAmount,
         paymentType: "MIDTRANS_QRIS",
         status: "PENDING",
         midtransOrderId: orderId,
