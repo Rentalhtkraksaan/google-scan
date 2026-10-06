@@ -1570,9 +1570,10 @@ export async function activateRetailOrderAsOutletAction(data: {
             ownerId: existingUser.id,
             name: data.outletName.trim(),
             googleReviewUrl: data.googleReviewUrl.trim(),
-            isMember: isAutoVip,
-            membershipStartedAt: isAutoVip ? new Date() : null,
-            membershipExpiresAt: isAutoVip ? trialExpiry : null,
+            isMember: false,
+            membershipStartedAt: null,
+            membershipExpiresAt: null,
+            hasClaimedFreeTrial: false,
           },
         });
         finalOutletId = newOutlet.id;
@@ -1598,9 +1599,10 @@ export async function activateRetailOrderAsOutletAction(data: {
           ownerId: newUser.id,
           name: data.outletName.trim(),
           googleReviewUrl: data.googleReviewUrl.trim(),
-          isMember: isAutoVip,
-          membershipStartedAt: isAutoVip ? new Date() : null,
-          membershipExpiresAt: isAutoVip ? trialExpiry : null,
+          isMember: false,
+          membershipStartedAt: null,
+          membershipExpiresAt: null,
+          hasClaimedFreeTrial: false,
         },
       });
       finalOutletId = newOutlet.id;

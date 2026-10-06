@@ -38,6 +38,7 @@ export default async function PortalPage() {
             isMember: true,
             membershipStartedAt: true,
             membershipExpiresAt: true,
+            hasClaimedFreeTrial: true,
             customVipPrice: true,
             soundEffect: true,
             customGreetingText: true,

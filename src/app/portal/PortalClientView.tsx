@@ -45,11 +45,12 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { getCardScanUrl, generateQrDataUrl } from "@/lib/qr-export";
-import { showSuccessAlert, showWelcomeAlert, showErrorAlert } from "@/lib/swal";
+import { showSuccessAlert, showWelcomeAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 import { logLogoutAction } from "@/lib/actions/auth.actions";
 import {
   updateOutletVipSettingsAction,
   resetStaffPairingTokenAction,
+  claimFreeTrialVipAction,
 } from "@/lib/actions/membership.actions";
 import { compressImageInBrowser } from "@/lib/image-compression";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
@@ -407,6 +408,74 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       showErrorAlert("Error", "Gagal menghubungi server.");
     } finally {
       setIsResettingPairing(false);
+    }
+  };
+
+  const [isClaimingTrial, setIsClaimingTrial] = useState(false);
+
+  const handleClaimFreeTrial = async () => {
+    if (!outlet?.id || isClaimingTrial) return;
+    
+    const confirmed = await showConfirmAlert(
+      "🎁 Aktifkan Free Trial VIP 30 Hari?",
+      `Nikmati seluruh fitur VIP gratis selama 30 hari untuk outlet <b>${outlet.name}</b>.<br/><br/><span class="text-xs text-amber-300">✨ Masa aktif 30 hari baru akan mulai berjalan hari ini dan berlaku penuh tanpa biaya apapun.</span>`,
+      "Ya, Aktifkan VIP Sekarang 🚀",
+      "#f59e0b"
+    );
+
+    if (!confirmed) return;
+
+    setIsClaimingTrial(true);
+    try {
+      const res = await claimFreeTrialVipAction(outlet.id);
+      if (res.success) {
+        await showSuccessAlert(
+          "VIP Berhasil Diaktifkan! 🎉",
+          res.message || "Selamat menikmati fitur VIP selama 30 hari penuh!",
+          2500
+        );
+        router.refresh();
+      } else {
+        showErrorAlert("Gagal Mengaktifkan", res.message || "Terjadi kesalahan.");
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghubungi server.");
+    } finally {
+      setIsClaimingTrial(false);
+    }
+  };
+
+  const [isClaimingTrial, setIsClaimingTrial] = useState(false);
+
+  const handleClaimFreeTrial = async () => {
+    if (!outlet?.id || isClaimingTrial) return;
+    
+    const confirmed = await showConfirmAlert(
+      "🎁 Aktifkan Free Trial VIP 30 Hari?",
+      `Nikmati seluruh fitur VIP gratis selama 30 hari untuk outlet <b>${outlet.name}</b>.<br/><br/><span class="text-xs text-amber-300">✨ Masa aktif 30 hari baru akan mulai berjalan hari ini dan berlaku penuh tanpa biaya apapun.</span>`,
+      "Ya, Aktifkan VIP Sekarang 🚀",
+      "#f59e0b"
+    );
+
+    if (!confirmed) return;
+
+    setIsClaimingTrial(true);
+    try {
+      const res = await claimFreeTrialVipAction(outlet.id);
+      if (res.success) {
+        await showSuccessAlert(
+          "VIP Berhasil Diaktifkan! 🎉",
+          res.message || "Selamat menikmati fitur VIP selama 30 hari penuh!",
+          2500
+        );
+        router.refresh();
+      } else {
+        showErrorAlert("Gagal Mengaktifkan", res.message || "Terjadi kesalahan.");
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghubungi server.");
+    } finally {
+      setIsClaimingTrial(false);
     }
   };
 
@@ -820,9 +889,11 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                   ? "bg-slate-950 text-amber-300 border-slate-950"
                   : outlet.isMember
                   ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                  : !outlet.hasClaimedFreeTrial
+                  ? "bg-amber-500/20 text-amber-300 border-amber-400 animate-pulse"
                   : "bg-amber-500/10 text-amber-400 border-amber-500/20"
               }`}>
-                {outlet.isMember ? "AKTIF" : "UPGRADE"}
+                {outlet.isMember ? "AKTIF" : !outlet.hasClaimedFreeTrial ? "🎁 TRIAL GRATIS" : "UPGRADE"}
               </span>
             </button>
           </div>
@@ -1005,6 +1076,68 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
 
             return (
               <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Hak Free Trial VIP Tersedia Banner (Bebas Diaktifkan Kapan Saja) */}
+                {!outlet.isMember && !outlet.hasClaimedFreeTrial && (
+                  <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-slate-900 border-2 border-amber-400/60 shadow-xl shadow-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl shrink-0 shadow-inner">
+                        🎁
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm sm:text-base font-black text-white">
+                            Hak Free Trial VIP 30 Hari Tersedia (Gratis)
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px] border border-emerald-500/30 animate-pulse">
+                            SIAP DIAKTIFKAN
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                          Nikmati seluruh fitur VIP eksklusif (Voice AI sapa nama toko, efek nada kasir cuan, speaker Bluetooth, dan pairing staf) gratis 30 hari penuh. <strong>Masa aktif 30 hari baru akan mulai berjalan saat tombol ini Anda tekan.</strong>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleClaimFreeTrial}
+                      disabled={isClaimingTrial}
+                      className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      <Sparkles className="w-4 h-4 text-slate-950" />
+                      <span>{isClaimingTrial ? "Mengaktifkan..." : "Aktifkan VIP Gratis Sekarang 🚀"}</span>
+                    </button>
+                  </div>
+                )}
+                {/* Hak Free Trial VIP Tersedia Banner (Bebas Diaktifkan Kapan Saja) */}
+                {!outlet.isMember && !outlet.hasClaimedFreeTrial && (
+                  <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-slate-900 border-2 border-amber-400/60 shadow-xl shadow-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl shrink-0 shadow-inner">
+                        🎁
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm sm:text-base font-black text-white">
+                            Hak Free Trial VIP 30 Hari Tersedia (Gratis)
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px] border border-emerald-500/30 animate-pulse">
+                            SIAP DIAKTIFKAN
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                          Nikmati seluruh fitur VIP eksklusif (Voice AI sapa nama toko, efek nada kasir cuan, speaker Bluetooth, dan pairing staf) gratis 30 hari penuh. <strong>Masa aktif 30 hari baru akan mulai berjalan saat tombol ini Anda tekan.</strong>
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleClaimFreeTrial}
+                      disabled={isClaimingTrial}
+                      className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      <Sparkles className="w-4 h-4 text-slate-950" />
+                      <span>{isClaimingTrial ? "Mengaktifkan..." : "Aktifkan VIP Gratis Sekarang 🚀"}</span>
+                    </button>
+                  </div>
+                )}
                 {/* Approaching VIP Expiry Alert Banner (H-7 s/d Hari H) */}
                 {isVipExpiringSoon && (
                   <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-900/50 border border-amber-500/40 shadow-xl shadow-amber-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2636,47 +2769,85 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
               ) : (
                 /* Non-Member Upgrade Presentation */
                 <div className="space-y-6">
-                  <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-2 border-amber-500/50 shadow-xl shadow-amber-500/10 space-y-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                      <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
-                          <Crown className="w-3.5 h-3.5 text-amber-400" />
-                          <span>UPGRADE KEANGGOTAAN</span>
+                  {/* Voucher Free Trial Belum Pernah Digunakan */}
+                  {!outlet.hasClaimedFreeTrial ? (
+                    <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-slate-900 border-2 border-amber-400/60 shadow-2xl shadow-amber-500/15 space-y-6 animate-in fade-in duration-300">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <span>VOUCHER FREE TRIAL 30 HARI</span>
+                          </div>
+                          <h3 className="text-xl sm:text-2xl font-black text-white">
+                            🎁 Miliki Hak 30 Hari VIP Gratis untuk Outlet Anda!
+                          </h3>
+                          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                            Buka suara AI menyebutkan nama toko Anda saat kartu di-tap, hubungkan ke speaker Bluetooth kafe/toko, aktifkan efek nada kasir cuan (&quot;Cha-Ching! 💵&quot;), dan kelola banyak kasir tanpa bagi password toko. <strong>Anda bebas mengaktifkannya kapan saja — masa aktif 30 hari baru akan mulai berjalan saat tombol di bawah ditekan.</strong>
+                          </p>
                         </div>
-                        <h3 className="text-xl sm:text-2xl font-black text-white">
-                          Buka Suara AI Sebut Nama Toko, Mode Speaker Bluetooth, 4 Efek Suara Kasir, & Multi-Kasir Staf
-                        </h3>
-                        <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                          Hanya dengan biaya terjangkau <strong>Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}</strong>, jadikan outlet Anda modern setara brand waralaba internasional! Dapatkan sambutan suara AI ramah menyebutkan brand toko Anda, pengumuman ulasan bintang 5 ke speaker kafe/toko via Bluetooth, efek suara kasir cuan (&quot;Cha-Ching! 💵&quot;), dan hubungkan banyak HP kasir/barista tanpa bagi-bagi password toko.
-                        </p>
-                      </div>
 
-                      <div className="bg-slate-950/90 p-5 rounded-2xl border border-amber-500/40 text-center shrink-0">
-                        <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold block">
-                          Biaya Langganan
-                        </span>
-                        <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1">
-                          Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}
+                        <div className="bg-slate-950/90 p-5 rounded-2xl border border-amber-400/50 text-center shrink-0 min-w-[220px]">
+                          <span className="text-[11px] text-emerald-400 uppercase tracking-wider font-bold block">
+                            Gratis Biaya Langganan
+                          </span>
+                          <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-1">
+                            FREE (Rp 0)
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleClaimFreeTrial}
+                            disabled={isClaimingTrial}
+                            className="mt-3 w-full px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/30 transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                          >
+                            {isClaimingTrial ? "Mengaktifkan..." : "Aktifkan VIP Sekarang 🚀"}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsUpgradeModalOpen(true)}
-                          className="mt-3 w-full px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-transform active:scale-95 cursor-pointer"
-                        >
-                          Tingkatkan Sekarang 🚀
-                        </button>
                       </div>
                     </div>
+                  ) : (
+                    /* Presentasi Upgrade Normal jika Free Trial Sudah Pernah Dipakai */
+                    <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-2 border-amber-500/50 shadow-xl shadow-amber-500/10 space-y-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                            <Crown className="w-3.5 h-3.5 text-amber-400" />
+                            <span>UPGRADE KEANGGOTAAN</span>
+                          </div>
+                          <h3 className="text-xl sm:text-2xl font-black text-white">
+                            Buka Suara AI Sebut Nama Toko, Mode Speaker Bluetooth, 4 Efek Suara Kasir, & Multi-Kasir Staf
+                          </h3>
+                          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                            Hanya dengan biaya terjangkau <strong>Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}</strong>, jadikan outlet Anda modern setara brand waralaba internasional! Dapatkan sambutan suara AI ramah menyebutkan brand toko Anda, pengumuman ulasan bintang 5 ke speaker kafe/toko via Bluetooth, efek suara kasir cuan (&quot;Cha-Ching! 💵&quot;), dan hubungkan banyak HP kasir/barista tanpa bagi-bagi password toko.
+                          </p>
+                        </div>
 
-                    {outlet.hasPendingPayment && (
-                      <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center gap-3">
-                        <Clock className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
-                        <div className="text-xs text-amber-200">
-                          <strong>Bukti Pembayaran Terkirim:</strong> Pembayaran Anda sedang dalam proses verifikasi oleh Super Admin. Setelah disetujui, fitur Member VIP akan aktif secara otomatis.
+                        <div className="bg-slate-950/90 p-5 rounded-2xl border border-amber-500/40 text-center shrink-0">
+                          <span className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold block">
+                            Biaya Langganan
+                          </span>
+                          <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1">
+                            Rp {(siteSetting?.membershipPrice || 45000).toLocaleString("id-ID")}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsUpgradeModalOpen(true)}
+                            className="mt-3 w-full px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-transform active:scale-95 cursor-pointer"
+                          >
+                            Tingkatkan Sekarang 🚀
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>
+
+                      {outlet.hasPendingPayment && (
+                        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center gap-3">
+                          <Clock className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
+                          <div className="text-xs text-amber-200">
+                            <strong>Bukti Pembayaran Terkirim:</strong> Pembayaran Anda sedang dalam proses verifikasi oleh Super Admin. Setelah disetujui, fitur Member VIP akan aktif secara otomatis.
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* 5 Kartu Fitur Menjual */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">

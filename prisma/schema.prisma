@@ -153,6 +153,7 @@ model Outlet {
   isMember            Boolean   @default(false)
   membershipStartedAt DateTime?
   membershipExpiresAt DateTime?
+  hasClaimedFreeTrial Boolean   @default(false) // Apakah outlet sudah pernah mengaktifkan/mengklaim free trial 30 hari
   customVipPrice      Int?      // Harga VIP khusus untuk outlet ini (override harga master jika diisi)
 
   // Fitur Eksklusif Member VIP & Filter Ulasan Cerdas

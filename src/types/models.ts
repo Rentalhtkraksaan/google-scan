@@ -95,6 +95,7 @@ export interface OutletModel {
   isMember?: boolean;
   membershipStartedAt?: string | Date | null;
   membershipExpiresAt?: string | Date | null;
+  hasClaimedFreeTrial?: boolean;
   customVipPrice?: number | null;
   enableSmartFilter?: boolean;
   allowSmartFilter?: boolean;

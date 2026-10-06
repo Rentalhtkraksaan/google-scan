@@ -1150,4 +1150,87 @@ export async function deletePaymentRecordAction(paymentId: string) {
   }
 }
 
+/**
+ * Outlet: Mengaktifkan jatah Free Trial VIP (1 Bulan / 30 Hari) secara mandiri kapan saja
+ */
+export async function claimFreeTrialVipAction(outletId: string) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    if (!outletId) {
+      return { success: false, message: "ID Outlet tidak valid." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+      include: { owner: true },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    const isOwner = outlet.ownerId === session.user.id;
+    const isAdmin = session.user.role === "SUPER_ADMIN" || session.user.role === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      return { success: false, message: "Akses ditolak: Anda bukan pemilik outlet ini." };
+    }
+
+    // Periksa apakah trial sudah pernah diklaim atau outlet sudah aktif VIP
+    if (outlet.hasClaimedFreeTrial) {
+      return { success: false, message: "Jatah Free Trial VIP 30 Hari sudah pernah digunakan untuk outlet ini." };
+    }
+
+    if (outlet.isMember && outlet.membershipExpiresAt && new Date(outlet.membershipExpiresAt) > new Date()) {
+      return { success: false, message: "Outlet Anda saat ini sudah memiliki status VIP aktif." };
+    }
+
+    const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
+    const trialDays = siteSetting?.trialDurationDays ?? 30;
+    const now = new Date();
+    const trialExpiry = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+
+    await prisma.outlet.update({
+      where: { id: outletId },
+      data: {
+        isMember: true,
+        membershipStartedAt: now,
+        membershipExpiresAt: trialExpiry,
+        hasClaimedFreeTrial: true,
+      },
+    });
+
+    // Catat log aktivitas
+    await prisma.activityLog.create({
+      data: {
+        outletId,
+        userId: session.user.id,
+        userName: session.user.name || outlet.name,
+        userRole: (session.user.role as "USER" | "ADMIN" | "SUPER_ADMIN") || "USER",
+        action: "UPDATE_STATUS",
+        title: "Klaim Free Trial VIP (30 Hari) 🎁",
+        description: `Outlet "${outlet.name}" mengaktifkan jatah Free Trial VIP (${trialDays} Hari). Aktif mulai ${now.toLocaleDateString("id-ID")} s.d. ${trialExpiry.toLocaleDateString("id-ID")}.`,
+        targetId: outlet.id,
+        targetName: outlet.name,
+      },
+    }).catch(() => {});
+
+    revalidatePath("/portal");
+    revalidatePath("/admin");
+    revalidatePath("/super-admin");
+
+    return {
+      success: true,
+      message: `Selamat! Free Trial VIP ${trialDays} Hari berhasil diaktifkan. Masa aktif VIP Anda berlaku hingga ${trialExpiry.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.`,
+      expiresAt: trialExpiry,
+    };
+  } catch (error) {
+    console.error("claimFreeTrialVipAction error:", error);
+    return { success: false, message: "Gagal mengaktifkan Free Trial VIP." };
+  }
+}
+
 

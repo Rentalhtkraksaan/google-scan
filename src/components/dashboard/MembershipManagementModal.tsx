@@ -1441,17 +1441,17 @@ export function MembershipManagementModal({
                   </div>
                 </div>
 
-                {/* Toggle Otomatis Hidup VIP Free saat Pertama Kali Diaktivasi */}
+                {/* Toggle Jatah VIP Free Trial saat Registrasi Outlet Baru */}
                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-amber-400" />
                       <span className="text-xs font-bold text-white">
-                        Otomatis Berikan VIP Free ({trialDurationDays} Hari) untuk Outlet Baru
+                        Hak Free Trial VIP ({trialDurationDays} Hari) untuk Outlet Baru
                       </span>
                       {autoVipTrialOnActivation ? (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                          AKTIF
+                          AKTIF (KLAIM MANDIRI)
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-700/50 text-slate-400 border border-slate-700">
@@ -1460,7 +1460,7 @@ export function MembershipManagementModal({
                       )}
                     </div>
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Jika aktif, setiap kartu / outlet yang baru pertama kali diregistrasi langsung otomatis aktif status VIP gratis tanpa harus bayar duluan.
+                      Jika aktif, setiap outlet baru mendapatkan 1x jatah Free Trial VIP gratis ({trialDurationDays} hari). VIP tidak langsung berjalan otomatis saat registrasi, melainkan dapat diaktifkan sendiri kapan saja oleh pemilik outlet melalui portalnya (masa aktif {trialDurationDays} hari baru mulai dihitung sejak tanggal tombol aktivasi ditekan).
                     </p>
                   </div>
 

@@ -837,9 +837,10 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
           ownerId: newUser.id,
           name: outletName.trim(),
           googleReviewUrl: finalReviewUrl,
-          isMember: isAutoVip,
-          membershipStartedAt: isAutoVip ? new Date() : null,
-          membershipExpiresAt: isAutoVip ? trialExpiry : null,
+          isMember: false,
+          membershipStartedAt: null,
+          membershipExpiresAt: null,
+          hasClaimedFreeTrial: false,
         },
       });
 
