@@ -240,9 +240,10 @@ export function RetailOrderModal({
   }, 0);
 
   // Shipping Calculation:
-  // Jatim & Bali: 20k, Jateng & DIY: 35k, Jabar/DKI/Banten: 40k, Luar Jawa: 50k
+  // Jatim & Bali: 20k, Jateng & DIY: 35k, Jabar/DKI/Banten: 40k, Luar Jawa: 50k, Dibayar Sendiri: 0
   // Subsidi link affiliate: 10k
   const getBaseRate = (p: string) => {
+    if (p.includes("Sendiri") || p.includes("Ambil") || p.includes("COD") || p.includes("SENDIRI")) return 0;
     if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return 35000;
     if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return 40000;
     if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return 50000;
@@ -938,9 +939,9 @@ export function RetailOrderModal({
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-400">
-                    <span>Ongkos Kirim ({province}):</span>
-                    <span className="font-mono text-white font-semibold">
-                      Rp {baseShippingFee.toLocaleString("id-ID")}
+                    <span>Biaya Ongkir:</span>
+                    <span className={`font-mono text-xs ${baseShippingFee > 0 ? "text-white font-semibold" : "text-amber-400 font-medium"}`}>
+                      {baseShippingFee > 0 ? `Rp ${baseShippingFee.toLocaleString("id-ID")} (${province.replace(/Ekspedisi Sistem:\s*/i, "")})` : "Rp 0 (Dibayar Sendiri oleh Pembeli)"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-slate-400">
@@ -1054,20 +1055,21 @@ export function RetailOrderModal({
                     />
                   </div>
 
-                  {/* Provinsi Wilayah */}
+                  {/* Provinsi / Opsi Pengiriman */}
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">
-                      Provinsi Wilayah Pengiriman <span className="text-rose-400">*</span>
+                      Opsi Pengiriman & Wilayah Tujuan <span className="text-rose-400">*</span>
                     </label>
                     <select
                       value={province}
                       onChange={(e) => setProvince(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
                     >
-                      <option value="Jawa Timur & Bali">Jawa Timur & Bali (Rp 20.000)</option>
-                      <option value="Jawa Tengah & DIY">Jawa Tengah & D.I. Yogyakarta (Rp 35.000)</option>
-                      <option value="Jawa Barat, DKI & Banten">Jawa Barat, DKI Jakarta & Banten (Rp 40.000)</option>
-                      <option value="Luar Pulau Jawa">Luar Pulau Jawa (Rp 50.000)</option>
+                      <option value="Jawa Timur & Bali">🚚 Ekspedisi Sistem: Jawa Timur & Bali (Rp 20.000)</option>
+                      <option value="Jawa Tengah & DIY">🚚 Ekspedisi Sistem: Jawa Tengah & D.I. Yogyakarta (Rp 35.000)</option>
+                      <option value="Jawa Barat, DKI & Banten">🚚 Ekspedisi Sistem: Jawa Barat, DKI Jakarta & Banten (Rp 40.000)</option>
+                      <option value="Luar Pulau Jawa">🚚 Ekspedisi Sistem: Luar Pulau Jawa (Rp 50.000)</option>
+                      <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir ke Kurir di Tempat - Rp 0)</option>
                     </select>
                   </div>
 
@@ -1372,9 +1374,9 @@ export function RetailOrderModal({
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Ongkos Kirim ({province}):</span>
-                    <span className="font-mono text-white font-semibold">
-                      Rp {baseShippingFee.toLocaleString("id-ID")}
+                    <span>Biaya Ongkir:</span>
+                    <span className={`font-mono text-xs ${baseShippingFee > 0 ? "text-white font-semibold" : "text-amber-400 font-medium"}`}>
+                      {baseShippingFee > 0 ? `Rp ${baseShippingFee.toLocaleString("id-ID")} (${province.replace(/Ekspedisi Sistem:\s*/i, "")})` : "Rp 0 (Dibayar Sendiri oleh Pembeli)"}
                     </span>
                   </div>
 

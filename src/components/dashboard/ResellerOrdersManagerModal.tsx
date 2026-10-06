@@ -608,6 +608,17 @@ Salam hangat`
                         >
                           {isPaid ? "LUNAS / TERVERIFIKASI" : isPending ? "MENUNGGU VERIFIKASI" : "DITOLAK"}
                         </span>
+                        {order.shippingFee > 0 ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center gap-1">
+                            <Truck className="w-3 h-3" />
+                            <span>Ekspedisi Sistem (Rp {order.shippingFee.toLocaleString("id-ID")})</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            <span>Pengiriman Dibayar Sendiri</span>
+                          </span>
+                        )}
                         <span className="text-[11px] text-slate-400">
                           {new Date(order.createdAt).toLocaleDateString("id-ID", {
                             day: "numeric",
@@ -670,8 +681,23 @@ Salam hangat`
                             <Mail className="w-3 h-3 text-slate-500" />
                             <span className="truncate">{order.customerEmail}</span>
                           </div>
+                          
+                          {/* Pengiriman / Wilayah */}
+                          <div className="flex items-start gap-1.5 text-[11px] text-slate-300 pt-1 border-t border-slate-800/80">
+                            <Truck className="w-3 h-3 text-sky-400 shrink-0 mt-0.5" />
+                            <span>
+                              {order.shippingFee > 0 ? (
+                                <>
+                                  <strong className="text-sky-300">Ekspedisi Ikut Sistem:</strong> {order.province || "Jawa Timur & Bali"} (Rp {order.shippingFee.toLocaleString("id-ID")})
+                                </>
+                              ) : (
+                                <strong className="text-amber-300">Pengiriman Dibayar Sendiri / Ambil Sendiri</strong>
+                              )}
+                            </span>
+                          </div>
+
                           {order.shippingAddress && (
-                            <div className="flex items-start gap-1.5 text-[11px] text-slate-300 pt-1 border-t border-slate-800/80">
+                            <div className="flex items-start gap-1.5 text-[11px] text-slate-300 pt-1">
                               <MapPin className="w-3 h-3 text-slate-500 shrink-0 mt-0.5" />
                               <span className="line-clamp-2">{order.shippingAddress}</span>
                             </div>
@@ -733,10 +759,17 @@ Salam hangat`
                           ))}
                           <div className="flex items-center justify-between text-[11px] py-1 px-2.5 text-slate-400">
                             <span>Biaya Ongkir:</span>
-                            <span className="font-mono font-semibold text-slate-300">
-                              {(order.shippingFee === 0 || order.orderType === "RESELLER")
-                                ? "Rp 0 (Diurus Sendiri)"
-                                : `Rp ${(order.shippingFee ?? 0).toLocaleString("id-ID")}`}
+                            <span className="font-mono font-semibold">
+                              {order.shippingFee > 0 ? (
+                                <span className="text-slate-200">
+                                  Rp {order.shippingFee.toLocaleString("id-ID")}{" "}
+                                  <span className="text-[10px] text-sky-400 font-normal">({order.province || "Ekspedisi Sistem"})</span>
+                                </span>
+                              ) : (
+                                <span className="text-amber-400 font-medium">
+                                  Rp 0 (Dibayar Sendiri oleh Pembeli)
+                                </span>
+                              )}
                             </span>
                           </div>
                         </div>

@@ -722,8 +722,12 @@ ${itemsText}`;
                 </div>
 
                 <div className="flex flex-col items-center shrink-0">
-                  <div className="px-2 py-0.5 rounded bg-emerald-700 text-white text-[9px] font-black tracking-wider uppercase mb-1">
-                    NON-COD (LUNAS)
+                  <div className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase mb-1 ${
+                    (order.shippingFee && order.shippingFee > 0)
+                      ? "bg-emerald-700 text-white"
+                      : "bg-amber-600 text-white"
+                  }`}>
+                    {(order.shippingFee && order.shippingFee > 0) ? "ONGKIR: LUNAS" : "ONGKIR: DIBAYAR SENDIRI"}
                   </div>
                   {qrDataUrl && (
                     /* eslint-disable-next-line @next/next/no-img-element */

@@ -250,9 +250,9 @@ export function TrackOrderModal({ isOpen, onClose, initialQuery = "" }: TrackOrd
                       <div className="flex items-center justify-between text-[11px] py-1 px-2.5 text-slate-400">
                         <span>Biaya Ongkir:</span>
                         <span className="font-mono font-semibold">
-                          {(order.shippingFee === 0 || order.orderType === "RESELLER")
-                            ? "Rp 0 (Diurus Sendiri)"
-                            : `Rp ${(order.shippingFee ?? 0).toLocaleString("id-ID")}`}
+                          {(order.shippingFee && order.shippingFee > 0)
+                            ? `Rp ${order.shippingFee.toLocaleString("id-ID")} (${order.province || "Ekspedisi"})`
+                            : "Rp 0 (Pengiriman Dibayar Sendiri)"}
                         </span>
                       </div>
                     </div>

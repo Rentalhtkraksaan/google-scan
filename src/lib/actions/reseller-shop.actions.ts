@@ -408,10 +408,12 @@ export async function createResellerOrderAction(data: {
       return { success: false, message: "Produk yang dipilih tidak valid." };
     }
 
-    // Hitung tarif ongkir berdasarkan zona wilayah
+    // Hitung tarif ongkir berdasarkan zona wilayah / opsi dibayar sendiri
     const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
     let baseShippingFee = 20000;
-    if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
+    if (provUpper.includes("SENDIRI") || provUpper.includes("SELF") || provUpper.includes("AMBIL") || provUpper.includes("COD")) {
+      baseShippingFee = 0; // Pengiriman Dibayar Sendiri / Ambil Sendiri
+    } else if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
       baseShippingFee = 35000;
     } else if (provUpper.includes("BARAT") || provUpper.includes("DKI") || provUpper.includes("JAKARTA") || provUpper.includes("BANTEN")) {
       baseShippingFee = 40000;
@@ -762,10 +764,12 @@ export async function createRetailOrderAction(data: {
 
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
     
-    // Hitung tarif ongkir berdasarkan zona wilayah
+    // Hitung tarif ongkir berdasarkan zona wilayah / opsi dibayar sendiri
     const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
     let baseShippingFee = 20000;
-    if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
+    if (provUpper.includes("SENDIRI") || provUpper.includes("SELF") || provUpper.includes("AMBIL") || provUpper.includes("COD")) {
+      baseShippingFee = 0; // Pengiriman Dibayar Sendiri / Ambil Sendiri
+    } else if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
       baseShippingFee = 35000;
     } else if (provUpper.includes("BARAT") || provUpper.includes("DKI") || provUpper.includes("JAKARTA") || provUpper.includes("BANTEN")) {
       baseShippingFee = 40000;
