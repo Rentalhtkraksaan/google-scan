@@ -92,6 +92,7 @@ interface PortalClientViewProps {
     isMember?: boolean;
     membershipStartedAt?: string | Date | null;
     membershipExpiresAt?: string | Date | null;
+    hasClaimedFreeTrial?: boolean;
     customVipPrice?: number | null;
     soundEffect?: string;
     customGreetingText?: string | null;
@@ -408,40 +409,6 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       showErrorAlert("Error", "Gagal menghubungi server.");
     } finally {
       setIsResettingPairing(false);
-    }
-  };
-
-  const [isClaimingTrial, setIsClaimingTrial] = useState(false);
-
-  const handleClaimFreeTrial = async () => {
-    if (!outlet?.id || isClaimingTrial) return;
-    
-    const confirmed = await showConfirmAlert(
-      "🎁 Aktifkan Free Trial VIP 30 Hari?",
-      `Nikmati seluruh fitur VIP gratis selama 30 hari untuk outlet <b>${outlet.name}</b>.<br/><br/><span class="text-xs text-amber-300">✨ Masa aktif 30 hari baru akan mulai berjalan hari ini dan berlaku penuh tanpa biaya apapun.</span>`,
-      "Ya, Aktifkan VIP Sekarang 🚀",
-      "#f59e0b"
-    );
-
-    if (!confirmed) return;
-
-    setIsClaimingTrial(true);
-    try {
-      const res = await claimFreeTrialVipAction(outlet.id);
-      if (res.success) {
-        await showSuccessAlert(
-          "VIP Berhasil Diaktifkan! 🎉",
-          res.message || "Selamat menikmati fitur VIP selama 30 hari penuh!",
-          2500
-        );
-        router.refresh();
-      } else {
-        showErrorAlert("Gagal Mengaktifkan", res.message || "Terjadi kesalahan.");
-      }
-    } catch {
-      showErrorAlert("Error", "Gagal menghubungi server.");
-    } finally {
-      setIsClaimingTrial(false);
     }
   };
 
@@ -1076,37 +1043,6 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
 
             return (
               <div className="space-y-6 animate-in fade-in duration-200">
-                {/* Hak Free Trial VIP Tersedia Banner (Bebas Diaktifkan Kapan Saja) */}
-                {!outlet.isMember && !outlet.hasClaimedFreeTrial && (
-                  <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-slate-900 border-2 border-amber-400/60 shadow-xl shadow-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
-                    <div className="flex items-start sm:items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-amber-500/25 border border-amber-400/50 flex items-center justify-center text-amber-300 text-2xl shrink-0 shadow-inner">
-                        🎁
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm sm:text-base font-black text-white">
-                            Hak Free Trial VIP 30 Hari Tersedia (Gratis)
-                          </h4>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px] border border-emerald-500/30 animate-pulse">
-                            SIAP DIAKTIFKAN
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                          Nikmati seluruh fitur VIP eksklusif (Voice AI sapa nama toko, efek nada kasir cuan, speaker Bluetooth, dan pairing staf) gratis 30 hari penuh. <strong>Masa aktif 30 hari baru akan mulai berjalan saat tombol ini Anda tekan.</strong>
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleClaimFreeTrial}
-                      disabled={isClaimingTrial}
-                      className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/30 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
-                    >
-                      <Sparkles className="w-4 h-4 text-slate-950" />
-                      <span>{isClaimingTrial ? "Mengaktifkan..." : "Aktifkan VIP Gratis Sekarang 🚀"}</span>
-                    </button>
-                  </div>
-                )}
                 {/* Hak Free Trial VIP Tersedia Banner (Bebas Diaktifkan Kapan Saja) */}
                 {!outlet.isMember && !outlet.hasClaimedFreeTrial && (
                   <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-slate-900 border-2 border-amber-400/60 shadow-xl shadow-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
