@@ -83,8 +83,8 @@ export function UpgradeMemberModal({
   const isCustomPrice = !!(outlet.customVipPrice && outlet.customVipPrice > 0);
   const price = isCustomPrice ? (outlet.customVipPrice as number) : (siteSetting?.membershipPrice || 45000);
   const masterPrice = siteSetting?.membershipPrice || 45000;
-  const midtransAdminFee = siteSetting?.midtransAdminFee ?? 5000;
-  const qrisTotalPrice = price + midtransAdminFee;
+  const midtransAdminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
+  const qrisTotalPrice = price;
 
   const bankName = siteSetting?.membershipBankName || "BNI";
   const accountNumber = siteSetting?.membershipAccountNumber || "1234567890";

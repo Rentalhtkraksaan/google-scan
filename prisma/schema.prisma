@@ -123,7 +123,11 @@ model SiteSetting {
   resellerVipDiscountPerCard Int      @default(5000)
   resellerCardBasePrice      Int      @default(20000)
   resellerMinOrder           Int      @default(2) // Minimal Order Kartu Reseller Master
-  resellerShippingFee        Int      @default(20000) // Biaya Ongkir Dasar Jatim & Bali
+  resellerShippingFee        Int      @default(20000) // Biaya Ongkir Dasar Jatim & Bali (Legacy)
+  shippingFeeJatim           Int      @default(20000) // Biaya Ongkir Sistem: Jawa Timur & Bali
+  shippingFeeJateng          Int      @default(35000) // Biaya Ongkir Sistem: Jawa Tengah & DIY
+  shippingFeeJabar           Int      @default(40000) // Biaya Ongkir Sistem: Jawa Barat, DKI Jakarta & Banten
+  shippingFeeLuarJawa        Int      @default(50000) // Biaya Ongkir Sistem: Luar Pulau Jawa
   orderPackingFee            Int      @default(5000) // Biaya Packing Master Tetap per Pesanan (Rp 5.000)
   resellerModuleTitle        String   @default("Starter Kit & Modul Resmi Kemitraan Smart QR")
   resellerModuleDesc         String?  @db.Text

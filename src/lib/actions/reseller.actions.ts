@@ -66,6 +66,10 @@ export async function updateResellerModuleSettingsAction(data: {
   resellerCardBasePrice?: number;
   resellerMinOrder?: number;
   resellerShippingFee?: number;
+  shippingFeeJatim?: number;
+  shippingFeeJateng?: number;
+  shippingFeeJabar?: number;
+  shippingFeeLuarJawa?: number;
   orderPackingFee?: number;
   resellerModuleTitle?: string;
   resellerModuleDesc?: string;
@@ -84,7 +88,11 @@ export async function updateResellerModuleSettingsAction(data: {
         resellerVipDiscountPerCard: data.resellerVipDiscountPerCard !== undefined ? Number(data.resellerVipDiscountPerCard) : undefined,
         resellerCardBasePrice: data.resellerCardBasePrice !== undefined ? Number(data.resellerCardBasePrice) : undefined,
         resellerMinOrder: data.resellerMinOrder !== undefined ? Number(data.resellerMinOrder) : undefined,
-        resellerShippingFee: data.resellerShippingFee !== undefined ? Number(data.resellerShippingFee) : undefined,
+        resellerShippingFee: data.shippingFeeJatim !== undefined ? Number(data.shippingFeeJatim) : (data.resellerShippingFee !== undefined ? Number(data.resellerShippingFee) : undefined),
+        shippingFeeJatim: data.shippingFeeJatim !== undefined ? Number(data.shippingFeeJatim) : undefined,
+        shippingFeeJateng: data.shippingFeeJateng !== undefined ? Number(data.shippingFeeJateng) : undefined,
+        shippingFeeJabar: data.shippingFeeJabar !== undefined ? Number(data.shippingFeeJabar) : undefined,
+        shippingFeeLuarJawa: data.shippingFeeLuarJawa !== undefined ? Number(data.shippingFeeLuarJawa) : undefined,
         orderPackingFee: data.orderPackingFee !== undefined ? Number(data.orderPackingFee) : undefined,
         resellerModuleTitle: data.resellerModuleTitle !== undefined ? data.resellerModuleTitle.trim() : undefined,
         resellerModuleDesc: data.resellerModuleDesc !== undefined ? data.resellerModuleDesc.trim() : undefined,
@@ -96,7 +104,11 @@ export async function updateResellerModuleSettingsAction(data: {
         resellerVipDiscountPerCard: Number(data.resellerVipDiscountPerCard) || 5000,
         resellerCardBasePrice: Number(data.resellerCardBasePrice) || 20000,
         resellerMinOrder: data.resellerMinOrder !== undefined ? Number(data.resellerMinOrder) : 2,
-        resellerShippingFee: Number(data.resellerShippingFee) || 20000,
+        resellerShippingFee: Number(data.shippingFeeJatim) || Number(data.resellerShippingFee) || 20000,
+        shippingFeeJatim: Number(data.shippingFeeJatim) || 20000,
+        shippingFeeJateng: Number(data.shippingFeeJateng) || 35000,
+        shippingFeeJabar: Number(data.shippingFeeJabar) || 40000,
+        shippingFeeLuarJawa: Number(data.shippingFeeLuarJawa) || 50000,
         orderPackingFee: Number(data.orderPackingFee) || 5000,
         resellerModuleTitle: data.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR",
         resellerModuleDesc: data.resellerModuleDesc || "",

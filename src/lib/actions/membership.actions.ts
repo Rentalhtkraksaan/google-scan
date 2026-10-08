@@ -576,8 +576,7 @@ export async function createMidtransVipTransactionAction(outletId: string) {
     const amount = outlet.customVipPrice && outlet.customVipPrice > 0
       ? outlet.customVipPrice
       : (siteSetting?.membershipPrice || 45000);
-    const adminFee = siteSetting?.midtransAdminFee ?? 5000;
-    const finalAmount = amount + adminFee;
+    const finalAmount = amount; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
 
     const orderId = `VIP-${outlet.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
@@ -604,16 +603,6 @@ export async function createMidtransVipTransactionAction(outletId: string) {
           quantity: 1,
           name: `VIP 1 Bulan - ${outlet.name.slice(0, 25)}`,
         },
-        ...(adminFee > 0
-          ? [
-              {
-                id: "ADMIN-FEE",
-                price: adminFee,
-                quantity: 1,
-                name: "Biaya Layanan Midtrans",
-              },
-            ]
-          : []),
       ],
     };
 

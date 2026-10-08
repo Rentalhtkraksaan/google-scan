@@ -240,14 +240,18 @@ export function RetailOrderModal({
   }, 0);
 
   // Shipping Calculation:
-  // Jatim & Bali: 20k, Jateng & DIY: 35k, Jabar/DKI/Banten: 40k, Luar Jawa: 50k, Dibayar Sendiri: 0
-  // Subsidi link affiliate: 10k
+  // Mengambil tarif ongkir dinamis dari pengaturan Super Admin
+  const feeJatim = siteSetting?.shippingFeeJatim ?? siteSetting?.resellerShippingFee ?? 20000;
+  const feeJateng = siteSetting?.shippingFeeJateng ?? 35000;
+  const feeJabar = siteSetting?.shippingFeeJabar ?? 40000;
+  const feeLuarJawa = siteSetting?.shippingFeeLuarJawa ?? 50000;
+
   const getBaseRate = (p: string) => {
     if (p.includes("Sendiri") || p.includes("Ambil") || p.includes("COD") || p.includes("SENDIRI")) return 0;
-    if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return 35000;
-    if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return 40000;
-    if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return 50000;
-    return 20000; // Jatim & Bali
+    if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return feeJateng;
+    if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return feeJabar;
+    if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return feeLuarJawa;
+    return feeJatim; // Default Jatim & Bali
   };
 
   const baseShippingFee = getBaseRate(province);
@@ -258,7 +262,7 @@ export function RetailOrderModal({
 
   const packingFee = siteSetting?.orderPackingFee ?? 5000;
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
+  const midtransAdminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
   const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee + midtransAdminFee;
 
   // Step 1: Produk & Referral -> Step 2
@@ -1065,10 +1069,10 @@ export function RetailOrderModal({
                       onChange={(e) => setProvince(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
                     >
-                      <option value="Jawa Timur & Bali">🚚 Ekspedisi Sistem: Jawa Timur & Bali (Rp 20.000)</option>
-                      <option value="Jawa Tengah & DIY">🚚 Ekspedisi Sistem: Jawa Tengah & D.I. Yogyakarta (Rp 35.000)</option>
-                      <option value="Jawa Barat, DKI & Banten">🚚 Ekspedisi Sistem: Jawa Barat, DKI Jakarta & Banten (Rp 40.000)</option>
-                      <option value="Luar Pulau Jawa">🚚 Ekspedisi Sistem: Luar Pulau Jawa (Rp 50.000)</option>
+                      <option value="Jawa Timur & Bali">🚚 Ekspedisi Sistem: Jawa Timur & Bali (Rp {feeJatim.toLocaleString("id-ID")})</option>
+                      <option value="Jawa Tengah & DIY">🚚 Ekspedisi Sistem: Jawa Tengah & D.I. Yogyakarta (Rp {feeJateng.toLocaleString("id-ID")})</option>
+                      <option value="Jawa Barat, DKI & Banten">🚚 Ekspedisi Sistem: Jawa Barat, DKI Jakarta & Banten (Rp {feeJabar.toLocaleString("id-ID")})</option>
+                      <option value="Luar Pulau Jawa">🚚 Ekspedisi Sistem: Luar Pulau Jawa (Rp {feeLuarJawa.toLocaleString("id-ID")})</option>
                       <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir ke Kurir di Tempat - Rp 0)</option>
                     </select>
                   </div>
@@ -1229,11 +1233,9 @@ export function RetailOrderModal({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-xs text-white block">Midtrans Otomatis</span>
-                            {(siteSetting?.midtransAdminFee ?? 5000) > 0 && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                +Rp {(siteSetting?.midtransAdminFee ?? 5000).toLocaleString("id-ID")}
-                              </span>
-                            )}
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Instant
+                            </span>
                           </div>
                           <span className="text-[10px] text-slate-400 leading-tight block mt-0.5">
                             Virtual Account (BCA/BNI/BRI/Mandiri), QRIS & E-Wallet

@@ -57,6 +57,10 @@ export interface SiteSettingModel {
   resellerCardBasePrice?: number;
   resellerMinOrder?: number;
   resellerShippingFee?: number;
+  shippingFeeJatim?: number;
+  shippingFeeJateng?: number;
+  shippingFeeJabar?: number;
+  shippingFeeLuarJawa?: number;
   orderPackingFee?: number;
   resellerModuleTitle?: string;
   resellerModuleDesc?: string | null;

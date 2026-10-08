@@ -410,17 +410,22 @@ export async function createResellerOrderAction(data: {
 
     // Hitung tarif ongkir berdasarkan zona wilayah / opsi dibayar sendiri
     const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
-    let baseShippingFee = 20000;
+    const feeJatim = siteSetting?.shippingFeeJatim ?? siteSetting?.resellerShippingFee ?? 20000;
+    const feeJateng = siteSetting?.shippingFeeJateng ?? 35000;
+    const feeJabar = siteSetting?.shippingFeeJabar ?? 40000;
+    const feeLuarJawa = siteSetting?.shippingFeeLuarJawa ?? 50000;
+
+    let baseShippingFee = feeJatim;
     if (provUpper.includes("SENDIRI") || provUpper.includes("SELF") || provUpper.includes("AMBIL") || provUpper.includes("COD")) {
       baseShippingFee = 0; // Pengiriman Dibayar Sendiri / Ambil Sendiri
     } else if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
-      baseShippingFee = 35000;
+      baseShippingFee = feeJateng;
     } else if (provUpper.includes("BARAT") || provUpper.includes("DKI") || provUpper.includes("JAKARTA") || provUpper.includes("BANTEN")) {
-      baseShippingFee = 40000;
+      baseShippingFee = feeJabar;
     } else if (provUpper.includes("LUAR") || provUpper.includes("SUMATERA") || provUpper.includes("KALIMANTAN") || provUpper.includes("SULAWESI") || provUpper.includes("PAPUA") || provUpper.includes("NTT") || provUpper.includes("NTB") || provUpper.includes("MALUKU")) {
-      baseShippingFee = 50000;
+      baseShippingFee = feeLuarJawa;
     } else {
-      baseShippingFee = 20000; // Default Jawa Timur & Bali
+      baseShippingFee = feeJatim; // Default Jawa Timur & Bali
     }
 
     const shippingDiscountLimit = siteSetting?.affiliateShippingDiscount ?? 10000;
@@ -481,7 +486,7 @@ export async function createResellerOrderAction(data: {
     }
 
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
+    const adminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
     const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee + adminFee);
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
@@ -766,17 +771,22 @@ export async function createRetailOrderAction(data: {
     
     // Hitung tarif ongkir berdasarkan zona wilayah / opsi dibayar sendiri
     const provUpper = (data.province || data.shippingAddress || "").toUpperCase();
-    let baseShippingFee = 20000;
+    const feeJatim = siteSetting?.shippingFeeJatim ?? siteSetting?.resellerShippingFee ?? 20000;
+    const feeJateng = siteSetting?.shippingFeeJateng ?? 35000;
+    const feeJabar = siteSetting?.shippingFeeJabar ?? 40000;
+    const feeLuarJawa = siteSetting?.shippingFeeLuarJawa ?? 50000;
+
+    let baseShippingFee = feeJatim;
     if (provUpper.includes("SENDIRI") || provUpper.includes("SELF") || provUpper.includes("AMBIL") || provUpper.includes("COD")) {
       baseShippingFee = 0; // Pengiriman Dibayar Sendiri / Ambil Sendiri
     } else if (provUpper.includes("TENGAH") || provUpper.includes("DIY") || provUpper.includes("YOGYA")) {
-      baseShippingFee = 35000;
+      baseShippingFee = feeJateng;
     } else if (provUpper.includes("BARAT") || provUpper.includes("DKI") || provUpper.includes("JAKARTA") || provUpper.includes("BANTEN")) {
-      baseShippingFee = 40000;
+      baseShippingFee = feeJabar;
     } else if (provUpper.includes("LUAR") || provUpper.includes("SUMATERA") || provUpper.includes("KALIMANTAN") || provUpper.includes("SULAWESI") || provUpper.includes("PAPUA") || provUpper.includes("NTT") || provUpper.includes("NTB") || provUpper.includes("MALUKU")) {
-      baseShippingFee = 50000;
+      baseShippingFee = feeLuarJawa;
     } else {
-      baseShippingFee = 20000; // Default Jawa Timur & Bali
+      baseShippingFee = feeJatim; // Default Jawa Timur & Bali
     }
 
     const shippingDiscountLimit = siteSetting?.affiliateShippingDiscount ?? 10000;
@@ -810,7 +820,7 @@ export async function createRetailOrderAction(data: {
 
     const packingFee = siteSetting?.orderPackingFee ?? 5000;
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
+    const adminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
     const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee + adminFee;
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 

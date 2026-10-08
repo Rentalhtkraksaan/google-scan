@@ -133,6 +133,10 @@ export function MembershipManagementModal({
   const [resellerCardBasePrice, setResellerCardBasePrice] = useState(siteSetting?.resellerCardBasePrice ?? 20000);
   const [resellerMinOrder, setResellerMinOrder] = useState<number>(siteSetting?.resellerMinOrder ?? 2);
   const [orderPackingFee, setOrderPackingFee] = useState<number>(siteSetting?.orderPackingFee ?? 5000);
+  const [shippingFeeJatim, setShippingFeeJatim] = useState<number>(siteSetting?.shippingFeeJatim ?? siteSetting?.resellerShippingFee ?? 20000);
+  const [shippingFeeJateng, setShippingFeeJateng] = useState<number>(siteSetting?.shippingFeeJateng ?? 35000);
+  const [shippingFeeJabar, setShippingFeeJabar] = useState<number>(siteSetting?.shippingFeeJabar ?? 40000);
+  const [shippingFeeLuarJawa, setShippingFeeLuarJawa] = useState<number>(siteSetting?.shippingFeeLuarJawa ?? 50000);
   const [resellerVipDiscountPerCard, setResellerVipDiscountPerCard] = useState(siteSetting?.resellerVipDiscountPerCard ?? 5000);
   const [resellerModuleTitle, setResellerModuleTitle] = useState(siteSetting?.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR");
   const [resellerModuleDesc, setResellerModuleDesc] = useState(siteSetting?.resellerModuleDesc || "");
@@ -541,13 +545,17 @@ export function MembershipManagementModal({
           Number(trialDurationDays) || 30,
           autoVipTrialOnActivation,
           midtransEnabled,
-          Number(midtransAdminFee) >= 0 ? Number(midtransAdminFee) : 5000
+          0 // Midtrans Admin Fee ditagihkan langsung via Midtrans Split Fee
         ),
         updateResellerModuleSettingsAction({
           resellerModulePrice: Number(resellerModulePrice) || 150000,
           resellerCardBasePrice: Number(resellerCardBasePrice) || 20000,
           resellerMinOrder: Number(resellerMinOrder) >= 0 ? Number(resellerMinOrder) : 2,
           orderPackingFee: Number(orderPackingFee) >= 0 ? Number(orderPackingFee) : 5000,
+          shippingFeeJatim: Number(shippingFeeJatim) >= 0 ? Number(shippingFeeJatim) : 20000,
+          shippingFeeJateng: Number(shippingFeeJateng) >= 0 ? Number(shippingFeeJateng) : 35000,
+          shippingFeeJabar: Number(shippingFeeJabar) >= 0 ? Number(shippingFeeJabar) : 40000,
+          shippingFeeLuarJawa: Number(shippingFeeLuarJawa) >= 0 ? Number(shippingFeeLuarJawa) : 50000,
           resellerVipDiscountPerCard: Number(resellerVipDiscountPerCard) || 5000,
           resellerModuleTitle: resellerModuleTitle.trim() || undefined,
           resellerModuleDesc: resellerModuleDesc.trim() || undefined,
@@ -1605,30 +1613,17 @@ export function MembershipManagementModal({
                   </div>
                 </div>
 
-                {/* Biaya Admin / Layanan Midtrans */}
-                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-bold text-white block">Biaya Layanan / Admin Midtrans (Rp)</span>
-                      <span className="text-[11px] text-slate-400 block">
-                        Biaya admin yang ditagihkan ke pembeli saat memilih pembayaran otomatis Midtrans (Virtual Account / QRIS)
-                      </span>
-                    </div>
-                    <div className="relative w-full sm:w-44 shrink-0">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="500"
-                        value={midtransAdminFee}
-                        onChange={(e) => setMidtransAdminFee(Number(e.target.value) || 0)}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs font-bold focus:outline-none focus:border-amber-500 text-right"
-                      />
-                    </div>
+                {/* Info Midtrans Split Fee Otomatis */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-950/40 to-slate-900 border border-indigo-500/20 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
+                    <CreditCard className="w-4 h-4" />
                   </div>
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    * Contoh: Isi <strong>5000</strong> jika ingin tagihan bertambah Rp 5.000 saat pembeli memilih Midtrans. Isi <strong>0</strong> jika admin fee gratis/ditanggung merchant.
-                  </p>
+                  <div>
+                    <span className="text-xs font-bold text-indigo-200 block">Sistem Split Fee Midtrans Aktif Otomatis</span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">
+                      Biaya transaksi QRIS (0.7%) dan Virtual Account bank secara otomatis dihitung dan ditagihkan langsung oleh Midtrans ke pembeli saat checkout. Saldo yang Anda terima utuh 100% tanpa potongan.
+                    </span>
+                  </div>
                 </div>
 
                 {/* Webhook URL Helper */}
@@ -1760,6 +1755,108 @@ export function MembershipManagementModal({
                       />
                     </div>
                     <span className="text-[10px] text-slate-500 mt-1 block">Potongan per kartu dari 1 outlet VIP</span>
+                  </div>
+                </div>
+
+                {/* 🚚 Pengaturan Tarif Ongkir Ekspedisi per Wilayah */}
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-amber-500/30 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🚚</span>
+                      <div>
+                        <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                          Pengaturan Tarif Ongkir Ekspedisi per Wilayah
+                        </h4>
+                        <p className="text-[10px] text-slate-400">
+                          Super Admin dapat mengubah tarif dasar pengiriman untuk setiap zona wilayah di bawah ini
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                      LIVE DI CHECKOUT
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    {/* Jawa Timur & Bali */}
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-amber-500/40 transition-colors">
+                      <label className="block text-[11px] font-bold text-slate-200 mb-1">
+                        Jawa Timur & Bali (Rp) <span className="text-amber-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">Rp</span>
+                        <input
+                          type="number"
+                          value={shippingFeeJatim}
+                          onChange={(e) => setShippingFeeJatim(Number(e.target.value) || 0)}
+                          required
+                          min={0}
+                          step={1000}
+                          className="w-full pl-8 pr-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-amber-300 font-mono font-bold text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <span className="text-[9px] text-slate-500 mt-1 block">Bisa diset Rp 20.000, Rp 15.000, atau Rp 10.000</span>
+                    </div>
+
+                    {/* Jawa Tengah & DIY */}
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-sky-500/40 transition-colors">
+                      <label className="block text-[11px] font-bold text-slate-200 mb-1">
+                        Jawa Tengah & DIY (Rp) <span className="text-sky-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">Rp</span>
+                        <input
+                          type="number"
+                          value={shippingFeeJateng}
+                          onChange={(e) => setShippingFeeJateng(Number(e.target.value) || 0)}
+                          required
+                          min={0}
+                          step={1000}
+                          className="w-full pl-8 pr-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sky-300 font-mono font-bold text-xs focus:outline-none focus:border-sky-400"
+                        />
+                      </div>
+                      <span className="text-[9px] text-slate-500 mt-1 block">Default Rp 35.000</span>
+                    </div>
+
+                    {/* Jawa Barat, DKI & Banten */}
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/40 transition-colors">
+                      <label className="block text-[11px] font-bold text-slate-200 mb-1">
+                        Jabar, DKI & Banten (Rp) <span className="text-indigo-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">Rp</span>
+                        <input
+                          type="number"
+                          value={shippingFeeJabar}
+                          onChange={(e) => setShippingFeeJabar(Number(e.target.value) || 0)}
+                          required
+                          min={0}
+                          step={1000}
+                          className="w-full pl-8 pr-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-indigo-300 font-mono font-bold text-xs focus:outline-none focus:border-indigo-400"
+                        />
+                      </div>
+                      <span className="text-[9px] text-slate-500 mt-1 block">Default Rp 40.000</span>
+                    </div>
+
+                    {/* Luar Pulau Jawa */}
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-emerald-500/40 transition-colors">
+                      <label className="block text-[11px] font-bold text-slate-200 mb-1">
+                        Luar Pulau Jawa (Rp) <span className="text-emerald-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-[11px]">Rp</span>
+                        <input
+                          type="number"
+                          value={shippingFeeLuarJawa}
+                          onChange={(e) => setShippingFeeLuarJawa(Number(e.target.value) || 0)}
+                          required
+                          min={0}
+                          step={1000}
+                          className="w-full pl-8 pr-2.5 py-2 rounded-lg bg-slate-950 border border-slate-700 text-emerald-300 font-mono font-bold text-xs focus:outline-none focus:border-emerald-400"
+                        />
+                      </div>
+                      <span className="text-[9px] text-slate-500 mt-1 block">Sumatera, Sulawesi, dll (Default Rp 50.000)</span>
+                    </div>
                   </div>
                 </div>
 
