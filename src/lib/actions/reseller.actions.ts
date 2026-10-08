@@ -204,7 +204,7 @@ export async function createResellerMidtransQrisAction() {
     }
 
     const amount = siteSetting?.resellerModulePrice || 150000;
-    const adminFee = siteSetting?.midtransAdminFee ?? 4000;
+    const adminFee = siteSetting?.midtransAdminFee ?? 5000;
     const finalAmount = amount + adminFee;
     const orderId = `MODUL-${session.user.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 

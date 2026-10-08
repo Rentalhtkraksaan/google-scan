@@ -123,7 +123,7 @@ export function MembershipManagementModal({
   const [midtransServerKey, setMidtransServerKey] = useState(siteSetting?.midtransServerKey || "");
   const [midtransClientKey, setMidtransClientKey] = useState(siteSetting?.midtransClientKey || "");
   const [midtransIsProduction, setMidtransIsProduction] = useState(siteSetting?.midtransIsProduction || false);
-  const [midtransAdminFee, setMidtransAdminFee] = useState<number>(siteSetting?.midtransAdminFee ?? 4000);
+  const [midtransAdminFee, setMidtransAdminFee] = useState<number>(siteSetting?.midtransAdminFee ?? 5000);
   const [showServerKey, setShowServerKey] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
@@ -541,7 +541,7 @@ export function MembershipManagementModal({
           Number(trialDurationDays) || 30,
           autoVipTrialOnActivation,
           midtransEnabled,
-          Number(midtransAdminFee) >= 0 ? Number(midtransAdminFee) : 4000
+          Number(midtransAdminFee) >= 0 ? Number(midtransAdminFee) : 5000
         ),
         updateResellerModuleSettingsAction({
           resellerModulePrice: Number(resellerModulePrice) || 150000,
@@ -1627,7 +1627,7 @@ export function MembershipManagementModal({
                     </div>
                   </div>
                   <p className="text-[10px] text-slate-500 leading-tight">
-                    * Contoh: Isi <strong>4000</strong> jika ingin tagihan bertambah Rp 4.000 saat pembeli memilih Midtrans. Isi <strong>0</strong> jika admin fee gratis/ditanggung merchant.
+                    * Contoh: Isi <strong>5000</strong> jika ingin tagihan bertambah Rp 5.000 saat pembeli memilih Midtrans. Isi <strong>0</strong> jika admin fee gratis/ditanggung merchant.
                   </p>
                 </div>
 

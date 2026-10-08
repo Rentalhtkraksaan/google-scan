@@ -417,7 +417,7 @@ export async function updateMembershipSettingsAction(
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
         midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
-        midtransAdminFee: midtransAdminFee !== undefined ? Number(midtransAdminFee) : 4000,
+        midtransAdminFee: midtransAdminFee !== undefined ? Number(midtransAdminFee) : 5000,
         midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : undefined,
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : undefined,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
@@ -436,7 +436,7 @@ export async function updateMembershipSettingsAction(
         membershipNotes: notes || null,
         membershipTrialNotice: trialNotice || null,
         midtransEnabled: midtransEnabled !== undefined ? midtransEnabled : true,
-        midtransAdminFee: midtransAdminFee !== undefined ? Number(midtransAdminFee) : 4000,
+        midtransAdminFee: midtransAdminFee !== undefined ? Number(midtransAdminFee) : 5000,
         midtransServerKey: midtransServerKey !== undefined ? midtransServerKey.trim() : null,
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : null,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
@@ -576,7 +576,7 @@ export async function createMidtransVipTransactionAction(outletId: string) {
     const amount = outlet.customVipPrice && outlet.customVipPrice > 0
       ? outlet.customVipPrice
       : (siteSetting?.membershipPrice || 45000);
-    const adminFee = siteSetting?.midtransAdminFee ?? 4000;
+    const adminFee = siteSetting?.midtransAdminFee ?? 5000;
     const finalAmount = amount + adminFee;
 
     const orderId = `VIP-${outlet.id.slice(-6).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;

@@ -481,7 +481,7 @@ export async function createResellerOrderAction(data: {
     }
 
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
     const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee + adminFee);
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
@@ -810,7 +810,7 @@ export async function createRetailOrderAction(data: {
 
     const packingFee = siteSetting?.orderPackingFee ?? 5000;
     const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+    const adminFee = data.paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
     const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee + adminFee;
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 

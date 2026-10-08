@@ -250,7 +250,7 @@ export function ResellerShopModal({
 
   const baseShippingFee = getBaseRate(province);
   const shippingFee = baseShippingFee;
-  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
   const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee + packingFee + midtransAdminFee);
 
   // Minimal order reseller adalah minOrder pcs total

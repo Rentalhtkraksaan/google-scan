@@ -83,7 +83,7 @@ export function UpgradeMemberModal({
   const isCustomPrice = !!(outlet.customVipPrice && outlet.customVipPrice > 0);
   const price = isCustomPrice ? (outlet.customVipPrice as number) : (siteSetting?.membershipPrice || 45000);
   const masterPrice = siteSetting?.membershipPrice || 45000;
-  const midtransAdminFee = siteSetting?.midtransAdminFee ?? 4000;
+  const midtransAdminFee = siteSetting?.midtransAdminFee ?? 5000;
   const qrisTotalPrice = price + midtransAdminFee;
 
   const bankName = siteSetting?.membershipBankName || "BNI";

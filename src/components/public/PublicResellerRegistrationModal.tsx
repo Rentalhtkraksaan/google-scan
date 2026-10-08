@@ -280,7 +280,7 @@ export function PublicResellerRegistrationModal({
   const shippingFee = Math.max(0, baseShippingFee - shippingDiscount);
   const minOrder = siteSetting?.resellerMinOrder ?? products[0]?.minOrder ?? 2;
   const packingFee = siteSetting?.orderPackingFee ?? 5000;
-  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
   const totalAmount = subtotal + shippingFee + packingFee + midtransAdminFee;
   const isMinOrderMet = totalQuantity >= minOrder;
 

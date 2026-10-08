@@ -332,9 +332,9 @@ export function ResellerActivationLockView({
               </div>
 
               <div className="pt-2 space-y-2">
-                {((siteSetting?.midtransAdminFee ?? 4000) > 0) && (
+                {((siteSetting?.midtransAdminFee ?? 5000) > 0) && (
                   <div className="text-[11px] text-slate-400">
-                    Modul: Rp {modulePrice.toLocaleString("id-ID")} + Biaya Layanan: Rp {(siteSetting?.midtransAdminFee ?? 4000).toLocaleString("id-ID")}
+                    Modul: Rp {modulePrice.toLocaleString("id-ID")} + Biaya Layanan: Rp {(siteSetting?.midtransAdminFee ?? 5000).toLocaleString("id-ID")}
                   </div>
                 )}
                 <button
@@ -351,7 +351,7 @@ export function ResellerActivationLockView({
                   ) : (
                     <>
                       <QrCode className="w-5 h-5" />
-                      <span>Bayar Rp {(modulePrice + (siteSetting?.midtransAdminFee ?? 4000)).toLocaleString("id-ID")} Sekarang (QRIS)</span>
+                      <span>Bayar Rp {(modulePrice + (siteSetting?.midtransAdminFee ?? 5000)).toLocaleString("id-ID")} Sekarang (QRIS)</span>
                     </>
                   )}
                 </button>

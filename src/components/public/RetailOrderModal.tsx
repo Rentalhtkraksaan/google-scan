@@ -258,7 +258,7 @@ export function RetailOrderModal({
 
   const packingFee = siteSetting?.orderPackingFee ?? 5000;
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 4000) : 0;
+  const midtransAdminFee = paymentMethod === "MIDTRANS_QRIS" ? (siteSetting?.midtransAdminFee ?? 5000) : 0;
   const finalTotalAmount = calculatedSubtotal + finalShippingFee + packingFee + midtransAdminFee;
 
   // Step 1: Produk & Referral -> Step 2
@@ -1229,9 +1229,9 @@ export function RetailOrderModal({
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold text-xs text-white block">Midtrans Otomatis</span>
-                            {(siteSetting?.midtransAdminFee ?? 4000) > 0 && (
+                            {(siteSetting?.midtransAdminFee ?? 5000) > 0 && (
                               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                +Rp {(siteSetting?.midtransAdminFee ?? 4000).toLocaleString("id-ID")}
+                                +Rp {(siteSetting?.midtransAdminFee ?? 5000).toLocaleString("id-ID")}
                               </span>
                             )}
                           </div>
