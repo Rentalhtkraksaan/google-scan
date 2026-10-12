@@ -195,6 +195,12 @@ export async function addFinanceTransactionAction(data: {
       return { success: false, message: "Nama transaksi dan nominal wajib diisi (lebih dari 0)." };
     }
 
+    const isMaster = !!session.user.isSuperAdminMaster;
+    const creatorRole = isMaster ? "SUPER_ADMIN_1" : "SUPER_ADMIN_2";
+    const createdByName = isMaster
+      ? "Super Admin 1 (Master)"
+      : `Super Admin 2 (${session.user.fullName || session.user.name || "Staff"})`;
+
     const transaction = await prisma.financeTransaction.create({
       data: {
         type: data.type,
@@ -205,6 +211,9 @@ export async function addFinanceTransactionAction(data: {
         date: data.date ? new Date(data.date) : new Date(),
         receiptUrl: data.receiptUrl?.trim() || null,
         isSettled: false,
+        createdById: session.user.id,
+        createdByName: createdByName,
+        creatorRole: creatorRole,
       },
     });
 

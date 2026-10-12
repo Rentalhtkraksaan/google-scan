@@ -24,8 +24,9 @@ export function getDefaultSeptember30Expiry(): Date {
 export function isOutletMemberActive(outlet: {
   isMember?: boolean | null;
   membershipExpiresAt?: Date | string | null;
+  isVipPaused?: boolean | null;
 } | null | undefined): boolean {
-  if (!outlet || !outlet.isMember) return false;
+  if (!outlet || !outlet.isMember || outlet.isVipPaused) return false;
   if (!outlet.membershipExpiresAt) return false;
 
   const expiryTime = new Date(outlet.membershipExpiresAt).getTime();

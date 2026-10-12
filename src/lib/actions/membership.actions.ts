@@ -1220,4 +1220,190 @@ export async function claimFreeTrialVipAction(outletId: string) {
   }
 }
 
+/**
+ * Outlet mematikan/menjeda status VIP sendiri (maksimal 3x kesempatan).
+ * Jika dimatikan ke-3 kalinya, jatah habis dan VIP langsung nonaktif permanen serta butuh pembayaran untuk aktif lagi.
+ */
+export async function toggleOutletVipSelfAction(outletId: string, pause: boolean) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    const isOwner = outlet.ownerId === session.user.id;
+    const isAdmin = session.user.role === "SUPER_ADMIN" || session.user.role === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      return { success: false, message: "Akses ditolak: Anda bukan pemilik outlet ini." };
+    }
+
+    const currentPauseCount = outlet.vipPauseCount || 0;
+
+    if (pause) {
+      // User ingin mematikan VIP
+      if (currentPauseCount >= 3) {
+        return {
+          success: false,
+          quotaExceeded: true,
+          message: "Kesempatan jeda VIP Anda telah habis (3/3 kali). Silakan lakukan pembayaran/perpanjangan untuk mengaktifkan VIP.",
+        };
+      }
+
+      const newPauseCount = currentPauseCount + 1;
+      const remaining = 3 - newPauseCount;
+
+      await prisma.outlet.update({
+        where: { id: outletId },
+        data: {
+          vipPauseCount: newPauseCount,
+          isVipPaused: true,
+          isMember: false,
+          ...(newPauseCount >= 3 ? { membershipExpiresAt: new Date() } : {}),
+        },
+      });
+
+      // Catat log aktivitas
+      await prisma.activityLog.create({
+        data: {
+          outletId,
+          userId: session.user.id,
+          userName: session.user.name || outlet.name,
+          userRole: (session.user.role as any) || "USER",
+          action: "UPDATE_STATUS",
+          title: newPauseCount >= 3 ? "Jeda VIP Terakhir (Kuota Habis)" : "Jeda Status VIP",
+          description: `Outlet "${outlet.name}" mematikan VIP sementara (Jeda ke-${newPauseCount}/3, sisa ${remaining}x).`,
+          targetId: outlet.id,
+          targetName: outlet.name,
+        },
+      }).catch(() => {});
+
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+      revalidatePath("/super-admin");
+
+      return {
+        success: true,
+        isVipPaused: true,
+        pauseCount: newPauseCount,
+        remainingPauseCount: remaining,
+        quotaExceeded: newPauseCount >= 3,
+        message: newPauseCount >= 3
+          ? "VIP telah dimatikan. Kuota 3x jeda Anda telah habis! Silakan lakukan pembayaran untuk mengaktifkan kembali paket VIP."
+          : `VIP berhasil dimatikan sementara. Anda masih memiliki ${remaining}x kesempatan lagi untuk mematikan/menghidupkan VIP.`,
+      };
+    } else {
+      // User ingin mengaktifkan kembali VIP
+      if (currentPauseCount >= 3) {
+        return {
+          success: false,
+          quotaExceeded: true,
+          message: "Kuota 3x jeda VIP telah habis. Silakan bayar perpanjangan paket VIP untuk mengaktifkan kembali.",
+        };
+      }
+
+      const now = new Date();
+      const isStillValid = outlet.membershipExpiresAt && new Date(outlet.membershipExpiresAt) > now;
+      if (!isStillValid) {
+        return {
+          success: false,
+          quotaExceeded: true,
+          message: "Masa aktif VIP outlet telah berakhir. Silakan lakukan perpanjangan paket VIP.",
+        };
+      }
+
+      await prisma.outlet.update({
+        where: { id: outletId },
+        data: {
+          isVipPaused: false,
+          isMember: true,
+        },
+      });
+
+      await prisma.activityLog.create({
+        data: {
+          outletId,
+          userId: session.user.id,
+          userName: session.user.name || outlet.name,
+          userRole: (session.user.role as any) || "USER",
+          action: "UPDATE_STATUS",
+          title: "Aktifkan Kembali Status VIP",
+          description: `Outlet "${outlet.name}" mengaktifkan kembali status VIP (Telah dijeda ${currentPauseCount}/3x, sisa ${3 - currentPauseCount}x).`,
+          targetId: outlet.id,
+          targetName: outlet.name,
+        },
+      }).catch(() => {});
+
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+      revalidatePath("/super-admin");
+
+      return {
+        success: true,
+        isVipPaused: false,
+        pauseCount: currentPauseCount,
+        remainingPauseCount: 3 - currentPauseCount,
+        message: "Status VIP berhasil diaktifkan kembali! Seluruh fitur premium aktif.",
+      };
+    }
+  } catch (error) {
+    console.error("toggleOutletVipSelfAction error:", error);
+    return { success: false, message: "Gagal memperbarui status VIP." };
+  }
+}
+
+/**
+ * Outlet mengatur suara dering notifikasi ulasan (Aktif / Mute)
+ */
+export async function toggleOutletSoundNotificationAction(outletId: string, enabled: boolean) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return { success: false, message: "Silakan login terlebih dahulu." };
+    }
+
+    const outlet = await prisma.outlet.findUnique({
+      where: { id: outletId },
+    });
+
+    if (!outlet) {
+      return { success: false, message: "Outlet tidak ditemukan." };
+    }
+
+    const isOwner = outlet.ownerId === session.user.id;
+    const isAdmin = session.user.role === "SUPER_ADMIN" || session.user.role === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      return { success: false, message: "Akses ditolak: Anda bukan pemilik outlet ini." };
+    }
+
+    await prisma.outlet.update({
+      where: { id: outletId },
+      data: {
+        soundNotification: enabled,
+      },
+    });
+
+    revalidatePath("/portal");
+
+    return {
+      success: true,
+      soundNotification: enabled,
+      message: enabled
+        ? "Suara & dering notifikasi ulasan diaktifkan! 🔔"
+        : "Suara & dering notifikasi ulasan dimatikan (Senyap / Mute) 🔕",
+    };
+  } catch (error) {
+    console.error("toggleOutletSoundNotificationAction error:", error);
+    return { success: false, message: "Gagal memperbarui pengaturan suara notifikasi." };
+  }
+}
+
+
 

@@ -1787,17 +1787,15 @@ Tim Layanan Smart QR`;
               </button>
             )}
 
-            {/* Foto Galeri Landing Page (Khusus Super Admin 1) */}
-            {isMaster && (
-              <button
-                onClick={() => setIsPhotoModalOpen(true)}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
-                title="Kelola foto galeri carousel yang tampil di landing page"
-              >
-                <Images className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
-                <span className="truncate">Foto Galeri Landing Page</span>
-              </button>
-            )}
+            {/* Foto Galeri Landing Page (Super Admin 1 & Super Admin 2) */}
+            <button
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition-all cursor-pointer text-left group"
+              title="Kelola foto galeri carousel yang tampil di landing page"
+            >
+              <Images className="w-4 h-4 shrink-0 text-sky-400 group-hover:scale-110 transition-transform" />
+              <span className="truncate">Foto Galeri Landing Page</span>
+            </button>
 
             {/* Scan Kamera QR */}
             <button

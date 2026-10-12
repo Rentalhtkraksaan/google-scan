@@ -6,19 +6,21 @@ import { revalidatePath, revalidateTag } from "next/cache";
 
 import { unstable_cache } from "next/cache";
 
-// ─── Helper: cek Super Admin 1 ──────────────────────────────────────────────
-async function requireSuperAdmin1() {
+// ─── Helper: cek Super Admin (Super Admin 1 & Super Admin 2) ────────────────
+async function requireSuperAdmin() {
   const session = await auth();
   if (!session?.user) throw new Error("Sesi login telah berakhir.");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { isSuperAdminMaster: true },
+    select: { id: true, fullName: true, role: true, isSuperAdminMaster: true, canEditLandingPage: true },
   });
 
-  if (!user?.isSuperAdminMaster) {
-    throw new Error("Akses ditolak: Hanya Super Admin 1 yang memiliki izin ini.");
+  if (!user || user.role !== "SUPER_ADMIN") {
+    throw new Error("Akses ditolak: Hanya Super Admin yang memiliki izin ini.");
   }
+
+  return user;
 }
 
 // ─── Get semua foto produk ────────────────────────────────────────────────────
@@ -36,7 +38,7 @@ export const getProductPhotosAction = unstable_cache(
 // ─── Upload foto baru ────────────────────────────────────────────────────────
 export async function uploadProductPhotoAction(formData: FormData) {
   try {
-    await requireSuperAdmin1();
+    const user = await requireSuperAdmin();
 
     const file = formData.get("file") as File | null;
     const caption = (formData.get("caption") as string)?.trim() || null;
@@ -63,9 +65,23 @@ export async function uploadProductPhotoAction(formData: FormData) {
     const lastPhoto = await prisma.productPhoto.findFirst({ orderBy: { order: "desc" } });
     const order = (lastPhoto?.order ?? -1) + 1;
 
-    await prisma.productPhoto.create({
+    const newPhoto = await prisma.productPhoto.create({
       data: { imageData: base64, caption, order },
     });
+
+    // Catat log aktivitas
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        userName: user.fullName || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "UPDATE_LANDING_PAGE",
+        title: "Upload Foto Produk Landing Page 📸",
+        description: `${user.fullName || "Super Admin"} (${user.isSuperAdminMaster ? "Super Admin 1" : "Super Admin 2"}) mengunggah foto baru untuk galeri landing page.`,
+        targetId: newPhoto.id,
+        targetName: caption || "Foto Galeri Landing Page",
+      },
+    }).catch(() => {});
 
     revalidatePath("/");
     revalidateTag("site-setting");
@@ -79,11 +95,26 @@ export async function uploadProductPhotoAction(formData: FormData) {
 // ─── Update caption foto ──────────────────────────────────────────────────────
 export async function updateProductPhotoCaptionAction(id: string, caption: string) {
   try {
-    await requireSuperAdmin1();
+    const user = await requireSuperAdmin();
     await prisma.productPhoto.update({
       where: { id },
       data: { caption: caption.trim() || null },
     });
+
+    // Catat log aktivitas
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        userName: user.fullName || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "UPDATE_LANDING_PAGE",
+        title: "Edit Caption Foto Produk ✏️",
+        description: `${user.fullName || "Super Admin"} (${user.isSuperAdminMaster ? "Super Admin 1" : "Super Admin 2"}) memperbarui caption foto produk landing page.`,
+        targetId: id,
+        targetName: caption || "Foto Galeri Landing Page",
+      },
+    }).catch(() => {});
+
     revalidatePath("/");
     revalidateTag("site-setting");
     return { success: true, message: "Caption berhasil diupdate!" };
@@ -96,8 +127,23 @@ export async function updateProductPhotoCaptionAction(id: string, caption: strin
 // ─── Hapus foto — row dihapus = base64 ikut hilang bersih dari DB ────────────
 export async function deleteProductPhotoAction(id: string) {
   try {
-    await requireSuperAdmin1();
+    const user = await requireSuperAdmin();
     await prisma.productPhoto.delete({ where: { id } });
+
+    // Catat log aktivitas
+    await prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        userName: user.fullName || "Super Admin",
+        userRole: "SUPER_ADMIN",
+        action: "UPDATE_LANDING_PAGE",
+        title: "Hapus Foto Produk Landing Page 🗑️",
+        description: `${user.fullName || "Super Admin"} (${user.isSuperAdminMaster ? "Super Admin 1" : "Super Admin 2"}) menghapus foto produk dari galeri landing page.`,
+        targetId: id,
+        targetName: "Foto Galeri",
+      },
+    }).catch(() => {});
+
     revalidatePath("/");
     revalidateTag("site-setting");
     return { success: true, message: "Foto berhasil dihapus." };

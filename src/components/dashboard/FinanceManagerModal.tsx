@@ -73,6 +73,16 @@ export function FinanceManagerModal({
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
   const [isSubmittingTx, setIsSubmittingTx] = useState(false);
 
+  // Form Edit Transaksi
+  const [editingTx, setEditingTx] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editAmount, setEditAmount] = useState<number | "">("");
+  const [editType, setEditType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
+  const [editCategory, setEditCategory] = useState<string>("OPERATIONAL");
+  const [editDate, setEditDate] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
   // Form Edit Settings
   const [initialBalance, setInitialBalance] = useState<number>(0);
   const [settlementDay, setSettlementDay] = useState<number>(25);
@@ -205,6 +215,50 @@ export function FinanceManagerModal({
       showErrorAlert("Kesalahan Server", "Gagal menyimpan transaksi.");
     } finally {
       setIsSubmittingTx(false);
+    }
+  };
+
+  // Handler Buka Form Edit Transaksi
+  const handleOpenEditTx = (tx: any) => {
+    setEditingTx(tx);
+    setEditTitle(tx.title);
+    setEditAmount(tx.amount);
+    setEditType(tx.type);
+    setEditCategory(tx.category);
+    setEditDate(tx.date ? new Date(tx.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+    setEditNotes(tx.notes || "");
+  };
+
+  // Handler Simpan Perubahan Transaksi
+  const handleUpdateTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTx || !editTitle.trim() || !editAmount || Number(editAmount) <= 0) {
+      showErrorAlert("Input Tidak Lengkap", "Silakan isi nama transaksi dan nominal uang.");
+      return;
+    }
+
+    setIsSubmittingEdit(true);
+    try {
+      const res = await updateFinanceTransactionAction(editingTx.id, {
+        type: editType,
+        category: editCategory,
+        title: editTitle.trim(),
+        amount: Number(editAmount),
+        notes: editNotes.trim() || undefined,
+        date: editDate,
+      });
+
+      if (res.success) {
+        showSuccessAlert("Berhasil Diperbarui! 🎉", res.message || "Transaksi telah diperbarui.");
+        setEditingTx(null);
+        loadData(false);
+      } else {
+        showErrorAlert("Gagal", res.message || "Terjadi kesalahan.");
+      }
+    } catch {
+      showErrorAlert("Kesalahan Server", "Gagal memperbarui transaksi.");
+    } finally {
+      setIsSubmittingEdit(false);
     }
   };
 
@@ -923,32 +977,57 @@ Semoga berkah & bisnis semakin melesat! 🚀⭐`;
                                       : tx.category}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1 flex-wrap">
+                                  {tx.creatorRole === "SUPER_ADMIN_1" || tx.createdByName?.includes("Master") ? (
+                                    <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                                      👑 SA 1 (Master)
+                                    </span>
+                                  ) : tx.creatorRole === "SUPER_ADMIN_2" || tx.createdByName ? (
+                                    <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
+                                      🛡️ {tx.createdByName}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 font-medium px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                                      Super Admin
+                                    </span>
+                                  )}
+                                  <span>•</span>
                                   <span>{new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
                                   {tx.notes && <span>• {tx.notes}</span>}
                                 </div>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 self-end sm:self-center">
+                            <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 self-end sm:self-center">
                               <span
-                                className={`font-mono font-black text-sm sm:text-base ${
+                                className={`font-mono font-black text-sm sm:text-base mr-1 ${
                                   isIncome ? "text-emerald-400" : "text-rose-400"
                                 }`}
                               >
                                 {isIncome ? "+ " : "- "}Rp {tx.amount.toLocaleString("id-ID")}
                               </span>
 
-                              {isMaster && (
+                              <div className="flex items-center gap-1">
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteTransaction(tx.id, tx.title)}
-                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                                  title="Hapus Transaksi"
+                                  onClick={() => handleOpenEditTx(tx)}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Transaksi Kas"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Edit2 className="w-3.5 h-3.5" />
                                 </button>
-                              )}
+
+                                {isMaster && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTransaction(tx.id, tx.title)}
+                                    className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
@@ -1401,6 +1480,141 @@ Semoga berkah & bisnis semakin melesat! 🚀⭐`;
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
                 >
                   {isSubmittingSettlement ? "Memproses..." : "Konfirmasi & Cairkan Sekarang"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Modal Dialog: Edit Transaksi Kas */}
+        {editingTx && (
+          <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <form
+              onSubmit={handleUpdateTransaction}
+              className="w-full max-w-lg p-5 sm:p-6 rounded-3xl bg-slate-950 border border-indigo-500/50 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                    <Edit2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Edit Transaksi Kas</h4>
+                    <p className="text-[11px] text-slate-400">Perbarui rincian, kategori, atau nominal kas</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingTx(null)}
+                  className="p-1 text-slate-400 hover:text-white rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Creator Info Badge */}
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Dicatat oleh:</span>
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  {editingTx.creatorRole === "SUPER_ADMIN_1" || editingTx.createdByName?.includes("Master") ? (
+                    <span className="text-amber-300">👑 SA 1 (Master)</span>
+                  ) : editingTx.creatorRole === "SUPER_ADMIN_2" || editingTx.createdByName ? (
+                    <span className="text-cyan-300">🛡️ {editingTx.createdByName}</span>
+                  ) : (
+                    <span className="text-slate-300">Super Admin</span>
+                  )}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Jenis Transaksi *</label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
+                  >
+                    <option value="EXPENSE">🔴 Pengeluaran / Belanja</option>
+                    <option value="INCOME">🟢 Pemasukan Kas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Kategori Transaksi *</label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
+                  >
+                    <option value="OPERATIONAL">📦 Operasional (Bahan, Cetak, Lakban)</option>
+                    <option value="INVENTORY_ASSET">📷 Inventaris / Aset (Domain, Kamera, Alat)</option>
+                    <option value="MONTHLY_LIABILITY">⚡ Tanggungan Rutin Bulanan</option>
+                    <option value="ORDER_SALES">🛍️ Penjualan Pesanan</option>
+                    <option value="MANUAL_INCOME">💰 Pemasukan Lainnya</option>
+                    <option value="OTHER">📁 Lain-lain</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-slate-300 font-semibold block mb-1">Nama Transaksi *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Contoh: Beli Domain Web 1 Tahun / Beli Kamera"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Nominal (Rp) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">Tanggal Transaksi</label>
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-slate-400 font-medium block mb-1">Catatan Tambahan (Opsional)</label>
+                  <input
+                    type="text"
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Catatan belanja / nota transaksi"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingTx(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEdit}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/25 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingEdit ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>

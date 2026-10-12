@@ -32,6 +32,9 @@ import {
   ChevronDown,
   Globe,
   Bell,
+  BellOff,
+  Pause,
+  Play,
   CheckCircle2,
   History,
   Info,
@@ -51,6 +54,8 @@ import {
   updateOutletVipSettingsAction,
   resetStaffPairingTokenAction,
   claimFreeTrialVipAction,
+  toggleOutletVipSelfAction,
+  toggleOutletSoundNotificationAction,
 } from "@/lib/actions/membership.actions";
 import { compressImageInBrowser } from "@/lib/image-compression";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
@@ -94,6 +99,9 @@ interface PortalClientViewProps {
     membershipExpiresAt?: string | Date | null;
     hasClaimedFreeTrial?: boolean;
     customVipPrice?: number | null;
+    vipPauseCount?: number;
+    isVipPaused?: boolean;
+    soundNotification?: boolean;
     soundEffect?: string;
     customGreetingText?: string | null;
     enableSmartFilter?: boolean;
@@ -151,6 +159,15 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isUploadingVipLogo, setIsUploadingVipLogo] = useState(false);
   const vipLogoInputRef = useRef<HTMLInputElement>(null);
   const [isSavingVipSettings, setIsSavingVipSettings] = useState(false);
+
+  // VIP Pause (Maksimal 3x Kesempatan)
+  const [isVipPaused, setIsVipPaused] = useState<boolean>(Boolean(outlet?.isVipPaused));
+  const [vipPauseCount, setVipPauseCount] = useState<number>(outlet?.vipPauseCount ?? 0);
+  const [isTogglingVip, setIsTogglingVip] = useState(false);
+
+  // Sound & Dering Notification Toggle
+  const [soundNotification, setSoundNotification] = useState<boolean>(outlet?.soundNotification !== false);
+  const [isTogglingSound, setIsTogglingSound] = useState(false);
 
   // Medsos & Buku Menu State
   const [instagramUrl, setInstagramUrl] = useState<string>(outlet?.instagramUrl || "");
@@ -446,6 +463,114 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
     }
   };
 
+  // Handler Matikan / Hidupkan VIP Mandiri (Maksimal 3x)
+  const handleToggleVipPause = async () => {
+    if (!outlet?.id || isTogglingVip) return;
+
+    if (!isVipPaused) {
+      // User ingin mematikan VIP
+      const remainingBefore = Math.max(0, 3 - vipPauseCount);
+      if (remainingBefore <= 0) {
+        showErrorAlert(
+          "Kuota Jeda Habis",
+          "Kesempatan jeda VIP Anda telah habis (3/3 kali). Silakan lakukan perpanjangan/pembayaran paket VIP."
+        );
+        setIsUpgradeModalOpen(true);
+        return;
+      }
+
+      const nextRemaining = remainingBefore - 1;
+      const confirmed = await showConfirmAlert(
+        "Matikan Status VIP Sementara?",
+        `Anda dapat mematikan dan menghidupkan kembali VIP hingga 3 kali.<br/><br/>
+        Status saat ini: <b>Sudah dijeda ${vipPauseCount}/3 kali</b>.<br/>
+        Setelah ini sisa kesempatan: <b>${nextRemaining} kali</b>.
+        ${nextRemaining === 0 ? "<br/><br/><b style='color:#ef4444;'>⚠️ Ini adalah kesempatan jeda terakhir ke-3! Jika dimatikan, paket VIP akan langsung berakhir dan membutuhkan pembayaran perpanjangan untuk aktif kembali.</b>" : ""}`,
+        "Ya, Matikan VIP",
+        "#f59e0b"
+      );
+
+      if (!confirmed) return;
+
+      setIsTogglingVip(true);
+      try {
+        const res = await toggleOutletVipSelfAction(outlet.id, true);
+        if (res.success) {
+          setIsVipPaused(true);
+          setVipPauseCount(res.pauseCount ?? 0);
+          if (res.quotaExceeded) {
+            await showSuccessAlert("VIP Dimatikan", res.message, 2500);
+            setIsUpgradeModalOpen(true);
+          } else {
+            await showSuccessAlert("VIP Dimatikan Sementara", res.message, 2000);
+          }
+          router.refresh();
+        } else {
+          showErrorAlert("Gagal", res.message || "Gagal mengubah status VIP.");
+          if (res.quotaExceeded) {
+            setIsUpgradeModalOpen(true);
+          }
+        }
+      } catch {
+        showErrorAlert("Silakan Reload Device Anda", "Terjadi kendala pada sistem koneksi.");
+      } finally {
+        setIsTogglingVip(false);
+      }
+    } else {
+      // User ingin menghidupkan kembali VIP
+      if (vipPauseCount >= 3) {
+        showErrorAlert(
+          "Kuota Jeda Habis",
+          "Kuota 3x jeda VIP Anda telah habis. Silakan perpanjang paket VIP untuk mengaktifkan kembali."
+        );
+        setIsUpgradeModalOpen(true);
+        return;
+      }
+
+      setIsTogglingVip(true);
+      try {
+        const res = await toggleOutletVipSelfAction(outlet.id, false);
+        if (res.success) {
+          setIsVipPaused(false);
+          await showSuccessAlert("VIP Diaktifkan Kembali! 🎉", res.message, 2000);
+          router.refresh();
+        } else {
+          showErrorAlert("Gagal", res.message || "Gagal mengaktifkan kembali status VIP.");
+          if (res.quotaExceeded) {
+            setIsUpgradeModalOpen(true);
+          }
+        }
+      } catch {
+        showErrorAlert("Silakan Reload Device Anda", "Terjadi kendala pada sistem koneksi.");
+      } finally {
+        setIsTogglingVip(false);
+      }
+    }
+  };
+
+  // Handler Pengaturan Suara Notifikasi (Aktif / Mute)
+  const handleToggleSoundNotification = async (enabled: boolean) => {
+    if (!outlet?.id || isTogglingSound) return;
+    setIsTogglingSound(true);
+    try {
+      const res = await toggleOutletSoundNotificationAction(outlet.id, enabled);
+      if (res.success) {
+        setSoundNotification(enabled);
+        showSuccessAlert(
+          enabled ? "Suara Notifikasi Aktif 🔔" : "Suara Notifikasi Senyap 🔕",
+          res.message,
+          1200
+        );
+      } else {
+        showErrorAlert("Gagal", res.message || "Gagal memperbarui pengaturan suara.");
+      }
+    } catch {
+      showErrorAlert("Silakan Reload Device Anda", "Terjadi kendala pada sistem koneksi.");
+    } finally {
+      setIsTogglingSound(false);
+    }
+  };
+
   // Sync login status to localStorage for instant PWA redirection
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -538,7 +663,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             const scanEvent = freshEvents.find((ev: { action: string }) => ev.action === "SCAN_CARD");
 
             if (fiveStarEvent) {
-              if (outlet.isMember) {
+              if (outlet.isMember && soundNotification) {
                 unlockAudioContext();
                 playCashierDing();
                 speakVoiceAnnouncement("Ulasan bintang 5 baru saja diterima!");
@@ -555,7 +680,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 type: "FIVE_STAR",
               });
             } else if (fourStarEvent) {
-              if (outlet.isMember) {
+              if (outlet.isMember && soundNotification) {
                 unlockAudioContext();
                 playCashierDing();
                 speakVoiceAnnouncement("Ulasan bintang 4 baru saja diterima!");
@@ -996,6 +1121,31 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Quick Toggle Suara / Dering Notifikasi */}
+            <button
+              type="button"
+              onClick={() => handleToggleSoundNotification(!soundNotification)}
+              disabled={isTogglingSound}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-sm ${
+                soundNotification
+                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
+                  : "bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200"
+              }`}
+              title={soundNotification ? "Suara Dering: AKTIF (Klik untuk Senyap)" : "Suara Dering: SENYAP/MUTE (Klik untuk Aktifkan)"}
+            >
+              {soundNotification ? (
+                <>
+                  <Bell className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="hidden sm:inline">Dering: Aktif</span>
+                </>
+              ) : (
+                <>
+                  <BellOff className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="hidden sm:inline">Dering: Mute</span>
+                </>
+              )}
+            </button>
+
             {/* Quick Tes Scan Button - Desktop only */}
             {scanUrl && (
               <a
@@ -1011,7 +1161,16 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
             )}
 
             {/* Member Status Badge / Upgrade Button */}
-            {outlet.isMember ? (
+            {isVipPaused ? (
+              <button
+                onClick={() => setActiveTab("MEMBERSHIP")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold shadow-sm hover:scale-105 transition-all cursor-pointer shrink-0"
+                title="Status VIP Sedang Dijeda"
+              >
+                <Pause className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>VIP Dijeda ({Math.max(0, 3 - vipPauseCount)}x)</span>
+              </button>
+            ) : outlet.isMember ? (
               <button
                 onClick={() => setActiveTab("MEMBERSHIP")}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold shadow-sm hover:scale-105 transition-all cursor-pointer shrink-0"
@@ -1100,6 +1259,50 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       <Crown className="w-4 h-4" />
                       <span>Perpanjang VIP (QRIS)</span>
                     </button>
+                  </div>
+                )}
+
+                {/* Paused VIP Alert Banner */}
+                {isVipPaused && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-900/40 border border-amber-500/40 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start sm:items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 font-bold">
+                        <Pause className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>Status VIP Sedang Dijeda / Dimatikan Sementara</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Sisa Kesempatan: {Math.max(0, 3 - vipPauseCount)}/3x
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          {vipPauseCount >= 3
+                            ? "Batas 3x jeda VIP telah habis. Fitur VIP terkunci dan memerlukan pembayaran perpanjangan untuk aktif kembali."
+                            : `Fitur VIP tidak aktif selama dijeda. Anda dapat mengaktifkannya kembali kapan saja (tersisa ${3 - vipPauseCount}x kesempatan).`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {vipPauseCount < 3 ? (
+                        <button
+                          onClick={handleToggleVipPause}
+                          disabled={isTogglingVip}
+                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                          <span>Hidupkan VIP</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setIsUpgradeModalOpen(true)}
+                          className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Bayar VIP</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1988,7 +2191,74 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 )}
               </div>
 
-              {outlet.isMember ? (
+              {isVipPaused ? (
+                /* VIP Paused Box & Controls */
+                <div className="space-y-6">
+                  <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-amber-950/60 via-slate-900 to-slate-950 border-2 border-amber-500/50 shadow-2xl space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center font-black text-2xl shadow-lg shrink-0">
+                          ⏸️
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-xl sm:text-2xl font-black text-white">STATUS VIP SEDANG DIJEDA</h3>
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40">
+                              DIJEDA
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                            {vipPauseCount >= 3
+                              ? "Batas kuota 3x jeda VIP telah habis. Fitur VIP terkunci dan memerlukan pembayaran perpanjangan untuk aktif kembali."
+                              : `Fitur VIP dinonaktifkan sementara. Anda telah menggunakan jeda ${vipPauseCount}/3 kali (Tersisa ${3 - vipPauseCount} kali kesempatan).`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 text-right shrink-0">
+                        <span className="text-[11px] text-slate-400 block">Sisa Kesempatan Jeda:</span>
+                        <strong className={`text-base font-black font-mono ${vipPauseCount >= 3 ? "text-rose-400" : "text-amber-400"}`}>
+                          {Math.max(0, 3 - vipPauseCount)} / 3 Kali
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      {vipPauseCount < 3 ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleToggleVipPause}
+                            disabled={isTogglingVip}
+                            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <Play className="w-4 h-4 fill-white" />
+                            <span>{isTogglingVip ? "Memproses..." : "Hidupkan Kembali VIP"}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsUpgradeModalOpen(true)}
+                            className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <CreditCard className="w-4 h-4 text-amber-400" />
+                            <span>Bayar / Perpanjang Paket VIP</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsUpgradeModalOpen(true)}
+                          className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs shadow-xl shadow-amber-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          <span>Bayar & Aktifkan Kembali VIP Sekarang 💳</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : outlet.isMember ? (
                 /* VIP Active Box & Controls */
                 <div className="space-y-6">
                   {/* Status Banner */}
@@ -2023,6 +2293,36 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           </strong>
                         </div>
                       )}
+                    </div>
+
+                    {/* Bar Aksi: Jeda / Matikan VIP Sementara */}
+                    <div className="p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-300">
+                          <Pause className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-xs sm:text-sm">Matikan VIP Sementara</span>
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-bold text-[10px] border border-amber-500/30">
+                              Sisa Kesempatan: {Math.max(0, 3 - vipPauseCount)}/3x
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Jika toko sedang tutup libur atau belum mau memakai VIP, Anda bisa mematikannya sementara (maksimal 3x kesempatan).
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleToggleVipPause}
+                        disabled={isTogglingVip}
+                        className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
+                      >
+                        <Pause className="w-3.5 h-3.5" />
+                        <span>{isTogglingVip ? "Memproses..." : `Matikan VIP (Sisa ${Math.max(0, 3 - vipPauseCount)}x)`}</span>
+                      </button>
                     </div>
 
                     {/* 5 Poin Fitur Unggulan VIP */}
@@ -2101,9 +2401,25 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                             </div>
                             <div>
                               <h3 className="text-sm font-bold text-white">1. Efek Suara Kasir</h3>
-                              <p className="text-[11px] text-slate-400">Pilih nada dering ulasan</p>
+                              <p className="text-[11px] text-slate-400">Pilih nada & kontrol dering</p>
                             </div>
                           </div>
+
+                          {/* Sound Toggle Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSoundNotification(!soundNotification)}
+                            disabled={isTogglingSound}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                              soundNotification
+                                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                : "bg-slate-800 text-slate-400 border-slate-700"
+                            }`}
+                            title={soundNotification ? "Suara Notifikasi Aktif" : "Suara Notifikasi Senyap (Mute)"}
+                          >
+                            {soundNotification ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+                            <span>{soundNotification ? "Suara Aktif" : "Mute (Senyap)"}</span>
+                          </button>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

@@ -159,6 +159,9 @@ model Outlet {
   membershipExpiresAt DateTime?
   hasClaimedFreeTrial Boolean   @default(false) // Apakah outlet sudah pernah mengaktifkan/mengklaim free trial 30 hari
   customVipPrice      Int?      // Harga VIP khusus untuk outlet ini (override harga master jika diisi)
+  vipPauseCount       Int       @default(0)     // Jumlah berapa kali VIP telah dimatikan/dijeda (maksimal 3x)
+  isVipPaused         Boolean   @default(false) // Apakah status VIP sedang dijeda/dimatikan mandiri
+  soundNotification   Boolean   @default(true)  // Pengaturan suara/dering notifikasi ulasan (True = Bunyi, False = Senyap)
 
   // Fitur Eksklusif Member VIP & Filter Ulasan Cerdas
   enableSmartFilter   Boolean   @default(true)  // Switch ON/OFF filter bintang (1-3 ke WA, 4-5 ke Google)
@@ -548,6 +551,9 @@ model FinanceTransaction {
   receiptUrl   String?  @db.LongText
   isSettled    Boolean  @default(false)
   settlementId String?
+  createdById   String?
+  createdByName String?
+  creatorRole   String?  // "SUPER_ADMIN_1" | "SUPER_ADMIN_2"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
