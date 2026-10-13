@@ -21,7 +21,6 @@ import {
   Sparkles,
   ShieldCheck,
   MapPin,
-  Map,
   ClipboardCheck,
   ExternalLink,
 } from "lucide-react";
@@ -60,7 +59,6 @@ export function RegisterOutletModal({
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [outletName, setOutletName] = useState("");
   const [detectedPlaceName, setDetectedPlaceName] = useState("");
-  const [embedMapUrl, setEmbedMapUrl] = useState("");
   const [isResolvingUrl, setIsResolvingUrl] = useState(false);
   const [isReviewConverted, setIsReviewConverted] = useState(false);
 
@@ -100,59 +98,38 @@ export function RegisterOutletModal({
 
   const getEffectiveCode = () => prefilledCode || selectedCode;
 
-  // Helper membaca lokasi & membangun preview iframe mini-map otomatis dari link maps
-  const updateEmbedMapAndPlaceFromUrl = (rawUrl: string) => {
-    if (!rawUrl || !rawUrl.trim()) {
-      setEmbedMapUrl("");
-      return;
-    }
+  // Helper mengekstrak nama toko dari pola link maps secara otomatis
+  const extractPlaceNameFromUrl = (rawUrl: string) => {
+    if (!rawUrl || !rawUrl.trim()) return;
     const trimmed = rawUrl.trim();
 
     // 1. Ekstrak nama tempat dari pola /place/Nama+Toko/
-    let extractedName = "";
     const placeMatch = trimmed.match(/\/place\/([^/@?]+)/);
     if (placeMatch && placeMatch[1]) {
       try {
-        extractedName = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+        const decoded = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+        setDetectedPlaceName(decoded);
+        setOutletName(decoded);
+        return;
       } catch {
-        extractedName = placeMatch[1].replace(/\+/g, " ");
+        const clean = placeMatch[1].replace(/\+/g, " ");
+        setDetectedPlaceName(clean);
+        setOutletName(clean);
+        return;
       }
     }
 
-    // 2. Ekstrak koordinat /@lat,lng
-    const coordMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-
-    // 3. Ekstrak query param ?q= atau ?query=
+    // 2. Ekstrak query param ?q= atau ?query=
     const qMatch = trimmed.match(/[?&](?:q|query)=([^&#]+)/);
-
-    // 4. Ekstrak Place ID
-    const chijMatch = trimmed.match(/(ChIJ[a-zA-Z0-9_-]{20,})/);
-
-    let queryForEmbed = "";
-    if (extractedName) {
-      queryForEmbed = extractedName;
-      setDetectedPlaceName(extractedName);
-      setOutletName(extractedName);
-    } else if (coordMatch && coordMatch[1] && coordMatch[2]) {
-      queryForEmbed = `${coordMatch[1]},${coordMatch[2]}`;
-    } else if (qMatch && qMatch[1]) {
+    if (qMatch && qMatch[1]) {
       try {
-        queryForEmbed = decodeURIComponent(qMatch[1].replace(/\+/g, " "));
+        const decoded = decodeURIComponent(qMatch[1].replace(/\+/g, " "));
+        setDetectedPlaceName(decoded);
+        setOutletName(decoded);
       } catch {
-        queryForEmbed = qMatch[1];
+        setDetectedPlaceName(qMatch[1]);
+        setOutletName(qMatch[1]);
       }
-      setDetectedPlaceName(queryForEmbed);
-      setOutletName(queryForEmbed);
-    } else if (chijMatch && chijMatch[1]) {
-      queryForEmbed = `place_id:${chijMatch[1]}`;
-    } else {
-      queryForEmbed = trimmed;
-    }
-
-    if (queryForEmbed) {
-      setEmbedMapUrl(
-        `https://maps.google.com/maps?q=${encodeURIComponent(queryForEmbed)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-      );
     }
   };
 
@@ -167,7 +144,7 @@ export function RegisterOutletModal({
       formatted.includes("g.page")
     );
 
-    updateEmbedMapAndPlaceFromUrl(inputVal);
+    extractPlaceNameFromUrl(inputVal);
 
     // Jika berupa shortlink (maps.app.goo.gl / goo.gl / g.page), resolve otomatis di latar belakang
     if (
@@ -180,7 +157,7 @@ export function RegisterOutletModal({
         if (res.success && res.url) {
           setGoogleReviewUrl(res.url);
           setIsReviewConverted(true);
-          updateEmbedMapAndPlaceFromUrl(res.url);
+          extractPlaceNameFromUrl(res.url);
         }
       } catch (err) {
         console.error("Gagal expand shortlink Google Maps:", err);
@@ -606,56 +583,17 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 leading-tight">
-                    💡 Cukup masukkan link Google Maps apa saja (shortlink / link share / ulasan), sistem otomatis membaca titik lokasi & mengaktifkan pop-up ulasan bintang 5.
-                  </p>
-                </div>
-
-                {/* 3. MINIMAP: AUTO MEMBACA DARI LINK GOOGLE MAPS */}
-                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-2.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
-                      <Map className="w-3.5 h-3.5 text-emerald-400" />
-                      Preview Peta Lokasi (Otomatis dari Link Maps):
-                    </span>
-                    {embedMapUrl ? (
-                      <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Lokasi Terbaca
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-500">
-                        Menunggu Link Maps
-                      </span>
-                    )}
-                  </div>
-
-                  {embedMapUrl ? (
-                    <div className="space-y-1.5">
-                      <div className="relative w-full h-44 rounded-xl overflow-hidden border border-slate-800 shadow-inner bg-slate-900">
-                        <iframe
-                          src={embedMapUrl}
-                          className="w-full h-full border-0"
-                          loading="lazy"
-                          allowFullScreen={false}
-                          referrerPolicy="no-referrer-when-downgrade"
-                          title="Mini Map Preview"
-                        />
-                      </div>
-                      {detectedPlaceName && (
-                        <p className="text-[11px] text-emerald-300 flex items-center gap-1 truncate">
-                          <span>📍 Toko terdeteksi:</span>
-                          <strong className="text-white font-semibold">{detectedPlaceName}</strong>
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full h-28 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center p-3 text-center bg-slate-900/40 text-slate-500">
-                      <MapPin className="w-6 h-6 text-slate-600 mb-1" />
-                      <p className="text-xs font-medium">Tempel link Google Maps toko di atas</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Peta titik lokasi akan otomatis tampil di sini secara realtime.</p>
+                  {detectedPlaceName && (
+                    <div className="pt-1 flex items-center gap-1.5 text-xs text-emerald-300">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="text-slate-400">Toko Terdeteksi:</span>
+                      <strong className="text-white truncate">{detectedPlaceName}</strong>
                     </div>
                   )}
+
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    💡 Cukup masukkan link Google Maps ulasan toko Anda (link share / ulasan), sistem otomatis mengaktifkan pop-up ulasan bintang 5.
+                  </p>
                 </div>
 
                 {/* Tombol Aksi Step 1 */}
