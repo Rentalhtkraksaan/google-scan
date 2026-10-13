@@ -795,8 +795,13 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
     }
 
     // 3. Validasi email User
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail.endsWith("@gmail.com")) {
+      return { success: false, message: "Email login wajib menggunakan akun Google (@gmail.com)." };
+    }
+
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: cleanEmail },
     });
     if (existingUser) {
       return { success: false, message: `Email "${email}" sudah terdaftar pada akun lain. Gunakan email berbeda.` };
@@ -933,6 +938,56 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       : msg;
 
     return { success: false, message: cleanMsg };
+  }
+}
+
+/**
+ * Pengecekan realtime ketersediaan email saat aktivasi
+ * Cek format (@ dan @gmail.com) serta apakah sudah terdaftar di database
+ */
+export async function checkEmailAvailabilityAction(
+  email: string
+): Promise<{ success: boolean; available: boolean; message: string }> {
+  try {
+    const raw = (email || "").trim().toLowerCase();
+    if (!raw) {
+      return { success: false, available: false, message: "Email tidak boleh kosong." };
+    }
+
+    if (!raw.includes("@")) {
+      return { success: false, available: false, message: "Format email harus memiliki tanda '@'." };
+    }
+
+    if (!raw.endsWith("@gmail.com")) {
+      return { success: false, available: false, message: "Wajib menggunakan alamat email Google (@gmail.com)." };
+    }
+
+    const [userPart] = raw.split("@");
+    if (!userPart || userPart.length < 3) {
+      return { success: false, available: false, message: "Nama email terlalu pendek (minimal 3 karakter)." };
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: raw },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      return {
+        success: true,
+        available: false,
+        message: "Email ini sudah terdaftar di sistem! Gunakan email lain.",
+      };
+    }
+
+    return {
+      success: true,
+      available: true,
+      message: "Email tersedia dan siap digunakan!",
+    };
+  } catch (err) {
+    console.error("checkEmailAvailabilityAction error:", err);
+    return { success: false, available: false, message: "Gagal memeriksa email di server." };
   }
 }
 

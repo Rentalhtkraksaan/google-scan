@@ -23,8 +23,13 @@ import {
   MapPin,
   ClipboardCheck,
   ExternalLink,
+  AlertCircle,
+  XCircle,
 } from "lucide-react";
-import { registerOutletAndClaimCardAction } from "@/lib/actions/auth.actions";
+import {
+  registerOutletAndClaimCardAction,
+  checkEmailAvailabilityAction,
+} from "@/lib/actions/auth.actions";
 import { resolveReviewUrlAction } from "@/lib/actions/places.actions";
 import { formatGoogleReviewUrl } from "@/lib/google-url";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -64,14 +69,78 @@ export function RegisterOutletModal({
 
   // Step 2: Hanya Email (Gmail) & Password (Nama Pemilik & WA di-hide)
   const [email, setEmail] = useState("");
+  const [emailCheckStatus, setEmailCheckStatus] = useState<
+    "IDLE" | "CHECKING" | "INVALID_FORMAT" | "TAKEN" | "AVAILABLE"
+  >("IDLE");
+  const [emailCheckMessage, setEmailCheckMessage] = useState<string>("");
+
   const [password, setPassword] = useState("Admin123!");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Realtime Password Rules (min 8 huruf, huruf besar, huruf kecil, angka, kode unik)
+  const hasMinLen = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const isPasswordValid = hasMinLen && hasUpper && hasLower && hasNumber && hasSpecial;
+
   // Default tersembunyi
   const [fullName, setFullName] = useState("Pemilik Outlet");
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
   const [successData, setSuccessData] = useState<SuccessRegistrationData | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Pengecekan realtime email di database (debounced 350ms)
+  useEffect(() => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) {
+      setEmailCheckStatus("IDLE");
+      setEmailCheckMessage("");
+      return;
+    }
+
+    if (!trimmed.includes("@")) {
+      setEmailCheckStatus("INVALID_FORMAT");
+      setEmailCheckMessage("Format email belum lengkap (harus memiliki tanda '@').");
+      return;
+    }
+
+    if (!trimmed.endsWith("@gmail.com")) {
+      setEmailCheckStatus("INVALID_FORMAT");
+      setEmailCheckMessage("Wajib menggunakan akun Google (@gmail.com).");
+      return;
+    }
+
+    const [userPart] = trimmed.split("@");
+    if (!userPart || userPart.length < 3) {
+      setEmailCheckStatus("INVALID_FORMAT");
+      setEmailCheckMessage("Nama email sebelum '@' minimal 3 huruf.");
+      return;
+    }
+
+    setEmailCheckStatus("CHECKING");
+    setEmailCheckMessage("Memeriksa ketersediaan email di sistem...");
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkEmailAvailabilityAction(trimmed);
+        if (res.available) {
+          setEmailCheckStatus("AVAILABLE");
+          setEmailCheckMessage("Email tersedia dan siap digunakan!");
+        } else {
+          setEmailCheckStatus("TAKEN");
+          setEmailCheckMessage(res.message || "Email ini sudah terdaftar di sistem! Gunakan email lain.");
+        }
+      } catch {
+        setEmailCheckStatus("INVALID_FORMAT");
+        setEmailCheckMessage("Gagal memeriksa ketersediaan email.");
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [email]);
 
   useEffect(() => {
     if (prefilledCode) {
@@ -655,7 +724,29 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
                       <span>Email Login Pemilik (Gmail) <span className="text-rose-400">*</span></span>
-                      <span className="text-[11px] text-slate-500">Untuk akses portal mitra</span>
+                      {emailCheckStatus === "CHECKING" && (
+                        <span className="text-[11px] text-indigo-400 font-medium flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Memeriksa sistem...
+                        </span>
+                      )}
+                      {emailCheckStatus === "AVAILABLE" && (
+                        <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          Tersedia
+                        </span>
+                      )}
+                      {emailCheckStatus === "TAKEN" && (
+                        <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 text-rose-400" />
+                          Sudah Terdaftar
+                        </span>
+                      )}
+                      {emailCheckStatus === "INVALID_FORMAT" && (
+                        <span className="text-[11px] text-amber-400 font-medium">
+                          Format Belum Sesuai
+                        </span>
+                      )}
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -666,28 +757,80 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="pemilik.toko@gmail.com"
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        className={`w-full pl-9 pr-10 py-2.5 bg-slate-900 border rounded-xl text-sm font-mono placeholder:text-slate-500 focus:outline-none transition-colors ${
+                          emailCheckStatus === "AVAILABLE"
+                            ? "border-emerald-500/70 bg-emerald-950/10 focus:border-emerald-500 text-emerald-300"
+                            : emailCheckStatus === "TAKEN" || emailCheckStatus === "INVALID_FORMAT"
+                            ? "border-rose-500/60 bg-rose-950/10 focus:border-rose-500 text-rose-200"
+                            : "border-slate-700 focus:border-emerald-500 text-slate-100"
+                        }`}
                       />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {emailCheckStatus === "CHECKING" && (
+                          <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                        )}
+                        {emailCheckStatus === "AVAILABLE" && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        )}
+                        {emailCheckStatus === "TAKEN" && (
+                          <AlertCircle className="w-4 h-4 text-rose-400" />
+                        )}
+                      </div>
                     </div>
+
+                    {/* Pesan Keterangan Status Email Realtime */}
+                    {emailCheckMessage && (
+                      <p
+                        className={`text-[11px] mt-1.5 flex items-center gap-1.5 ${
+                          emailCheckStatus === "AVAILABLE"
+                            ? "text-emerald-400 font-medium"
+                            : emailCheckStatus === "TAKEN"
+                            ? "text-rose-400 font-semibold"
+                            : emailCheckStatus === "INVALID_FORMAT"
+                            ? "text-amber-400"
+                            : "text-slate-400"
+                        }`}
+                      >
+                        <span>{emailCheckMessage}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* Password Akun */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                      <span>Password Akun <span className="text-rose-400">*</span></span>
-                      <span className="text-[10px] text-slate-500">Min. 6 karakter</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-slate-300">
+                        Password Akun Portal <span className="text-rose-400">*</span>
+                      </label>
+                      {isPasswordValid ? (
+                        <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          Password Kuat & Valid
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-amber-400 font-medium">
+                          Wajib 5 Syarat
+                        </span>
+                      )}
+                    </div>
+
                     <div className="relative">
                       <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type={showPassword ? "text" : "password"}
                         required
-                        minLength={6}
+                        minLength={8}
                         maxLength={30}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Password_123"
-                        className="w-full pl-9 pr-10 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                        placeholder="Contoh: Admin123!"
+                        className={`w-full pl-9 pr-10 py-2.5 bg-slate-900 border rounded-xl text-sm font-mono placeholder:text-slate-500 focus:outline-none transition-colors ${
+                          isPasswordValid
+                            ? "border-emerald-500/70 bg-emerald-950/10 focus:border-emerald-500 text-emerald-300"
+                            : password.length > 0
+                            ? "border-amber-500/60 focus:border-amber-500 text-slate-100"
+                            : "border-slate-700 focus:border-emerald-500 text-slate-100"
+                        }`}
                       />
                       <button
                         type="button"
@@ -697,6 +840,110 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
+                    </div>
+
+                    {/* Realtime Checklist Password (min 8 huruf, besar, kecil, angka, kode unik) */}
+                    <div className="mt-2.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="uppercase font-bold tracking-wider text-slate-400">
+                          Syarat Wajib Password:
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {[hasMinLen, hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length}/5 Terpenuhi
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                        {/* 1. Min 8 Karakter */}
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                            hasMinLen
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              : "bg-slate-950 text-slate-500 border-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              hasMinLen ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {hasMinLen ? "✓" : "•"}
+                          </span>
+                          <span className="font-medium">Min. 8 Huruf</span>
+                        </div>
+
+                        {/* 2. Huruf Besar */}
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                            hasUpper
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              : "bg-slate-950 text-slate-500 border-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              hasUpper ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {hasUpper ? "✓" : "•"}
+                          </span>
+                          <span className="font-medium">Huruf Besar (A-Z)</span>
+                        </div>
+
+                        {/* 3. Huruf Kecil */}
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                            hasLower
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              : "bg-slate-950 text-slate-500 border-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              hasLower ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {hasLower ? "✓" : "•"}
+                          </span>
+                          <span className="font-medium">Huruf Kecil (a-z)</span>
+                        </div>
+
+                        {/* 4. Angka */}
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all ${
+                            hasNumber
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              : "bg-slate-950 text-slate-500 border-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              hasNumber ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {hasNumber ? "✓" : "•"}
+                          </span>
+                          <span className="font-medium">Angka (0-9)</span>
+                        </div>
+
+                        {/* 5. Simbol / Kode Unik */}
+                        <div
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border col-span-2 transition-all ${
+                            hasSpecial
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              : "bg-slate-950 text-slate-500 border-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              hasSpecial ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {hasSpecial ? "✓" : "•"}
+                          </span>
+                          <span className="font-medium">Kode Unik / Karakter Khusus (!@#$%^&*_)</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -725,8 +972,8 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
 
                   <button
                     type="submit"
-                    disabled={loading || !email.trim() || !password.trim()}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl shadow-lg shadow-emerald-600/30 disabled:opacity-50 transition-all cursor-pointer"
+                    disabled={loading || emailCheckStatus !== "AVAILABLE" || !isPasswordValid}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl shadow-lg shadow-emerald-600/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                   >
                     {loading ? (
                       <>
