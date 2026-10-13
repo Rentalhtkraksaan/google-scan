@@ -15,6 +15,9 @@ import {
   Upload,
   Trash2,
   Sparkles,
+  Store,
+  Lock,
+  ExternalLink,
 } from "lucide-react";
 import { updateSelfProfileAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -27,17 +30,23 @@ interface EditProfileModalProps {
     role?: string;
     avatarUrl?: string | null;
   };
+  outlet?: {
+    id: string;
+    name: string;
+    googleReviewUrl: string;
+  } | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalProps) {
+export function EditProfileModal({ user, outlet, onClose, onSuccess }: EditProfileModalProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [fullName, setFullName] = useState(user.fullName);
   const [email, setEmail] = useState(user.email);
   const [whatsappNumber, setWhatsappNumber] = useState(user.whatsappNumber || "");
+  const [outletName, setOutletName] = useState(outlet?.name || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
 
@@ -91,6 +100,10 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
       formData.set("fullName", fullName);
       formData.set("email", email);
       formData.set("whatsappNumber", whatsappNumber);
+
+      if (outlet) {
+        formData.set("outletName", outletName);
+      }
 
       // Foto profil hanya dikirim jika pengguna adalah SUPER_ADMIN
       if (isSuperAdmin && avatarUrl !== user.avatarUrl) {
@@ -225,10 +238,81 @@ export function EditProfileModal({ user, onClose, onSuccess }: EditProfileModalP
             </div>
           )}
 
+          {/* INFORMASI OUTLET / TOKO (KHUSUS OWNER) */}
+          {outlet && (
+            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
+                  <Store className="w-4 h-4 text-emerald-400" />
+                  <span>Informasi Outlet Toko</span>
+                </div>
+                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                  Mitra Toko
+                </span>
+              </div>
+
+              {/* Nama Outlet (Bisa diisi / diubah oleh Owner) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Nama Outlet / Toko <span className="text-rose-400">*</span></span>
+                  <span className="text-[10px] text-emerald-400 font-medium">Bisa Anda Ubah</span>
+                </label>
+                <div className="relative">
+                  <Store className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={outletName}
+                    onChange={(e) => setOutletName(e.target.value)}
+                    placeholder="Contoh: Diva Swalayan / Cafe Kenangan"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Nama ini akan muncul pada halaman ulasan pelanggan & pesan WhatsApp masukan.
+                </p>
+              </div>
+
+              {/* Link Google Maps Review (Terkunci oleh Admin / Read-only) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1">
+                    <span>Link Google Maps Review</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-amber-400" /> Terkunci (Hubungi Admin)
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={outlet.googleReviewUrl || ""}
+                    className="w-full pl-3 pr-10 py-2 bg-slate-950/90 border border-slate-800 text-slate-400 rounded-xl text-xs font-mono cursor-not-allowed select-none focus:outline-none"
+                  />
+                  {outlet.googleReviewUrl && (
+                    <a
+                      href={outlet.googleReviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-400 transition-colors p-1"
+                      title="Buka & Uji Link Google Maps"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  🔒 Link ulasan dikunci oleh admin untuk keamanan agar scan ulasan selalu akurat.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Nama Lengkap */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Nama Lengkap <span className="text-rose-400">*</span>
+              Nama Lengkap Pemilik <span className="text-rose-400">*</span>
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />

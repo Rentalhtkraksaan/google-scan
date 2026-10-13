@@ -805,9 +805,27 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Format nomor WhatsApp agar konsisten (awalan 62)
-    let cleanWa = whatsappNumber.replace(/[^0-9]/g, "");
+    let cleanWa = (whatsappNumber || "").replace(/[^0-9]/g, "");
     if (cleanWa.startsWith("08")) {
       cleanWa = "62" + cleanWa.slice(1);
+    }
+    const safeWa = cleanWa.length >= 8 ? cleanWa : null;
+
+    // Ekstrak nama outlet jika belum diisi manual
+    let finalOutletName = (outletName || "").trim();
+    if (!finalOutletName || finalOutletName === "Outlet Baru") {
+      const placeMatch =
+        (googleReviewUrl || "").match(/\/place\/([^/@?]+)/) ||
+        (finalReviewUrl || "").match(/\/place\/([^/@?]+)/);
+      if (placeMatch && placeMatch[1]) {
+        try {
+          finalOutletName = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+        } catch {
+          finalOutletName = `Outlet ${code.toUpperCase()}`;
+        }
+      } else {
+        finalOutletName = `Outlet ${code.toUpperCase()}`;
+      }
     }
 
     // Periksa pengaturan otomatis Free Trial VIP untuk outlet baru
@@ -821,8 +839,8 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       data: {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
-        fullName: fullName.trim(),
-        whatsappNumber: cleanWa,
+        fullName: (fullName || "Pemilik Outlet").trim(),
+        whatsappNumber: safeWa,
         role: Role.USER,
         createdById: session.user.id,
       },
@@ -835,7 +853,7 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       newOutlet = await prisma.outlet.create({
         data: {
           ownerId: newUser.id,
-          name: outletName.trim(),
+          name: finalOutletName,
           googleReviewUrl: finalReviewUrl,
           isMember: false,
           membershipStartedAt: null,
@@ -1841,13 +1859,26 @@ export async function updateSelfProfileAction(formData: FormData): Promise<Actio
       data: updateData,
     });
 
+    const outletNameRaw = formData.get("outletName");
+    let updatedOutletName = "";
+    if (outletNameRaw !== null && outletNameRaw !== undefined) {
+      const trimmedOutletName = String(outletNameRaw).trim();
+      if (trimmedOutletName.length >= 2) {
+        await prisma.outlet.updateMany({
+          where: { ownerId: userId },
+          data: { name: trimmedOutletName },
+        });
+        updatedOutletName = trimmedOutletName;
+      }
+    }
+
     await recordActivityLog({
       userId: session.user.id,
       userName: updated.fullName,
       userRole: updated.role,
       action: "UPDATE_PROFILE",
       title: "Memperbarui Profil Akun",
-      description: `Pengguna "${updated.fullName}" (${updated.role}) memperbarui profil akun sendiri${newPassword ? ' dan mengubah password.' : '.'}`,
+      description: `Pengguna "${updated.fullName}" (${updated.role}) memperbarui profil akun sendiri${updatedOutletName ? ` dan nama outlet menjadi "${updatedOutletName}"` : ''}${newPassword ? ' dan mengubah password.' : '.'}`,
       targetId: userId,
       targetName: updated.fullName,
     });

@@ -1175,6 +1175,33 @@ export async function claimFreeTrialVipAction(outletId: string) {
       return { success: false, message: "Outlet Anda saat ini sudah memiliki status VIP aktif." };
     }
 
+    // Validasi data profil wajib lengkap saat mengaktifkan VIP
+    const owner = await prisma.user.findUnique({
+      where: { id: outlet.ownerId },
+      select: { fullName: true, whatsappNumber: true },
+    });
+
+    const cleanWa = (owner?.whatsappNumber || "").replace(/[^0-9]/g, "");
+    const isOutletValid =
+      outlet.name &&
+      outlet.name.trim().length >= 2 &&
+      outlet.name.trim() !== "Outlet Baru" &&
+      !outlet.name.trim().toLowerCase().startsWith("outlet c-");
+    const isOwnerValid =
+      owner?.fullName &&
+      owner.fullName.trim().length >= 2 &&
+      owner.fullName.trim() !== "Pemilik Outlet";
+    const isWaValid = cleanWa.length >= 8;
+
+    if (!isOutletValid || !isOwnerValid || !isWaValid) {
+      return {
+        success: false,
+        requiresProfileCompletion: true,
+        message:
+          "Untuk mengaktifkan fitur VIP, silakan lengkapi Nama Toko, Nama Pemilik, dan Nomor WhatsApp aktif terlebih dahulu. Data ini wajib untuk filter ulasan pelanggan.",
+      };
+    }
+
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
     const trialDays = siteSetting?.trialDurationDays ?? 30;
     const now = new Date();
@@ -1316,6 +1343,33 @@ export async function toggleOutletVipSelfAction(outletId: string, pause: boolean
           success: false,
           quotaExceeded: true,
           message: "Masa aktif VIP outlet telah berakhir. Silakan lakukan perpanjangan paket VIP.",
+        };
+      }
+
+      // Validasi data profil wajib lengkap saat menghidupkan kembali VIP
+      const owner = await prisma.user.findUnique({
+        where: { id: outlet.ownerId },
+        select: { fullName: true, whatsappNumber: true },
+      });
+
+      const cleanWa = (owner?.whatsappNumber || "").replace(/[^0-9]/g, "");
+      const isOutletValid =
+        outlet.name &&
+        outlet.name.trim().length >= 2 &&
+        outlet.name.trim() !== "Outlet Baru" &&
+        !outlet.name.trim().toLowerCase().startsWith("outlet c-");
+      const isOwnerValid =
+        owner?.fullName &&
+        owner.fullName.trim().length >= 2 &&
+        owner.fullName.trim() !== "Pemilik Outlet";
+      const isWaValid = cleanWa.length >= 8;
+
+      if (!isOutletValid || !isOwnerValid || !isWaValid) {
+        return {
+          success: false,
+          requiresProfileCompletion: true,
+          message:
+            "Untuk menghidupkan kembali fitur VIP, silakan lengkapi Nama Toko, Nama Pemilik, dan Nomor WhatsApp aktif terlebih dahulu. Data ini wajib untuk filter ulasan pelanggan.",
         };
       }
 

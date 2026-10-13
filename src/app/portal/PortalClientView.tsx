@@ -59,6 +59,7 @@ import {
 } from "@/lib/actions/membership.actions";
 import { compressImageInBrowser } from "@/lib/image-compression";
 import { EditProfileModal } from "@/components/dashboard/EditProfileModal";
+import { CompleteVipProfileModal } from "@/components/dashboard/CompleteVipProfileModal";
 import { RequestCardModal } from "@/components/dashboard/RequestCardModal";
 import { UpgradeMemberModal } from "@/components/dashboard/UpgradeMemberModal";
 import { VipRenewalReminderModal } from "@/components/dashboard/VipRenewalReminderModal";
@@ -150,6 +151,38 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const [isVipExplainerExpanded, setIsVipExplainerExpanded] = useState(true);
+
+  // Real-time Outlet & Profile Completeness State
+  const [currentOutletName, setCurrentOutletName] = useState(outlet?.name || "");
+  const [currentUserFullName, setCurrentUserFullName] = useState(user?.fullName || "");
+  const [currentUserWhatsapp, setCurrentUserWhatsapp] = useState(user?.whatsappNumber || "");
+  const [isCompleteVipModalOpen, setIsCompleteVipModalOpen] = useState(false);
+  const [pendingVipAction, setPendingVipAction] = useState<"CLAIM_TRIAL" | "RESUME_VIP" | "UPGRADE_VIP" | null>(null);
+
+  const isProfileComplete = () => {
+    const isOutletValid =
+      currentOutletName &&
+      currentOutletName.trim().length >= 2 &&
+      currentOutletName.trim() !== "Outlet Baru" &&
+      !currentOutletName.trim().toLowerCase().startsWith("outlet c-");
+    const isOwnerValid =
+      currentUserFullName &&
+      currentUserFullName.trim().length >= 2 &&
+      currentUserFullName.trim() !== "Pemilik Outlet";
+    const cleanWa = (currentUserWhatsapp || "").replace(/[^0-9]/g, "");
+    const isWaValid = cleanWa.length >= 8;
+
+    return Boolean(isOutletValid && isOwnerValid && isWaValid);
+  };
+
+  const handleOpenUpgradeModal = () => {
+    if (!isProfileComplete()) {
+      setPendingVipAction("UPGRADE_VIP");
+      setIsCompleteVipModalOpen(true);
+      return;
+    }
+    setIsUpgradeModalOpen(true);
+  };
 
   // VIP Sound, Greeting, Logo & Smart Filter Settings State
   const [selectedSoundEffect, setSelectedSoundEffect] = useState<string>(outlet?.soundEffect || "BELL_DOUBLE");
@@ -431,12 +464,45 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
 
   const [isClaimingTrial, setIsClaimingTrial] = useState(false);
 
+  const handleCompleteVipSuccess = (updatedData: {
+    outletName: string;
+    fullName: string;
+    whatsappNumber: string;
+  }) => {
+    setCurrentOutletName(updatedData.outletName);
+    setCurrentUserFullName(updatedData.fullName);
+    setCurrentUserWhatsapp(updatedData.whatsappNumber);
+
+    if (pendingVipAction === "CLAIM_TRIAL") {
+      setPendingVipAction(null);
+      executeClaimFreeTrial(updatedData.outletName);
+    } else if (pendingVipAction === "RESUME_VIP") {
+      setPendingVipAction(null);
+      executeResumeVip();
+    } else if (pendingVipAction === "UPGRADE_VIP") {
+      setPendingVipAction(null);
+      setIsUpgradeModalOpen(true);
+    }
+  };
+
   const handleClaimFreeTrial = async () => {
     if (!outlet?.id || isClaimingTrial) return;
-    
+
+    if (!isProfileComplete()) {
+      setPendingVipAction("CLAIM_TRIAL");
+      setIsCompleteVipModalOpen(true);
+      return;
+    }
+
+    executeClaimFreeTrial();
+  };
+
+  const executeClaimFreeTrial = async (targetOutletName?: string) => {
+    if (!outlet?.id) return;
+    const displayName = targetOutletName || currentOutletName || outlet.name || "Outlet";
     const confirmed = await showConfirmAlert(
       "🎁 Aktifkan Free Trial VIP 30 Hari?",
-      `Nikmati seluruh fitur VIP gratis selama 30 hari untuk outlet <b>${outlet.name}</b>.<br/><br/><span class="text-xs text-amber-300">✨ Masa aktif 30 hari baru akan mulai berjalan hari ini dan berlaku penuh tanpa biaya apapun.</span>`,
+      `Nikmati seluruh fitur VIP gratis selama 30 hari untuk outlet <b>${displayName}</b>.<br/><br/><span class="text-xs text-amber-300">✨ Masa aktif 30 hari baru akan mulai berjalan hari ini dan berlaku penuh tanpa biaya apapun.</span>`,
       "Ya, Aktifkan VIP Sekarang 🚀",
       "#f59e0b"
     );
@@ -454,10 +520,15 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         );
         router.refresh();
       } else {
-        showErrorAlert("Gagal Mengaktifkan", res.message || "Terjadi kesalahan.");
+        if (res.requiresProfileCompletion) {
+          setPendingVipAction("CLAIM_TRIAL");
+          setIsCompleteVipModalOpen(true);
+        } else {
+          showErrorAlert("Gagal Mengaktifkan", res.message || "Silakan reload device anda.");
+        }
       }
     } catch {
-      showErrorAlert("Error", "Gagal menghubungi server.");
+      showErrorAlert("Silakan Reload Device Anda", "Terjadi kendala pada sistem koneksi.");
     } finally {
       setIsClaimingTrial(false);
     }
@@ -475,7 +546,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
           "Kuota Jeda Habis",
           "Kesempatan jeda VIP Anda telah habis (3/3 kali). Silakan lakukan perpanjangan/pembayaran paket VIP."
         );
-        setIsUpgradeModalOpen(true);
+        handleOpenUpgradeModal();
         return;
       }
 
@@ -500,7 +571,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
           setVipPauseCount(res.pauseCount ?? 0);
           if (res.quotaExceeded) {
             await showSuccessAlert("VIP Dimatikan", res.message, 2500);
-            setIsUpgradeModalOpen(true);
+            handleOpenUpgradeModal();
           } else {
             await showSuccessAlert("VIP Dimatikan Sementara", res.message, 2000);
           }
@@ -508,7 +579,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
         } else {
           showErrorAlert("Gagal", res.message || "Gagal mengubah status VIP.");
           if (res.quotaExceeded) {
-            setIsUpgradeModalOpen(true);
+            handleOpenUpgradeModal();
           }
         }
       } catch {
@@ -518,33 +589,49 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       }
     } else {
       // User ingin menghidupkan kembali VIP
-      if (vipPauseCount >= 3) {
-        showErrorAlert(
-          "Kuota Jeda Habis",
-          "Kuota 3x jeda VIP Anda telah habis. Silakan perpanjang paket VIP untuk mengaktifkan kembali."
-        );
-        setIsUpgradeModalOpen(true);
+      if (!isProfileComplete()) {
+        setPendingVipAction("RESUME_VIP");
+        setIsCompleteVipModalOpen(true);
         return;
       }
 
-      setIsTogglingVip(true);
-      try {
-        const res = await toggleOutletVipSelfAction(outlet.id, false);
-        if (res.success) {
-          setIsVipPaused(false);
-          await showSuccessAlert("VIP Diaktifkan Kembali! 🎉", res.message, 2000);
-          router.refresh();
+      executeResumeVip();
+    }
+  };
+
+  const executeResumeVip = async () => {
+    if (!outlet?.id) return;
+    if (vipPauseCount >= 3) {
+      showErrorAlert(
+        "Kuota Jeda Habis",
+        "Kuota 3x jeda VIP Anda telah habis. Silakan perpanjang paket VIP untuk mengaktifkan kembali."
+      );
+      handleOpenUpgradeModal();
+      return;
+    }
+
+    setIsTogglingVip(true);
+    try {
+      const res = await toggleOutletVipSelfAction(outlet.id, false);
+      if (res.success) {
+        setIsVipPaused(false);
+        await showSuccessAlert("VIP Diaktifkan Kembali! 🎉", res.message, 2000);
+        router.refresh();
+      } else {
+        if (res.requiresProfileCompletion) {
+          setPendingVipAction("RESUME_VIP");
+          setIsCompleteVipModalOpen(true);
         } else {
           showErrorAlert("Gagal", res.message || "Gagal mengaktifkan kembali status VIP.");
           if (res.quotaExceeded) {
-            setIsUpgradeModalOpen(true);
+            handleOpenUpgradeModal();
           }
         }
-      } catch {
-        showErrorAlert("Silakan Reload Device Anda", "Terjadi kendala pada sistem koneksi.");
-      } finally {
-        setIsTogglingVip(false);
       }
+    } catch {
+      showErrorAlert("Silakan Reload Device Anda", "Terjadi kendala pada sistem koneksi.");
+    } finally {
+      setIsTogglingVip(false);
     }
   };
 
@@ -1181,7 +1268,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
               </button>
             ) : (
               <button
-                onClick={() => setIsUpgradeModalOpen(true)}
+                onClick={handleOpenUpgradeModal}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-slate-950 text-xs font-extrabold shadow-md shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer animate-pulse shrink-0"
                 title="Tingkatkan ke Member VIP"
               >
@@ -1253,7 +1340,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       </div>
                     </div>
                     <button
-                      onClick={() => setIsUpgradeModalOpen(true)}
+                      onClick={handleOpenUpgradeModal}
                       className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
                     >
                       <Crown className="w-4 h-4" />
@@ -1295,7 +1382,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                         </button>
                       ) : (
                         <button
-                          onClick={() => setIsUpgradeModalOpen(true)}
+                          onClick={handleOpenUpgradeModal}
                           className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
                         >
                           <CreditCard className="w-3.5 h-3.5" />
@@ -1326,7 +1413,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       </div>
                     </div>
                     <button
-                      onClick={() => setIsUpgradeModalOpen(true)}
+                      onClick={handleOpenUpgradeModal}
                       className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
                     >
                       <Crown className="w-4 h-4" />
@@ -1562,7 +1649,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                   <div className="shrink-0 flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsUpgradeModalOpen(true)}
+                      onClick={handleOpenUpgradeModal}
                       className="w-full md:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     >
                       <Crown className="w-4 h-4" />
@@ -2238,7 +2325,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
 
                           <button
                             type="button"
-                            onClick={() => setIsUpgradeModalOpen(true)}
+                            onClick={handleOpenUpgradeModal}
                             className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all cursor-pointer flex items-center justify-center gap-2"
                           >
                             <CreditCard className="w-4 h-4 text-amber-400" />
@@ -2248,7 +2335,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setIsUpgradeModalOpen(true)}
+                          onClick={handleOpenUpgradeModal}
                           className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs shadow-xl shadow-amber-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
                         >
                           <CreditCard className="w-4 h-4" />
@@ -3082,7 +3169,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                           </div>
                           <button
                             type="button"
-                            onClick={() => setIsUpgradeModalOpen(true)}
+                            onClick={handleOpenUpgradeModal}
                             className="mt-3 w-full px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-transform active:scale-95 cursor-pointer"
                           >
                             Tingkatkan Sekarang 🚀
@@ -3298,15 +3385,39 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
       {isEditModalOpen && (
         <EditProfileModal
           user={{
-            fullName: user.fullName,
+            fullName: currentUserFullName,
             email: user.email,
-            whatsappNumber: user.whatsappNumber,
+            whatsappNumber: currentUserWhatsapp,
             role: "USER",
+          }}
+          outlet={{
+            id: outlet.id,
+            name: currentOutletName,
+            googleReviewUrl: outlet.googleReviewUrl,
           }}
           onClose={() => setIsEditModalOpen(false)}
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* Modal Lengkapi Data Toko & WhatsApp untuk VIP */}
+      <CompleteVipProfileModal
+        isOpen={isCompleteVipModalOpen}
+        onClose={() => {
+          setIsCompleteVipModalOpen(false);
+          setPendingVipAction(null);
+        }}
+        outlet={{
+          id: outlet.id,
+          name: currentOutletName,
+        }}
+        user={{
+          fullName: currentUserFullName,
+          email: user.email,
+          whatsappNumber: currentUserWhatsapp,
+        }}
+        onSuccess={handleCompleteVipSuccess}
+      />
 
       {isRequestCardModalOpen && (
         <RequestCardModal

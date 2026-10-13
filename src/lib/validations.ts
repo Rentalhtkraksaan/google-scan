@@ -77,15 +77,20 @@ export type CreateSuperAdminInput = z.infer<typeof createSuperAdminSchema>;
 
 export const registerOutletSchema = z.object({
   code: z.string().min(1, "Kode kartu wajib diisi"),
-  fullName: z.string().min(2, "Nama lengkap pemilik minimal 2 karakter").max(100),
+  fullName: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim().length > 0 ? val.trim() : "Pemilik Outlet")),
   whatsappNumber: z
     .string()
-    .min(8, "Nomor WhatsApp minimal 8 digit")
-    .max(20, "Nomor WhatsApp terlalu panjang")
-    .regex(/^[0-9+ ]+$/, "Nomor WA hanya boleh angka dan tanda +"),
+    .optional()
+    .transform((val) => (val ? val.trim() : "")),
   email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
   password: strongPassword,
-  outletName: z.string().min(2, "Nama outlet minimal 2 karakter").max(200),
+  outletName: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim().length > 0 ? val.trim() : "Outlet Baru")),
   googleReviewUrl: z
     .string()
     .min(5, "Link Google Review wajib diisi")

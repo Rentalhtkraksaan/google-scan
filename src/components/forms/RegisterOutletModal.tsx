@@ -15,16 +15,20 @@ import {
   Lock,
   CheckCircle2,
   Copy,
-  MessageCircle,
   Check,
   ArrowRight,
   ArrowLeft,
   Sparkles,
   ShieldCheck,
+  MapPin,
+  Map,
+  ClipboardCheck,
+  ExternalLink,
 } from "lucide-react";
 import { registerOutletAndClaimCardAction } from "@/lib/actions/auth.actions";
+import { resolveReviewUrlAction } from "@/lib/actions/places.actions";
+import { formatGoogleReviewUrl } from "@/lib/google-url";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
-import { GooglePlaceSearchInput } from "./GooglePlaceSearchInput";
 
 interface RegisterOutletModalProps {
   prefilledCode?: string;
@@ -36,7 +40,7 @@ interface RegisterOutletModalProps {
 interface SuccessRegistrationData {
   outletName: string;
   fullName: string;
-  whatsappNumber: string;
+  whatsappNumber?: string;
   email: string;
   password?: string;
   cardCode: string;
@@ -51,15 +55,22 @@ export function RegisterOutletModal({
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [selectedCode, setSelectedCode] = useState(prefilledCode);
-  const [outletName, setOutletName] = useState("");
-  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
 
-  // Step 2 Form States
-  const [fullName, setFullName] = useState("");
-  const [whatsappNumber, setWhatsappNumber] = useState("");
+  // Step 1: Hanya Link Google Maps Review & Kode Kartu
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
+  const [outletName, setOutletName] = useState("");
+  const [detectedPlaceName, setDetectedPlaceName] = useState("");
+  const [embedMapUrl, setEmbedMapUrl] = useState("");
+  const [isResolvingUrl, setIsResolvingUrl] = useState(false);
+  const [isReviewConverted, setIsReviewConverted] = useState(false);
+
+  // Step 2: Hanya Email (Gmail) & Password (Nama Pemilik & WA di-hide)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("Admin123!");
   const [showPassword, setShowPassword] = useState(false);
+  // Default tersembunyi
+  const [fullName, setFullName] = useState("Pemilik Outlet");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
 
   const [successData, setSuccessData] = useState<SuccessRegistrationData | null>(null);
   const [copied, setCopied] = useState(false);
@@ -89,6 +100,108 @@ export function RegisterOutletModal({
 
   const getEffectiveCode = () => prefilledCode || selectedCode;
 
+  // Helper membaca lokasi & membangun preview iframe mini-map otomatis dari link maps
+  const updateEmbedMapAndPlaceFromUrl = (rawUrl: string) => {
+    if (!rawUrl || !rawUrl.trim()) {
+      setEmbedMapUrl("");
+      return;
+    }
+    const trimmed = rawUrl.trim();
+
+    // 1. Ekstrak nama tempat dari pola /place/Nama+Toko/
+    let extractedName = "";
+    const placeMatch = trimmed.match(/\/place\/([^/@?]+)/);
+    if (placeMatch && placeMatch[1]) {
+      try {
+        extractedName = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+      } catch {
+        extractedName = placeMatch[1].replace(/\+/g, " ");
+      }
+    }
+
+    // 2. Ekstrak koordinat /@lat,lng
+    const coordMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+    // 3. Ekstrak query param ?q= atau ?query=
+    const qMatch = trimmed.match(/[?&](?:q|query)=([^&#]+)/);
+
+    // 4. Ekstrak Place ID
+    const chijMatch = trimmed.match(/(ChIJ[a-zA-Z0-9_-]{20,})/);
+
+    let queryForEmbed = "";
+    if (extractedName) {
+      queryForEmbed = extractedName;
+      setDetectedPlaceName(extractedName);
+      setOutletName(extractedName);
+    } else if (coordMatch && coordMatch[1] && coordMatch[2]) {
+      queryForEmbed = `${coordMatch[1]},${coordMatch[2]}`;
+    } else if (qMatch && qMatch[1]) {
+      try {
+        queryForEmbed = decodeURIComponent(qMatch[1].replace(/\+/g, " "));
+      } catch {
+        queryForEmbed = qMatch[1];
+      }
+      setDetectedPlaceName(queryForEmbed);
+      setOutletName(queryForEmbed);
+    } else if (chijMatch && chijMatch[1]) {
+      queryForEmbed = `place_id:${chijMatch[1]}`;
+    } else {
+      queryForEmbed = trimmed;
+    }
+
+    if (queryForEmbed) {
+      setEmbedMapUrl(
+        `https://maps.google.com/maps?q=${encodeURIComponent(queryForEmbed)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
+      );
+    }
+  };
+
+  // Handler perubahan input link ulasan Google Maps
+  const handleReviewUrlInput = async (inputVal: string) => {
+    const formatted = formatGoogleReviewUrl(inputVal);
+    setGoogleReviewUrl(formatted);
+    setIsReviewConverted(
+      formatted.includes("writereview") ||
+      formatted.includes("placeid") ||
+      formatted.includes("maps") ||
+      formatted.includes("g.page")
+    );
+
+    updateEmbedMapAndPlaceFromUrl(inputVal);
+
+    // Jika berupa shortlink (maps.app.goo.gl / goo.gl / g.page), resolve otomatis di latar belakang
+    if (
+      inputVal &&
+      (inputVal.includes("goo.gl") || inputVal.includes("maps.app") || inputVal.includes("g.page"))
+    ) {
+      setIsResolvingUrl(true);
+      try {
+        const res = await resolveReviewUrlAction(inputVal);
+        if (res.success && res.url) {
+          setGoogleReviewUrl(res.url);
+          setIsReviewConverted(true);
+          updateEmbedMapAndPlaceFromUrl(res.url);
+        }
+      } catch (err) {
+        console.error("Gagal expand shortlink Google Maps:", err);
+      } finally {
+        setIsResolvingUrl(false);
+      }
+    }
+  };
+
+  // Paste dari clipboard
+  const handlePasteClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        await handleReviewUrlInput(text);
+      }
+    } catch {
+      // Fallback
+    }
+  };
+
   // Handler Lanjut ke Step 2
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,52 +210,31 @@ export function RegisterOutletModal({
       showErrorAlert("Peringatan", "Silakan pilih atau masukkan kode kartu QR.");
       return;
     }
-    if (!outletName || outletName.trim().length < 2) {
-      showErrorAlert("Peringatan", "Nama outlet minimal 2 karakter.");
-      return;
-    }
     if (!googleReviewUrl || googleReviewUrl.trim().length < 5) {
-      showErrorAlert("Peringatan", "Link Google Review wajib diisi.");
+      showErrorAlert("Peringatan", "Silakan masukkan link Google Maps review toko.");
       return;
     }
+
+    // Jika outletName belum ada, gunakan nama terdeteksi atau fallback nama kartu
+    if (!outletName || !outletName.trim()) {
+      const fallbackName = detectedPlaceName || `Outlet ${code.toUpperCase()}`;
+      setOutletName(fallbackName);
+    }
+
     setCurrentStep(2);
   };
 
-  // Helper format WhatsApp URL
-  const getWaDispatchUrlForData = (data: SuccessRegistrationData) => {
-    if (!data?.whatsappNumber) return "#";
-    let clean = data.whatsappNumber.replace(/[^0-9]/g, "");
-    if (clean.startsWith("08")) clean = "62" + clean.slice(1);
-    if (clean.startsWith("8")) clean = "62" + clean;
-
-    const text = `Halo *${data.fullName}*, selamat datang di kemitraan QR-INAJA 👋
-Silakan login menggunakan:
-
-Link : qr-inaja.vercel.app/login
-Email: ${data.email}
-Pw : ${data.password || "Admin123!"}
-
-Segera lakukan penggantian data untuk keamanan bersama, terimakasih.
-Salam hangat`;
-
-    return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
-  };
-
-  // Handler Submit Pendaftaran
+  // Handler Submit Pendaftaran (Step 2: Hanya Email & Password)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = getEffectiveCode();
 
-    if (!fullName || fullName.trim().length < 2) {
-      showErrorAlert("Peringatan", "Nama lengkap pemilik minimal 2 karakter.");
-      return;
-    }
-    if (!whatsappNumber || whatsappNumber.trim().length < 8) {
-      showErrorAlert("Peringatan", "Nomor WhatsApp aktif minimal 8 digit.");
+    if (!code || !code.trim()) {
+      showErrorAlert("Peringatan", "Kode kartu QR tidak valid.");
       return;
     }
     if (!email || !email.includes("@")) {
-      showErrorAlert("Peringatan", "Format email pemilik tidak valid.");
+      showErrorAlert("Peringatan", "Format email login tidak valid.");
       return;
     }
     if (!password || password.length < 6) {
@@ -150,14 +242,17 @@ Salam hangat`;
       return;
     }
 
+    const finalOutletName = outletName.trim() || detectedPlaceName || `Outlet ${code.toUpperCase()}`;
+    const finalFullName = fullName.trim() || "Pemilik Outlet";
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.set("code", code.trim());
-      formData.set("outletName", outletName.trim());
+      formData.set("outletName", finalOutletName);
       formData.set("googleReviewUrl", googleReviewUrl.trim());
-      formData.set("fullName", fullName.trim());
-      formData.set("whatsappNumber", whatsappNumber.trim());
+      formData.set("fullName", finalFullName);
+      formData.set("whatsappNumber", (whatsappNumber || "").trim());
       formData.set("email", email.trim().toLowerCase());
       formData.set("password", password.trim());
 
@@ -165,9 +260,9 @@ Salam hangat`;
 
       if (result.success) {
         const regData: SuccessRegistrationData = {
-          outletName: outletName.trim(),
-          fullName: fullName.trim(),
-          whatsappNumber: whatsappNumber.trim(),
+          outletName: finalOutletName,
+          fullName: finalFullName,
+          whatsappNumber: (whatsappNumber || "").trim(),
           email: email.trim().toLowerCase(),
           password: password.trim(),
           cardCode: code.trim(),
@@ -176,25 +271,20 @@ Salam hangat`;
         setSuccessData(regData);
         showSuccessAlert(
           "Outlet Berhasil Didaftarkan! 🎉",
-          "Kartu aktif dan pesan WhatsApp disiapkan otomatis."
+          "Kartu aktif dan akun portal pemilik siap digunakan."
         );
-
-        // Otomatis direct ke WhatsApp pemilik
-        const waUrl = getWaDispatchUrlForData(regData);
-        if (waUrl && waUrl !== "#") {
-          window.open(waUrl, "_blank");
-        }
       } else {
         showErrorAlert("Gagal Mendaftarkan Outlet", result.message);
       }
     } catch (err) {
       console.error("Submit register outlet error:", err);
-      showErrorAlert("Kesalahan Server", "Terjadi gangguan teknis saat mendaftarkan outlet.");
+      showErrorAlert("Silakan Reload Device Anda", "Terjadi gangguan koneksi pada sistem.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Salin rincian akun untuk diserahkan ke owner
   const handleCopyMessage = async () => {
     if (!successData) return;
     const portalUrl =
@@ -202,21 +292,16 @@ Salam hangat`;
         ? `${window.location.origin}/login`
         : "https://qr-inaja.vercel.app/login";
 
-    const text = `Halo Kak *${successData.fullName}* dari *${successData.outletName}*! 👋✨
+    const text = `Halo! Selamat datang di kemitraan Smart QR Review 👋
+Kartu Smart QR Google Review toko Anda telah *BERHASIL DIAKTIFKAN* dan siap digunakan.
 
-Terima kasih telah bergabung dengan kami! Kartu Smart QR Google Review toko Anda telah *BERHASIL DIAKTIFKAN* dan siap digunakan.
-
-Berikut detail akun Portal Mitra Anda untuk melihat analitik & kelola review:
+Berikut detail akun Portal Mitra Toko Anda:
 🌐 *Link Login*: ${portalUrl}
-
 📧 *Email*: ${successData.email}
-
 🔑 *Password*: ${successData.password || "Admin123!"}
+🏷️ *Kode Kartu*: ${successData.cardCode}
 
-Simpan pesan ini untuk kemudahan akses di masa mendatang. Semoga review bintang 5 bisnis Anda semakin melesat! 🚀⭐
-
-Salam sukses,
-Tim Layanan Smart QR`;
+Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifkan fitur VIP ulasan pelanggan. Terima kasih! 🚀⭐`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -245,8 +330,8 @@ Tim Layanan Smart QR`;
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-white">Daftarkan Outlet & Kartu QR</h3>
-              <p className="text-xs text-slate-400">Aktivasi kartu Smart QR & buat akun portal toko mitra</p>
+              <h3 className="font-bold text-lg text-white">Aktivasi Cepat Kartu & Outlet</h3>
+              <p className="text-xs text-slate-400">Hubungkan link Google Maps & buat akun portal pemilik</p>
             </div>
           </div>
           <button
@@ -284,7 +369,7 @@ Tim Layanan Smart QR`;
                 >
                   1
                 </span>
-                <span>1. Data Kartu & Toko</span>
+                <span>1. Link Google Maps Review</span>
               </button>
 
               <div className="flex-1 h-0.5 bg-slate-800 relative mx-2">
@@ -313,13 +398,13 @@ Tim Layanan Smart QR`;
                 >
                   2
                 </span>
-                <span>2. Akun Pemilik</span>
+                <span>2. Email & Password Pemilik</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* VIEW 1: SUCCESS STATE (DIRECT WHATSAPP) */}
+        {/* VIEW 1: SUCCESS STATE (DETAIL AKUN SIAP DIBERIKAN KE OWNER) */}
         {successData ? (
           <div className="py-4 space-y-5 animate-in fade-in zoom-in-95 duration-200">
             {/* Success Badge */}
@@ -329,7 +414,7 @@ Tim Layanan Smart QR`;
               </div>
               <h4 className="text-xl font-black text-white tracking-tight">🎉 Kartu Berhasil Diaktifkan!</h4>
               <p className="text-xs text-slate-300 max-w-sm mx-auto">
-                Kartu <strong className="text-emerald-400 font-mono">{successData.cardCode}</strong> kini telah aktif dan terhubung ke toko <strong className="text-white">{successData.outletName}</strong>.
+                Kartu <strong className="text-emerald-400 font-mono">{successData.cardCode}</strong> telah aktif dan terhubung ke ulasan Google Maps.
               </p>
             </div>
 
@@ -337,7 +422,7 @@ Tim Layanan Smart QR`;
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Detail Akses Akun Portal Pemilik
+                  Rincian Akun Login (Serahkan ke Owner Toko)
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
                   Status: Siap Digunakan
@@ -346,51 +431,47 @@ Tim Layanan Smart QR`;
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                 <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/70">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Nama Pemilik</span>
-                  <span className="font-semibold text-slate-200">{successData.fullName}</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Email Login Pemilik</span>
+                  <span className="font-mono text-emerald-300 font-semibold truncate block">{successData.email}</span>
                 </div>
                 <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/70">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">No. WhatsApp</span>
-                  <span className="font-mono text-emerald-300 font-semibold">{successData.whatsappNumber}</span>
-                </div>
-                <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/70">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Email Login Portal</span>
-                  <span className="font-mono text-slate-200 truncate block">{successData.email}</span>
-                </div>
-                <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/70">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Password Portal</span>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Password Akun</span>
                   <span className="font-mono text-amber-400 font-bold">{successData.password || "Admin123!"}</span>
                 </div>
+                <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/70">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Kode Kartu QR</span>
+                  <span className="font-mono text-slate-200 font-bold">{successData.cardCode}</span>
+                </div>
+                <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/70">
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Toko / Lokasi</span>
+                  <span className="font-medium text-slate-200 truncate block">{successData.outletName}</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Owner dapat login menggunakan email & password di atas, dan dapat melengkapi <strong>Nama Toko</strong> serta <strong>Nomor WhatsApp</strong> mereka di profil akun.
+                </span>
               </div>
             </div>
 
-            {/* Direct WhatsApp Button */}
-            <a
-              href={getWaDispatchUrlForData(successData)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <MessageCircle className="w-5 h-5 fill-white/20" />
-              <span>Buka Chat WhatsApp Pemilik Toko (1-Click)</span>
-            </a>
-
-            {/* Secondary Actions */}
-            <div className="flex items-center gap-2.5">
+            {/* Action Buttons */}
+            <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={handleCopyMessage}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
                 {copied ? (
                   <>
-                    <Check className="w-4 h-4 text-emerald-400" />
-                    <span className="text-emerald-400 font-bold">Format Pesan Tersalin!</span>
+                    <Check className="w-5 h-5 text-white" />
+                    <span>Rincian Akun Login Berhasil Disalin!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4 text-slate-400" />
-                    <span>Salin Format Pesan</span>
+                    <Copy className="w-5 h-5" />
+                    <span>Salin Rincian Akun untuk Diberikan ke Owner</span>
                   </>
                 )}
               </button>
@@ -401,7 +482,7 @@ Tim Layanan Smart QR`;
                   onSuccess?.();
                   onClose();
                 }}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold border border-slate-800 transition-colors cursor-pointer"
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold border border-slate-800 transition-colors cursor-pointer"
               >
                 Selesai & Ke Dashboard
               </button>
@@ -410,7 +491,7 @@ Tim Layanan Smart QR`;
         ) : (
           /* FORM 2-LANGKAH */
           <div className="my-4">
-            {/* STEP 1: DATA KARTU & OUTLET */}
+            {/* STEP 1: HANYA LINK GOOGLE MAPS + AUTO MINIMAP PREVIEW */}
             {currentStep === 1 && (
               <form onSubmit={handleNextStep} className="space-y-4 animate-in fade-in duration-200">
                 {/* 1. Kode Kartu */}
@@ -467,28 +548,114 @@ Tim Layanan Smart QR`;
                       />
                     </div>
                   )}
-                  {prefilledCode && (
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Kode kartu dikunci sesuai nomor kartu yang discan / dipilih.
-                    </p>
-                  )}
                 </div>
 
-                {/* 2. Data Toko & Google Place Search */}
-                <div className="p-3.5 bg-slate-950/50 rounded-2xl border border-slate-800/80 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span className="text-[11px] uppercase tracking-wider font-bold text-slate-300">
-                      Nama Outlet & Link Ulasan Google Maps
-                    </span>
+                {/* 2. Input Link Google Maps Review */}
+                <div className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-emerald-400" />
+                      <span>Link Google Maps Review <span className="text-rose-400">*</span></span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {isResolvingUrl ? (
+                        <span className="text-[11px] text-indigo-400 font-medium flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Membaca link...
+                        </span>
+                      ) : isReviewConverted ? (
+                        <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          Pop-up Bintang 5 Aktif
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <GooglePlaceSearchInput
-                    outletName={outletName}
-                    setOutletName={setOutletName}
-                    reviewUrl={googleReviewUrl}
-                    setReviewUrl={setGoogleReviewUrl}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={googleReviewUrl}
+                      onChange={(e) => handleReviewUrlInput(e.target.value)}
+                      placeholder="Paste link Google Maps ulasan toko di sini..."
+                      className="w-full pl-3 pr-24 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handlePasteClipboard}
+                        className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium border border-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Paste link dari clipboard"
+                      >
+                        <ClipboardCheck className="w-3.5 h-3.5" />
+                        <span>Paste</span>
+                      </button>
+
+                      {googleReviewUrl && (
+                        <a
+                          href={googleReviewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs transition-colors flex items-center justify-center cursor-pointer"
+                          title="Buka link di tab baru"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 leading-tight">
+                    💡 Cukup masukkan link Google Maps apa saja (shortlink / link share / ulasan), sistem otomatis membaca titik lokasi & mengaktifkan pop-up ulasan bintang 5.
+                  </p>
+                </div>
+
+                {/* 3. MINIMAP: AUTO MEMBACA DARI LINK GOOGLE MAPS */}
+                <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-2xl space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                      <Map className="w-3.5 h-3.5 text-emerald-400" />
+                      Preview Peta Lokasi (Otomatis dari Link Maps):
+                    </span>
+                    {embedMapUrl ? (
+                      <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Lokasi Terbaca
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-500">
+                        Menunggu Link Maps
+                      </span>
+                    )}
+                  </div>
+
+                  {embedMapUrl ? (
+                    <div className="space-y-1.5">
+                      <div className="relative w-full h-44 rounded-xl overflow-hidden border border-slate-800 shadow-inner bg-slate-900">
+                        <iframe
+                          src={embedMapUrl}
+                          className="w-full h-full border-0"
+                          loading="lazy"
+                          allowFullScreen={false}
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title="Mini Map Preview"
+                        />
+                      </div>
+                      {detectedPlaceName && (
+                        <p className="text-[11px] text-emerald-300 flex items-center gap-1 truncate">
+                          <span>📍 Toko terdeteksi:</span>
+                          <strong className="text-white font-semibold">{detectedPlaceName}</strong>
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full h-28 rounded-xl border border-dashed border-slate-800 flex flex-col items-center justify-center p-3 text-center bg-slate-900/40 text-slate-500">
+                      <MapPin className="w-6 h-6 text-slate-600 mb-1" />
+                      <p className="text-xs font-medium">Tempel link Google Maps toko di atas</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Peta titik lokasi akan otomatis tampil di sini secara realtime.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tombol Aksi Step 1 */}
@@ -503,26 +670,30 @@ Tim Layanan Smart QR`;
 
                   <button
                     type="submit"
-                    disabled={!getEffectiveCode() || !outletName.trim() || !googleReviewUrl.trim()}
+                    disabled={!getEffectiveCode() || !googleReviewUrl.trim()}
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all cursor-pointer"
                   >
-                    <span>Lanjut ke Data Pemilik</span>
+                    <span>Lanjut ke Akun Pemilik</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </form>
             )}
 
-            {/* STEP 2: DATA PEMILIK TOKO & AKUN PORTAL */}
+            {/* STEP 2: HANYA EMAIL (GMAIL) & PASSWORD (NAMA & WA DI-HIDE) */}
             {currentStep === 2 && (
               <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in duration-200">
                 {/* Ringkasan Step 1 */}
                 <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <Store className="w-4 h-4 text-emerald-400 shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-xs font-bold text-white block truncate">{outletName}</span>
-                      <span className="text-[10px] text-emerald-300 font-mono block">Kartu: {getEffectiveCode()}</span>
+                      <span className="text-xs font-bold text-white block truncate">
+                        {outletName || detectedPlaceName || `Outlet ${getEffectiveCode().toUpperCase()}`}
+                      </span>
+                      <span className="text-[10px] text-emerald-300 font-mono block">
+                        Kartu: {getEffectiveCode()} • Link Maps Terhubung
+                      </span>
                     </div>
                   </div>
                   <button
@@ -534,95 +705,71 @@ Tim Layanan Smart QR`;
                   </button>
                 </div>
 
-                <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800/80 space-y-3">
-                  <span className="text-[11px] uppercase tracking-wider font-bold text-slate-300 flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Akun Pemilik Toko (Untuk Login Portal Mitra)</span>
-                  </span>
+                <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 space-y-3.5">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-800/80">
+                    <Mail className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs uppercase tracking-wider font-bold text-slate-200">
+                      Buat Akun Login Pemilik Toko
+                    </span>
+                  </div>
 
-                  {/* Nama Pemilik & WhatsApp */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Nama Lengkap Pemilik <span className="text-rose-400">*</span>
-                      </label>
-                      <div className="relative">
-                        <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          required
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          placeholder="Erfaniatul"
-                          className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        No. WhatsApp Aktif <span className="text-rose-400">*</span>
-                      </label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          required
-                          value={whatsappNumber}
-                          onChange={(e) => setWhatsappNumber(e.target.value)}
-                          placeholder="081355551234 atau 6281355551234"
-                          className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
+                  {/* Email Login Portal (Gmail) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                      <span>Email Login Pemilik (Gmail) <span className="text-rose-400">*</span></span>
+                      <span className="text-[11px] text-slate-500">Untuk akses portal mitra</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        maxLength={30}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="pemilik.toko@gmail.com"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                      />
                     </div>
                   </div>
 
-                  {/* Email & Password */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Email Login Portal <span className="text-rose-400">*</span>
-                      </label>
-                      <div className="relative">
-                        <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="email"
-                          required
-                          maxLength={30}
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="cafejongkok@gmail.com"
-                          className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
+                  {/* Password Akun */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                      <span>Password Akun <span className="text-rose-400">*</span></span>
+                      <span className="text-[10px] text-slate-500">Min. 6 karakter</span>
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        minLength={6}
+                        maxLength={30}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password_123"
+                        className="w-full pl-9 pr-10 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-0.5"
+                        title={showPassword ? "Sembunyikan password" : "Lihat password"}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Password Akun <span className="text-rose-400">*</span>
-                      </label>
-                      <div className="relative">
-                        <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          required
-                          minLength={6}
-                          maxLength={20}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Password_123"
-                          className="w-full pl-9 pr-10 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-0.5"
-                          title={showPassword ? "Sembunyikan password" : "Lihat password"}
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
+                  <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <p className="flex items-center gap-1.5 text-slate-300 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Nama Toko & No. WhatsApp diisi mandiri oleh Owner:</span>
+                    </p>
+                    <p className="text-slate-400">
+                      Setelah akun dibuat, owner dapat langsung login dan melengkapi Nama Toko serta Nomor WhatsApp mereka di menu profil akun.
+                    </p>
                   </div>
                 </div>
 
@@ -640,7 +787,7 @@ Tim Layanan Smart QR`;
 
                   <button
                     type="submit"
-                    disabled={loading || !fullName.trim() || !email.trim() || !whatsappNumber.trim()}
+                    disabled={loading || !email.trim() || !password.trim()}
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl shadow-lg shadow-emerald-600/30 disabled:opacity-50 transition-all cursor-pointer"
                   >
                     {loading ? (
@@ -651,7 +798,7 @@ Tim Layanan Smart QR`;
                     ) : (
                       <>
                         <ShieldCheck className="w-4 h-4" />
-                        <span>Daftarkan & Aktifkan Outlet 🚀</span>
+                        <span>Daftarkan & Selesaikan Akun 🚀</span>
                       </>
                     )}
                   </button>
