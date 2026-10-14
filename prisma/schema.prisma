@@ -624,4 +624,17 @@ model GuideArticle {
   @@map("guide_articles")
 }
 
+model PasswordResetOtp {
+  id        String   @id @default(cuid())
+  email     String
+  otpCode   String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([email, otpCode])
+  @@map("password_reset_otps")
+}
+
 
