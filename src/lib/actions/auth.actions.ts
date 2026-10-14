@@ -2067,6 +2067,129 @@ export async function logLogoutAction(): Promise<ActionResult> {
 // ─── Lupa Password & Verifikasi OTP Email ────────────────────────────────────
 
 /**
+ * Pengecekan Real-Time Apakah Email Terdaftar di Database untuk Reset Password
+ */
+export async function checkRegisteredEmailForResetAction(
+  email: string
+): Promise<{ success: boolean; exists: boolean; message: string; fullName?: string }> {
+  try {
+    const raw = (email || "").trim().toLowerCase();
+    if (!raw) {
+      return { success: false, exists: false, message: "Email tidak boleh kosong." };
+    }
+
+    if (!raw.includes("@")) {
+      return { success: false, exists: false, message: "Format email harus memiliki tanda '@'." };
+    }
+
+    if (!raw.endsWith("@gmail.com")) {
+      return {
+        success: false,
+        exists: false,
+        message: "Hanya akun Google (@gmail.com) yang dapat digunakan.",
+      };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: raw },
+      select: { id: true, fullName: true, isActive: true },
+    });
+
+    if (!user) {
+      return {
+        success: true,
+        exists: false,
+        message: "Email belum terdaftar di sistem. Gunakan email yang didaftarkan saat aktivasi.",
+      };
+    }
+
+    if (!user.isActive) {
+      return {
+        success: true,
+        exists: false,
+        message: "Akun ini berstatus non-aktif. Silakan hubungi Administrator.",
+      };
+    }
+
+    return {
+      success: true,
+      exists: true,
+      message: `Email terdaftar (${user.fullName}). Siap menerima kode OTP!`,
+      fullName: user.fullName,
+    };
+  } catch (err) {
+    console.error("checkRegisteredEmailForResetAction error:", err);
+    return {
+      success: false,
+      exists: false,
+      message: "Gagal memeriksa email di server.",
+    };
+  }
+}
+
+/**
+ * Verifikasi Kode OTP Saja (Untuk Lanjut dari Step 1 ke Step 2)
+ */
+export async function verifyOtpCodeOnlyAction(
+  email: string,
+  otpCode: string
+): Promise<ActionResult> {
+  try {
+    const cleanEmail = email?.trim().toLowerCase();
+    const cleanOtp = otpCode?.trim();
+
+    if (!cleanEmail || !cleanOtp) {
+      return { success: false, message: "Email dan kode OTP wajib diisi." };
+    }
+
+    if (cleanOtp.length !== 6) {
+      return { success: false, message: "Kode OTP harus terdiri dari 6 digit angka." };
+    }
+
+    // Rate limit percakapan verifikasi OTP (maks 5 kali percobaan salah)
+    const rateCheck = checkRateLimit(`otp-verify:${cleanEmail}`, 5, 300000);
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        message: "Terlalu banyak percobaan verifikasi yang salah. Silakan tunggu beberapa menit.",
+      };
+    }
+
+    // Cari token OTP aktif di database
+    const validOtp = await prisma.passwordResetOtp.findFirst({
+      where: {
+        email: cleanEmail,
+        otpCode: cleanOtp,
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!validOtp) {
+      return {
+        success: false,
+        message: "Kode OTP salah, sudah pernah dipakai, atau sudah kedaluwarsa. Silakan minta kode baru.",
+      };
+    }
+
+    // Reset rate limit jika sukses
+    resetRateLimit(`otp-verify:${cleanEmail}`);
+
+    return {
+      success: true,
+      message: "Kode OTP valid! Silakan lanjutkan membuat kata sandi baru.",
+    };
+  } catch (err: unknown) {
+    console.error("verifyOtpCodeOnlyAction error:", err);
+    return {
+      success: false,
+      message: "Terjadi kesalahan server saat memverifikasi kode OTP.",
+    };
+  }
+}
+
+/**
  * Minta Pengiriman Kode OTP 6-Digit ke Email Terdaftar
  */
 export async function requestPasswordResetOtpAction(email: string): Promise<ActionResult> {
