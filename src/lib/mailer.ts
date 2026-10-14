@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 const smtpUser = process.env.SMTP_USER || "qrinaja16@gmail.com";
-const smtpPass = process.env.SMTP_PASS || "Chikaaditya_1116";
+const smtpPass = process.env.SMTP_PASS || "zsrtamswdfwliwwp";
 const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
 const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
 const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
