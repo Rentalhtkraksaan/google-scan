@@ -128,14 +128,15 @@ export async function sendOtpEmail(toEmail: string, otpCode: string): Promise<{ 
 }
 
 /**
- * Kirim Email Sambutan & Bukti Aktivasi ke Owner Baru
+ * Kirim Email Sambutan & Bukti Aktivasi ke Owner Baru (Email, Password, Kode Kartu)
  */
 export async function sendActivationWelcomeEmail(
   toEmail: string,
   data: {
     cardCode: string;
-    outletName: string;
+    outletName?: string;
     loginEmail: string;
+    password: string;
     mapsUrl?: string;
   }
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
@@ -146,7 +147,7 @@ export async function sendActivationWelcomeEmail(
     const mailOptions = {
       from: `"${fromName}" <${fromEmail}>`,
       to: toEmail,
-      subject: `🎉 Selamat! Kartu Smart QR Review (${data.cardCode}) Berhasil Diaktivasi`,
+      subject: `🎉 Akun Berhasil Diaktivasi! Data Login & Kode Kartu: ${data.cardCode}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -164,7 +165,7 @@ export async function sendActivationWelcomeEmail(
                   <tr>
                     <td style="padding: 34px 32px 24px 32px; text-align: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(56, 189, 248, 0.1) 100%); border-bottom: 1px solid #1e293b;">
                       <div style="display: inline-block; padding: 14px; background: rgba(16, 185, 129, 0.15); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.3); margin-bottom: 12px;">
-                        <span style="font-size: 32px;">🚀</span>
+                        <span style="font-size: 32px;">🎉</span>
                       </div>
                       <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">Aktivasi Kartu Sukses!</h1>
                       <p style="margin: 6px 0 0 0; font-size: 13px; color: #34d399; font-weight: 600;">Kartu Smart QR Review Anda Sekarang Telah Aktif</p>
@@ -174,43 +175,43 @@ export async function sendActivationWelcomeEmail(
                   <!-- Content -->
                   <tr>
                     <td style="padding: 32px;">
-                      <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">Halo Pemilik <strong>${data.outletName}</strong>,</p>
+                      <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">Halo Rekan Mitra,</p>
                       <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #94a3b8;">
-                        Selamat! Kartu Smart QR Review Anda dengan kode <strong style="color: #38bdf8;">${data.cardCode}</strong> telah berhasil dihubungkan ke Google Bisnis Anda dan siap digunakan untuk menjaring ratusan ulasan bintang 5!
+                        Kartu Smart QR Review Anda telah berhasil diaktivasi. Berikut adalah detail informasi akun dan kode kartu Anda:
                       </p>
 
-                      <!-- Card Details -->
-                      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 14px; padding: 18px; margin: 20px 0;">
-                        <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 13px;">
+                      <!-- Kredensial Box -->
+                      <div style="background: rgba(15, 23, 42, 0.9); border: 2px solid #334155; border-radius: 16px; padding: 22px; margin: 20px 0;">
+                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid #1e293b; padding-bottom: 8px;">
+                          📋 DATA AKUN & KARTU ANDA
+                        </div>
+
+                        <table width="100%" cellpadding="8" cellspacing="0" style="font-size: 14px;">
                           <tr>
-                            <td style="color: #64748b; width: 130px;">Kode Kartu:</td>
-                            <td style="color: #ffffff; font-weight: 700;">${data.cardCode}</td>
+                            <td style="color: #94a3b8; width: 120px;">Email Login:</td>
+                            <td style="color: #ffffff; font-weight: 700; font-family: monospace; font-size: 15px;">${data.loginEmail}</td>
                           </tr>
                           <tr>
-                            <td style="color: #64748b;">Nama Outlet:</td>
-                            <td style="color: #38bdf8; font-weight: 700;">${data.outletName}</td>
+                            <td style="color: #94a3b8;">Password:</td>
+                            <td><span style="color: #38bdf8; font-weight: 700; font-family: monospace; font-size: 15px; background: rgba(56, 189, 248, 0.12); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); display: inline-block;">${data.password}</span></td>
                           </tr>
                           <tr>
-                            <td style="color: #64748b;">Email Login:</td>
-                            <td style="color: #ffffff; font-weight: 600;">${data.loginEmail}</td>
-                          </tr>
-                          <tr>
-                            <td style="color: #64748b;">Status:</td>
-                            <td><span style="display: inline-block; padding: 3px 10px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 999px; color: #34d399; font-size: 11px; font-weight: 700;">AKTIF & SIAP PAKAI</span></td>
+                            <td style="color: #94a3b8;">Kode Kartu:</td>
+                            <td style="color: #34d399; font-weight: 800; font-family: monospace; font-size: 15px;">${data.cardCode}</td>
                           </tr>
                         </table>
                       </div>
 
                       <!-- Action Button -->
                       <div style="text-align: center; margin: 28px 0;">
-                        <a href="${loginUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #4f46e5 0%, #38bdf8 100%); color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: 700; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);">
-                          Masuk ke Portal Outlet &rarr;
+                        <a href="${loginUrl}" style="display: inline-block; padding: 14px 34px; background: linear-gradient(135deg, #4f46e5 0%, #38bdf8 100%); color: #ffffff; text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: 700; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4);">
+                          Masuk ke Dashboard &rarr;
                         </a>
                       </div>
 
-                      <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid #6366f1; border-radius: 8px; padding: 14px; margin-top: 24px;">
-                        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #c7d2fe;">
-                          <strong>Langkah Berikutnya:</strong> Silakan login ke portal dan buka menu <strong>Profil Toko</strong> untuk melengkapi Nama Pemilik dan Nomor WhatsApp agar fitur <em>Smart Review Filter VIP</em> dapat melindungi reputasi bisnis Anda secara maksimal!
+                      <div style="background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b; border-radius: 8px; padding: 12px 14px; margin-top: 24px;">
+                        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #fde68a;">
+                          <strong>Tips Keamanan:</strong> Simpan email ini sebagai catatan data login Anda. Jika sewaktu-waktu Anda lupa kata sandi, gunakan menu <em>Lupa Password</em> di halaman login untuk menerima kode OTP.
                         </p>
                       </div>
                     </td>
@@ -220,7 +221,7 @@ export async function sendActivationWelcomeEmail(
                   <tr>
                     <td style="padding: 20px 32px; background-color: #0b1120; border-top: 1px solid #1e293b; text-align: center;">
                       <p style="margin: 0; font-size: 11px; color: #475569;">
-                        &copy; 2026 Smart QR Review Platform. Email resmi: ${fromEmail}.
+                        &copy; 2026 Smart QR Review Platform. Notifikasi resmi oleh ${fromName}.
                       </p>
                     </td>
                   </tr>

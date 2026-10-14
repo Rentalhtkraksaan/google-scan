@@ -913,6 +913,7 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         cardCode: result.card.code,
         outletName: result.outlet.name,
         loginEmail: cleanEmail,
+        password,
         mapsUrl: finalReviewUrl,
       }).catch((e) => console.error("[Welcome Email Error]:", e));
 
