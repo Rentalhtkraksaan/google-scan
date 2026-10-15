@@ -187,7 +187,7 @@ export async function getProspectsListAction(): Promise<
   try {
     return await prisma.chatProspect.findMany({
       orderBy: { updatedAt: "desc" },
-      take: 50,
+      take: 500,
     });
   } catch (err) {
     console.error("getProspectsListAction error:", err);
