@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   MessageSquare,
@@ -14,19 +14,51 @@ import {
   ArrowLeft,
   BookmarkCheck,
   CheckCircle2,
+  AlertCircle,
   Trash2,
   History,
-  QrCode,
   ExternalLink,
-  MessageCircle,
+  Plus,
+  Edit2,
+  X,
+  RotateCcw,
+  Database,
+  Search,
+  Loader2,
+  Info,
 } from "lucide-react";
-import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
+import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
+import {
+  checkProspectAvailabilityAction,
+  saveProspectTargetAction,
+  getProspectsListAction,
+  deleteProspectAction,
+  getChatTemplatesAction,
+  createChatTemplateAction,
+  updateChatTemplateAction,
+  deleteChatTemplateAction,
+  resetDefaultChatTemplatesAction,
+  normalizeWhatsappNumber,
+} from "@/lib/actions/templatechat.actions";
 
-interface SavedTarget {
+interface ChatTemplateItem {
+  id: string;
+  title: string;
+  badge: string | null;
+  badgeColor: string | null;
+  content: string;
+  orderNumber: number;
+  isDefault: boolean;
+}
+
+interface ProspectItem {
   id: string;
   outletName: string;
   whatsappNumber: string;
-  savedAt: string;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export default function TemplateChatPage() {
@@ -34,15 +66,38 @@ export default function TemplateChatPage() {
   const [outletName, setOutletName] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [savedTarget, setSavedTarget] = useState<{ outletName: string; whatsappNumber: string } | null>(null);
-  const [historyList, setHistoryList] = useState<SavedTarget[]>([]);
+
+  // Realtime Database Check States
+  const [isCheckingDb, setIsCheckingDb] = useState(false);
+  const [dbStatusWa, setDbStatusWa] = useState<"IDLE" | "AVAILABLE" | "EXISTS">("IDLE");
+  const [dbWaFeedback, setDbWaFeedback] = useState<string>("");
+  const [existingOwnerName, setExistingOwnerName] = useState<string>("");
+  const [nameMatchFeedback, setNameMatchFeedback] = useState<string>("");
+
+  // TiDB Data Lists
+  const [prospectsList, setProspectsList] = useState<ProspectItem[]>([]);
+  const [templatesList, setTemplatesList] = useState<ChatTemplateItem[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
+  const [isSavingTarget, setIsSavingTarget] = useState(false);
+
+  // Modal Template (Tambah / Edit)
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [templateFormTitle, setTemplateFormTitle] = useState("");
+  const [templateFormBadge, setTemplateFormBadge] = useState("");
+  const [templateFormContent, setTemplateFormContent] = useState("");
+  const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false);
 
   // Time-based greeting state
   const [detectedGreeting, setDetectedGreeting] = useState<"pagi" | "siang" | "sore" | "malam">("pagi");
   const [customGreeting, setCustomGreeting] = useState<"pagi" | "siang" | "sore" | "malam" | null>(null);
   const [currentTimeStr, setCurrentTimeStr] = useState("");
 
-  // Copy status indicators
+  // Search filter for prospects history
+  const [searchProspectQuery, setSearchProspectQuery] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const debounceCheckTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 1. Deteksi Jam Device Lokal Secara Real-Time
   useEffect(() => {
@@ -65,171 +120,321 @@ export default function TemplateChatPage() {
     };
 
     updateGreeting();
-    const interval = setInterval(updateGreeting, 60000);
+    const interval = setInterval(updateGreeting, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // 2. Load LocalStorage Data
-  useEffect(() => {
+  // 2. Fetch Initial Templates & Prospects from TiDB
+  const loadDataFromDb = useCallback(async () => {
     try {
-      const storedActive = localStorage.getItem("templatechat_active_target");
-      if (storedActive) {
-        const parsed = JSON.parse(storedActive);
-        setSavedTarget(parsed);
-        setOutletName(parsed.outletName || "");
-        setWhatsappNumber(parsed.whatsappNumber || "");
-      }
-
-      const storedHistory = localStorage.getItem("templatechat_history");
-      if (storedHistory) {
-        setHistoryList(JSON.parse(storedHistory));
-      }
-    } catch (e) {
-      console.warn("Error reading localStorage:", e);
+      setIsLoadingTemplates(true);
+      const [tpls, prospects] = await Promise.all([
+        getChatTemplatesAction(),
+        getProspectsListAction(),
+      ]);
+      setTemplatesList(tpls);
+      setProspectsList(prospects);
+    } catch (err) {
+      console.error("Failed to load data from TiDB:", err);
+    } finally {
+      setIsLoadingTemplates(false);
     }
   }, []);
 
-  // Active greeting (manual override or auto detected)
+  useEffect(() => {
+    loadDataFromDb();
+  }, [loadDataFromDb]);
+
+  // 3. Realtime TiDB Check saat WhatsApp / Nama diinput (Debounced 350ms)
+  const performRealtimeCheck = (waInput: string, nameInput: string) => {
+    const cleanWa = normalizeWhatsappNumber(waInput);
+    const cleanName = nameInput.trim();
+
+    if (!cleanWa && !cleanName) {
+      setDbStatusWa("IDLE");
+      setDbWaFeedback("");
+      setExistingOwnerName("");
+      setNameMatchFeedback("");
+      return;
+    }
+
+    if (cleanWa.length < 8) {
+      setDbStatusWa("IDLE");
+      setDbWaFeedback("");
+      setExistingOwnerName("");
+      setNameMatchFeedback("");
+      return;
+    }
+
+    setIsCheckingDb(true);
+
+    if (debounceCheckTimerRef.current) clearTimeout(debounceCheckTimerRef.current);
+
+    debounceCheckTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await checkProspectAvailabilityAction({
+          whatsappNumber: cleanWa,
+          outletName: cleanName,
+        });
+
+        if (res.existsWa && res.existingProspect) {
+          setDbStatusWa("EXISTS");
+          setExistingOwnerName(res.existingProspect.outletName);
+          setDbWaFeedback(
+            `Nomor WA sudah ada di penyimpanan atas nama: "${res.existingProspect.outletName}"`
+          );
+        } else {
+          setDbStatusWa("AVAILABLE");
+          setExistingOwnerName("");
+          setDbWaFeedback("Nomor WhatsApp tersedia (belum tersimpan di database).");
+        }
+
+        if (res.nameMatchProspect) {
+          setNameMatchFeedback(
+            `Nama outlet ini sudah pernah disimpan dengan nomor WA lain (${res.nameMatchProspect.whatsappNumber}).`
+          );
+        } else {
+          setNameMatchFeedback("");
+        }
+      } catch (e) {
+        console.error("Realtime check error:", e);
+      } finally {
+        setIsCheckingDb(false);
+      }
+    }, 350);
+  };
+
+  const handleWhatsappChange = (val: string) => {
+    setWhatsappNumber(val);
+    performRealtimeCheck(val, outletName);
+  };
+
+  const handleOutletNameChange = (val: string) => {
+    setOutletName(val);
+    performRealtimeCheck(whatsappNumber, val);
+  };
+
+  // Active greeting
   const activeGreeting = customGreeting || detectedGreeting;
 
-  // Format Nomor WhatsApp ke Standar Internasional (628xxx)
+  // Clean WhatsApp Number
   const cleanWaNumber = useMemo(() => {
     const targetWa = savedTarget?.whatsappNumber || whatsappNumber;
-    let clean = targetWa.replace(/[^0-9]/g, "");
-    if (clean.startsWith("0")) {
-      clean = "62" + clean.slice(1);
-    } else if (clean.startsWith("8")) {
-      clean = "62" + clean;
-    }
-    return clean;
+    return normalizeWhatsappNumber(targetWa);
   }, [savedTarget, whatsappNumber]);
 
   const activeOutletName = savedTarget?.outletName || outletName || "[Nama Outlet]";
 
-  // ─── Teks Template Sesuai Permintaan User ──────────────────────────────────
-  const templates = useMemo(() => {
-    return [
-      {
-        id: "template_1",
-        label: "Template 1 (Sapaan Pembuka)",
-        badge: `Waktu Device: ${activeGreeting.toUpperCase()}`,
-        badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-        text: `halo,selamat ${activeGreeting} kak`,
-        desc: "Sapaan ramah pembuka obrolan menyesuaikan jam perangkat Anda saat ini.",
-      },
-      {
-        id: "template_2",
-        label: "Template 2 (Tanya Penggunaan Review Card)",
-        badge: "Follow Up Outlet",
-        badgeColor: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-        text: `mau tanya apakah outlet "${activeOutletName}" sudah memakai google review card ya kak?`,
-        desc: "Menanyakan langsung apakah outlet target sudah menggunakan kartu ulasan Google.",
-      },
-      {
-        id: "template_3_sudah",
-        label: "Template 3 (Jika Prospek Menjawab SUDAH)",
-        badge: "Respon: Sudah Pakai",
-        badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-        text: "baik kak jika butuh lagi bisa berkabar ya kak",
-        desc: "Jawaban sopan untuk menjaga relasi jika prospek sudah memiliki kartu.",
-      },
-      {
-        id: "template_3_belum",
-        label: "Template 3 (Jika Prospek Menjawab BELUM)",
-        badge: "Respon: Belum Pakai (Edukasi & Closing)",
-        badgeColor: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-        text: "kebetulan kita lgi buat google review card ini bertujuan membantu bisnis owner mendapat bintang 5 secara simple tap/scan buka rating pilih bintng kirim slesai",
-        desc: "Penjelasan manfaat utama kartu ulasan Google untuk meningkatkan rating bintang 5.",
-      },
-      {
-        id: "template_combo",
-        label: "Template Gabungan (Sapaan + Pertanyaan Langsung)",
-        badge: "Kirim Cepat 1x Klik",
-        badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-        text: `halo,selamat ${activeGreeting} kak\n\nmau tanya apakah outlet "${activeOutletName}" sudah memakai google review card ya kak?`,
-        desc: "Menggabungkan sapaan jam dan pertanyaan nama outlet dalam 1 pesan WhatsApp.",
-      },
-    ];
-  }, [activeGreeting, activeOutletName]);
+  // 4. Render Dynamic Template Message ({waktu} & {outlet})
+  const renderMessageText = useCallback(
+    (rawContent: string) => {
+      return rawContent
+        .replace(/{waktu}/gi, activeGreeting)
+        .replace(/{salam}/gi, `selamat ${activeGreeting}`)
+        .replace(/{outlet}/gi, activeOutletName)
+        .replace(/{wa}/gi, cleanWaNumber);
+    },
+    [activeGreeting, activeOutletName, cleanWaNumber]
+  );
 
-  // Handle Simpan Data Target
-  const handleSaveTarget = (e: React.FormEvent) => {
+  // 5. Handle Simpan Target Outlet ke TiDB
+  const handleSaveTarget = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = outletName.trim();
-    const cleanWa = whatsappNumber.trim();
+    const cleanWa = normalizeWhatsappNumber(whatsappNumber);
 
     if (!cleanName) {
       showErrorAlert("Nama Outlet Kosong", "Silakan masukkan nama outlet terlebih dahulu.");
       return;
     }
 
-    if (!cleanWa) {
-      showErrorAlert("Nomor WA Kosong", "Silakan masukkan nomor WhatsApp outlet terlebih dahulu.");
+    if (!cleanWa || cleanWa.length < 8) {
+      showErrorAlert("Nomor WA Tidak Valid", "Masukkan nomor WhatsApp yang valid (minimal 8 digit).");
       return;
     }
 
-    const newTarget = {
-      outletName: cleanName,
-      whatsappNumber: cleanWa,
-    };
+    setIsSavingTarget(true);
+    try {
+      const res = await saveProspectTargetAction({
+        outletName: cleanName,
+        whatsappNumber: cleanWa,
+      });
 
-    setSavedTarget(newTarget);
-    localStorage.setItem("templatechat_active_target", JSON.stringify(newTarget));
+      if (!res.success) {
+        showErrorAlert("Gagal Menyimpan", res.message);
+        return;
+      }
 
-    // Update History List (maks 8 target)
-    const newHistoryItem: SavedTarget = {
-      id: Date.now().toString(),
-      outletName: cleanName,
-      whatsappNumber: cleanWa,
-      savedAt: new Date().toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+      setSavedTarget({
+        outletName: cleanName,
+        whatsappNumber: cleanWa,
+      });
 
-    const updatedHistory = [
-      newHistoryItem,
-      ...historyList.filter((item) => item.whatsappNumber !== cleanWa && item.outletName !== cleanName),
-    ].slice(0, 8);
+      setDbStatusWa("EXISTS");
+      setExistingOwnerName(cleanName);
+      setDbWaFeedback(`Data tersimpan atas nama: "${cleanName}"`);
 
-    setHistoryList(updatedHistory);
-    localStorage.setItem("templatechat_history", JSON.stringify(updatedHistory));
+      // Refresh list
+      const updatedList = await getProspectsListAction();
+      setProspectsList(updatedList);
 
-    showSuccessAlert("Data Tersimpan!", `Template chat otomatis disesuaikan untuk "${cleanName}".`);
+      showSuccessAlert(
+        "Tersimpan di Database TiDB!",
+        `Data outlet "${cleanName}" berhasil disimpan ke sistem.`
+      );
+    } catch (err: unknown) {
+      console.error("Save target error:", err);
+      showErrorAlert("Terjadi Kesalahan", "Gagal menyimpan data ke database TiDB.");
+    } finally {
+      setIsSavingTarget(false);
+    }
   };
 
-  // Pilih dari History
-  const handleSelectHistory = (item: SavedTarget) => {
+  // Pilih Target dari Database
+  const handleSelectProspect = (item: ProspectItem) => {
     setOutletName(item.outletName);
     setWhatsappNumber(item.whatsappNumber);
     setSavedTarget({
       outletName: item.outletName,
       whatsappNumber: item.whatsappNumber,
     });
-    localStorage.setItem(
-      "templatechat_active_target",
-      JSON.stringify({ outletName: item.outletName, whatsappNumber: item.whatsappNumber })
-    );
-    showSuccessAlert("Target Diaktifkan", `Outlet "${item.outletName}" siap dihubungi.`);
+    setDbStatusWa("EXISTS");
+    setExistingOwnerName(item.outletName);
+    setDbWaFeedback(`Data aktif dari database: "${item.outletName}"`);
+    showSuccessAlert("Target Diaktifkan", `Outlet "${item.outletName}" siap dihubungi.`, 800);
   };
 
-  // Hapus dari History
-  const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
+  // Hapus Target dari Database
+  const handleDeleteProspect = async (id: string, outletName: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = historyList.filter((item) => item.id !== id);
-    setHistoryList(updated);
-    localStorage.setItem("templatechat_history", JSON.stringify(updated));
+    const confirm = await showConfirmAlert(
+      "Hapus Target?",
+      `Apakah Anda yakin ingin menghapus "${outletName}" dari database TiDB?`
+    );
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await deleteProspectAction(id);
+      if (res.success) {
+        setProspectsList((prev) => prev.filter((p) => p.id !== id));
+        if (savedTarget?.outletName === outletName) {
+          setSavedTarget(null);
+        }
+        showSuccessAlert("Berhasil Dihapus", `Target "${outletName}" telah dihapus.`);
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghapus data.");
+    }
+  };
+
+  // 6. Template CRUD Operations
+  const handleOpenAddTemplateModal = () => {
+    setEditingTemplateId(null);
+    setTemplateFormTitle("");
+    setTemplateFormBadge("Kustom");
+    setTemplateFormContent("");
+    setIsTemplateModalOpen(true);
+  };
+
+  const handleOpenEditTemplateModal = (tpl: ChatTemplateItem) => {
+    setEditingTemplateId(tpl.id);
+    setTemplateFormTitle(tpl.title);
+    setTemplateFormBadge(tpl.badge || "Kustom");
+    setTemplateFormContent(tpl.content);
+    setIsTemplateModalOpen(true);
+  };
+
+  const handleSaveTemplateForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateFormTitle.trim() || !templateFormContent.trim()) {
+      showErrorAlert("Data Tidak Lengkap", "Judul dan isi template wajib diisi.");
+      return;
+    }
+
+    setIsSubmittingTemplate(true);
+    try {
+      if (editingTemplateId) {
+        // Update
+        const res = await updateChatTemplateAction(editingTemplateId, {
+          title: templateFormTitle.trim(),
+          badge: templateFormBadge.trim(),
+          content: templateFormContent.trim(),
+        });
+        if (!res.success) {
+          showErrorAlert("Gagal Update", res.message);
+          return;
+        }
+        showSuccessAlert("Template Diperbarui", "Perubahan template berhasil disimpan di TiDB.");
+      } else {
+        // Create
+        const res = await createChatTemplateAction({
+          title: templateFormTitle.trim(),
+          badge: templateFormBadge.trim(),
+          content: templateFormContent.trim(),
+        });
+        if (!res.success) {
+          showErrorAlert("Gagal Tambah", res.message);
+          return;
+        }
+        showSuccessAlert("Template Ditambahkan", "Template baru tersimpan di database TiDB.");
+      }
+
+      setIsTemplateModalOpen(false);
+      const updatedTpls = await getChatTemplatesAction();
+      setTemplatesList(updatedTpls);
+    } catch (err: unknown) {
+      console.error("Save template error:", err);
+      showErrorAlert("Terjadi Kesalahan", "Gagal menyimpan template chat.");
+    } finally {
+      setIsSubmittingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (tpl: ChatTemplateItem) => {
+    const confirm = await showConfirmAlert(
+      "Hapus Template?",
+      `Apakah Anda yakin ingin menghapus "${tpl.title}" dari database?`
+    );
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await deleteChatTemplateAction(tpl.id);
+      if (res.success) {
+        setTemplatesList((prev) => prev.filter((t) => t.id !== tpl.id));
+        showSuccessAlert("Template Dihapus", "Template berhasil dihapus dari sistem.");
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal menghapus template.");
+    }
+  };
+
+  const handleResetDefaultTemplates = async () => {
+    const confirm = await showConfirmAlert(
+      "Reset Template ke Default?",
+      "Semua template kustom akan dihapus dan dikembalikan ke 5 template standar awal. Lanjutkan?"
+    );
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await resetDefaultChatTemplatesAction();
+      if (res.success) {
+        const refreshed = await getChatTemplatesAction();
+        setTemplatesList(refreshed);
+        showSuccessAlert("Berhasil Direset", "Template telah dikembalikan ke standar awal.");
+      } else {
+        showErrorAlert("Gagal", res.message);
+      }
+    } catch {
+      showErrorAlert("Error", "Gagal mereset template.");
+    }
   };
 
   // Salin Pesan ke Clipboard
   const handleCopy = (text: string, key: string) => {
-    if (!savedTarget && (!outletName || !whatsappNumber)) {
-      showErrorAlert("Simpan Data Terlebih Dahulu", "Masukkan nama outlet dan nomor WA lalu klik Simpan.");
-      return;
-    }
-
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 1800);
@@ -239,7 +444,10 @@ export default function TemplateChatPage() {
   // Buka Langsung ke WhatsApp
   const handleOpenWhatsApp = (text: string) => {
     if (!cleanWaNumber || cleanWaNumber.length < 8) {
-      showErrorAlert("Nomor WA Tidak Valid", "Harap masukkan nomor WhatsApp tujuan yang valid terlebih dahulu.");
+      showErrorAlert(
+        "Nomor WA Belum Diisi",
+        "Harap masukkan nomor WhatsApp tujuan yang valid terlebih dahulu."
+      );
       return;
     }
 
@@ -247,6 +455,15 @@ export default function TemplateChatPage() {
     const waUrl = `https://wa.me/${cleanWaNumber}?text=${encoded}`;
     window.open(waUrl, "_blank");
   };
+
+  // Filter prospects
+  const filteredProspects = useMemo(() => {
+    if (!searchProspectQuery.trim()) return prospectsList;
+    const q = searchProspectQuery.toLowerCase();
+    return prospectsList.filter(
+      (p) => p.outletName.toLowerCase().includes(q) || p.whatsappNumber.includes(q)
+    );
+  }, [prospectsList, searchProspectQuery]);
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 relative overflow-x-hidden pb-20">
@@ -273,11 +490,11 @@ export default function TemplateChatPage() {
                 <h1 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
                   <span>Template Chat WhatsApp</span>
                   <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Smart Sales
+                    TiDB Cloud Sync
                   </span>
                 </h1>
                 <p className="text-[11px] text-slate-400">
-                  Generator pesan prospek otomatis & sapaan real-time sesuai jam device
+                  Cek nomor WA & nama outlet real-time di database, generator pesan & CRUD template
                 </p>
               </div>
             </div>
@@ -298,7 +515,9 @@ export default function TemplateChatPage() {
       {/* Main Content Layout */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* ─── KOLOM KIRI: INPUT TARGET & HISTORY (4/12) ─── */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* KOLOM KIRI: INPUT TARGET DENGAN CEK REAL-TIME & DATABASE (5/12)     */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
           <div className="lg:col-span-5 space-y-5">
             {/* Form Input Target */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
@@ -309,13 +528,84 @@ export default function TemplateChatPage() {
                 </div>
                 {savedTarget && (
                   <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Aktif Digunakan
+                    <CheckCircle2 className="w-3 h-3" /> Target Terpasang
                   </span>
                 )}
               </div>
 
               <form onSubmit={handleSaveTarget} className="space-y-4">
-                {/* 1. Nama Outlet */}
+                {/* 1. Input Nomor WhatsApp dengan Cek Realtime TiDB */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Nomor WhatsApp Outlet <span className="text-rose-400">*</span>
+                    </label>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Cek Database TiDB
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      required
+                      value={whatsappNumber}
+                      onChange={(e) => handleWhatsappChange(e.target.value)}
+                      placeholder="Contoh: 08123456789 atau 628123456789"
+                      className={`w-full pl-9 pr-10 py-2.5 bg-slate-950 border rounded-xl text-sm font-mono transition-all focus:outline-none ${
+                        dbStatusWa === "EXISTS"
+                          ? "border-amber-500/80 text-amber-200 focus:border-amber-400 focus:ring-1 focus:ring-amber-500/30"
+                          : dbStatusWa === "AVAILABLE"
+                          ? "border-emerald-500/80 text-emerald-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                          : "border-slate-800 text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                      }`}
+                    />
+
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isCheckingDb && (
+                        <Loader2 className="w-4 h-4 text-sky-400 animate-spin" />
+                      )}
+                      {!isCheckingDb && dbStatusWa === "EXISTS" && (
+                        <AlertCircle className="w-4 h-4 text-amber-400" />
+                      )}
+                      {!isCheckingDb && dbStatusWa === "AVAILABLE" && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Feedback Realtime WhatsApp */}
+                  {dbWaFeedback && (
+                    <div
+                      className={`mt-1.5 p-2 rounded-xl text-[11px] leading-tight flex items-start gap-1.5 transition-all ${
+                        dbStatusWa === "EXISTS"
+                          ? "bg-amber-950/40 border border-amber-500/30 text-amber-300 font-medium"
+                          : "bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 font-medium"
+                      }`}
+                    >
+                      {dbStatusWa === "EXISTS" ? (
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-400" />
+                      )}
+                      <div className="flex-1">
+                        <span>{dbWaFeedback}</span>
+                        {dbStatusWa === "EXISTS" && existingOwnerName && (
+                          <button
+                            type="button"
+                            onClick={() => setOutletName(existingOwnerName)}
+                            className="block mt-1 text-[10px] text-sky-400 hover:text-sky-300 underline font-semibold cursor-pointer"
+                          >
+                            Gunakan nama ini: &quot;{existingOwnerName}&quot;
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Input Nama Outlet dengan Cek Realtime */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                     Nama Outlet / Bisnis <span className="text-rose-400">*</span>
@@ -326,76 +616,67 @@ export default function TemplateChatPage() {
                       type="text"
                       required
                       value={outletName}
-                      onChange={(e) => setOutletName(e.target.value)}
-                      placeholder="Contoh: Kopi Kenangan / Salon Cantik"
+                      onChange={(e) => handleOutletNameChange(e.target.value)}
+                      placeholder="Contoh: Kopi Kenangan / Barbershop Ganteng"
                       className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    Otomatis disisipkan ke Template 2 untuk menanyakan outlet.
-                  </p>
-                </div>
 
-                {/* 2. Nomor WhatsApp */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Nomor WhatsApp Tujuan <span className="text-rose-400">*</span>
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="tel"
-                      required
-                      value={whatsappNumber}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
-                      placeholder="Contoh: 08123456789 atau 628123456789"
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 font-mono transition-colors"
-                    />
-                  </div>
-                  {cleanWaNumber && (
-                    <p className="text-[10px] text-emerald-400 mt-1 font-mono">
-                      Format WA: +{cleanWaNumber}
+                  {nameMatchFeedback && (
+                    <p className="text-[11px] text-amber-400/90 mt-1 flex items-center gap-1">
+                      <Info className="w-3 h-3 shrink-0" />
+                      <span>{nameMatchFeedback}</span>
                     </p>
                   )}
                 </div>
 
-                {/* Tombol Simpan */}
+                {/* Tombol Simpan ke TiDB */}
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer active:scale-[0.98]"
+                  disabled={isSavingTarget}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
                 >
-                  <BookmarkCheck className="w-4 h-4" />
-                  <span>Simpan & Terapkan ke Template</span>
+                  {isSavingTarget ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Menyimpan ke TiDB...</span>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkCheck className="w-4 h-4" />
+                      <span>Simpan Target ke TiDB Database</span>
+                    </>
+                  )}
                 </button>
               </form>
 
-              {/* Status Ringkasan Aktif */}
+              {/* Status Ringkasan Target Aktif */}
               {savedTarget && (
                 <div className="mt-4 p-3 bg-slate-950/90 border border-emerald-500/30 rounded-xl">
                   <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 mb-1">
-                    🎯 Target Tersimpan:
+                    🎯 Target Yang Sedang Dipakai:
                   </p>
                   <div className="text-xs text-slate-200">
                     <div className="font-semibold text-white">{savedTarget.outletName}</div>
                     <div className="text-slate-400 font-mono text-[11px] mt-0.5">
-                      WA: {savedTarget.whatsappNumber}
+                      WA: +{cleanWaNumber}
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Selector Sapaan Waktu (Bisa Manual Ganti) */}
+            {/* Pilihan Sapaan Waktu */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-amber-400" />
                   <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                    Pilihan Sapaan Waktu
+                    Sapaan Waktu Device
                   </h3>
                 </div>
-                <span className="text-[10px] text-slate-400">
-                  Otomatis jam {currentTimeStr || "--:--"}
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {currentTimeStr || "--:--"}
                 </span>
               </div>
 
@@ -423,155 +704,368 @@ export default function TemplateChatPage() {
                 })}
               </div>
               <p className="text-[10px] text-slate-500 mt-2">
-                * Secara default mengikuti jam di device Anda saat ini ({detectedGreeting}). Klik tombol di atas jika ingin mengganti secara manual.
+                Otomatis disisipkan ke kode <code>&#123;waktu&#125;</code> pada template.
               </p>
             </div>
 
-            {/* Riwayat Target Terakhir (History) */}
-            {historyList.length > 0 && (
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <History className="w-4 h-4 text-sky-400" />
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                      Riwayat Target Disimpan
-                    </h3>
-                  </div>
-                  <span className="text-[10px] text-slate-500">{historyList.length} outlet</span>
+            {/* Daftar Kontak Tersimpan di TiDB Database */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-md">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-sky-400" />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Daftar Outlet di Database TiDB
+                  </h3>
                 </div>
+                <span className="text-[10px] text-slate-400 font-bold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
+                  {prospectsList.length} Outlet
+                </span>
+              </div>
 
-                <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
-                  {historyList.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleSelectHistory(item)}
-                      className="group flex items-center justify-between p-2.5 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800/80 hover:border-emerald-500/40 cursor-pointer transition-all"
-                    >
-                      <div className="overflow-hidden">
-                        <p className="text-xs font-semibold text-slate-200 group-hover:text-emerald-400 truncate">
-                          {item.outletName}
-                        </p>
-                        <p className="text-[11px] text-slate-500 font-mono">
-                          {item.whatsappNumber} &bull; {item.savedAt}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteHistory(item.id, e)}
-                        className="p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        title="Hapus riwayat"
+              {/* Pencarian Prospek */}
+              {prospectsList.length > 3 && (
+                <div className="relative mb-3">
+                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchProspectQuery}
+                    onChange={(e) => setSearchProspectQuery(e.target.value)}
+                    placeholder="Cari nama outlet atau nomor WA..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              )}
+
+              {filteredProspects.length === 0 ? (
+                <div className="text-center py-6 text-slate-500 text-xs">
+                  {prospectsList.length === 0
+                    ? "Belum ada outlet tersimpan di database TiDB. Masukkan nama & WA di atas lalu klik Simpan."
+                    : "Tidak ada outlet yang sesuai dengan pencarian."}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                  {filteredProspects.map((item) => {
+                    const isSelected = savedTarget?.whatsappNumber === item.whatsappNumber;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSelectProspect(item)}
+                        className={`group flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "bg-emerald-950/40 border-emerald-500/50"
+                            : "bg-slate-950 hover:bg-slate-850 border-slate-800/80 hover:border-emerald-500/40"
+                        }`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                        <div className="overflow-hidden">
+                          <p
+                            className={`text-xs font-semibold truncate ${
+                              isSelected ? "text-emerald-300 font-bold" : "text-slate-200 group-hover:text-emerald-400"
+                            }`}
+                          >
+                            {item.outletName}
+                          </p>
+                          <p className="text-[11px] text-slate-500 font-mono">
+                            +{item.whatsappNumber}
+                          </p>
+                        </div>
 
-          {/* ─── KOLOM KANAN: TEMPLATE CHAT CARDS (7/12) ─── */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-emerald-400" />
-                  <span>Daftar Template Pesan Siap Kirim</span>
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Klik <strong>Kirim ke WA</strong> untuk langsung membuka obrolan atau <strong>Salin</strong> teks.
-                </p>
-              </div>
-
-              {cleanWaNumber && (
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">Tujuan:</span>
-                  <span className="text-xs font-mono font-bold text-emerald-400">
-                    +{cleanWaNumber}
-                  </span>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteProspect(item.id, item.outletName, e)}
+                            className="p-1 text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Hapus dari database"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
+          </div>
+
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* KOLOM KANAN: TEMPLATE CHAT CARDS & MANAJEMEN CRUD (7/12)           */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          <div className="lg:col-span-7 space-y-4">
+            {/* Header Manajemen Template */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 p-4 rounded-2xl backdrop-blur-md">
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span>Daftar Template Chat</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Template tersimpan di database TiDB &bull; Dapat diedit, dihapus, atau ditambah bebas
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetDefaultTemplates}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
+                  title="Kembalikan template ke default"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Reset Default</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenAddTemplateModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Template</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Loading Indicator */}
+            {isLoadingTemplates && (
+              <div className="py-16 text-center text-slate-500 space-y-2">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-400" />
+                <p className="text-xs">Memuat template dari TiDB Cloud...</p>
+              </div>
+            )}
 
             {/* List Templates */}
-            <div className="space-y-4">
-              {templates.map((tpl, index) => {
-                const isCopied = copiedKey === tpl.id;
-                const isCombo = tpl.id === "template_combo";
+            {!isLoadingTemplates && (
+              <div className="space-y-4">
+                {templatesList.map((tpl, index) => {
+                  const renderedText = renderMessageText(tpl.content);
+                  const isCopied = copiedKey === tpl.id;
 
-                return (
-                  <div
-                    key={tpl.id}
-                    className={`rounded-2xl border p-4 sm:p-5 transition-all ${
-                      isCombo
-                        ? "bg-gradient-to-br from-slate-900 via-indigo-950/20 to-slate-900 border-indigo-500/40 shadow-xl shadow-indigo-950/20"
-                        : "bg-slate-900/80 border-slate-800/90 hover:border-slate-700 shadow-lg"
-                    }`}
-                  >
-                    {/* Top Card: Label & Badge */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px] flex items-center justify-center border border-slate-700">
-                          {index + 1}
+                  return (
+                    <div
+                      key={tpl.id}
+                      className="rounded-2xl border border-slate-800/90 bg-slate-900/80 hover:border-slate-700 shadow-xl p-4 sm:p-5 transition-all relative group"
+                    >
+                      {/* Top Header Card */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px] flex items-center justify-center border border-slate-700">
+                            {index + 1}
+                          </span>
+                          <h3 className="text-xs font-bold text-white tracking-tight">{tpl.title}</h3>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {tpl.badge && (
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                tpl.badgeColor || "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                              }`}
+                            >
+                              {tpl.badge}
+                            </span>
+                          )}
+
+                          {/* Tombol Edit & Hapus Template */}
+                          <div className="flex items-center gap-1 border-l border-slate-800 pl-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditTemplateModal(tpl)}
+                              className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded-lg transition-colors cursor-pointer"
+                              title="Edit template ini"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTemplate(tpl)}
+                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                              title="Hapus template ini"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Chat Bubble Simulation */}
+                      <div className="relative mb-3.5">
+                        <div className="p-3.5 sm:p-4 rounded-2xl rounded-tl-sm bg-[#0b141a] border border-[#1f2c34] text-slate-100 text-sm font-sans leading-relaxed whitespace-pre-wrap select-all shadow-inner">
+                          {renderedText}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-800/80">
+                        <span className="text-[10px] text-slate-500">
+                          {tpl.content.includes("{waktu}") && (
+                            <span className="text-emerald-400/90 font-mono mr-2">
+                              • Auto Waktu
+                            </span>
+                          )}
+                          {tpl.content.includes("{outlet}") && (
+                            <span className="text-sky-400/90 font-mono">
+                              • Auto Nama Outlet
+                            </span>
+                          )}
                         </span>
-                        <h3 className="text-xs font-bold text-white">{tpl.label}</h3>
+
+                        <div className="flex items-center gap-2">
+                          {/* Tombol Salin */}
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(renderedText, tpl.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700/60 transition-colors cursor-pointer active:scale-95"
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400">Tersalin!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Salin Teks</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Tombol Kirim WhatsApp */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenWhatsApp(renderedText)}
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Kirim ke WA</span>
+                            <ExternalLink className="w-3 h-3 opacity-70" />
+                          </button>
+                        </div>
                       </div>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${tpl.badgeColor}`}
-                      >
-                        {tpl.badge}
-                      </span>
                     </div>
-
-                    {/* Chat Bubble Simulation */}
-                    <div className="relative mb-3.5">
-                      <div className="p-3.5 sm:p-4 rounded-2xl rounded-tl-sm bg-[#0b141a] border border-[#1f2c34] text-slate-100 text-sm font-sans leading-relaxed whitespace-pre-wrap select-all shadow-inner">
-                        {tpl.text}
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-[11px] text-slate-400 mb-3.5">{tpl.desc}</p>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800/80">
-                      {/* Tombol Salin */}
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(tpl.text, tpl.id)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700/60 transition-colors cursor-pointer active:scale-95"
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Tersalin!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Salin Teks</span>
-                          </>
-                        )}
-                      </button>
-
-                      {/* Tombol Kirim WhatsApp Langsung */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenWhatsApp(tpl.text)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>Kirim ke WhatsApp</span>
-                        <ExternalLink className="w-3 h-3 opacity-70" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {/* MODAL TAMBAH / EDIT TEMPLATE CHAT                                  */}
+      {/* ═════════════════════════════════════════════════════════════════════ */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 z-50 p-4 bg-black/80 backdrop-blur-md flex items-center justify-center animate-in fade-in">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white">
+                {editingTemplateId ? "Edit Template Chat" : "Tambah Template Chat Baru"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTemplateForm} className="space-y-4 my-4">
+              {/* Judul Template */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Judul Template <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={templateFormTitle}
+                  onChange={(e) => setTemplateFormTitle(e.target.value)}
+                  placeholder="Contoh: Template 4 (Follow Up Penawaran)"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Label Badge (Opsional) */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Label / Badge <span className="text-slate-500 text-[10px]">(Opsional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={templateFormBadge}
+                  onChange={(e) => setTemplateFormBadge(e.target.value)}
+                  placeholder="Contoh: Follow Up / Promo / Edukasi"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Isi Pesan Template */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Isi Pesan Template <span className="text-rose-400">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500">Klik tag untuk menyisipkan variabel</span>
+                </div>
+
+                {/* Variable Pills Helper */}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setTemplateFormContent((prev) => prev + " {waktu}")}
+                    className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-pointer"
+                  >
+                    + &#123;waktu&#125;
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTemplateFormContent((prev) => prev + ' "{outlet}"')}
+                    className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 cursor-pointer"
+                  >
+                    + &#123;outlet&#125;
+                  </button>
+                </div>
+
+                <textarea
+                  required
+                  rows={4}
+                  value={templateFormContent}
+                  onChange={(e) => setTemplateFormContent(e.target.value)}
+                  placeholder="Ketik isi template chat di sini. Gunakan {waktu} untuk sapaan otomatis dan {outlet} untuk nama toko..."
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed custom-scrollbar"
+                />
+              </div>
+
+              {/* Actions Modal */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsTemplateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingTemplate}
+                  className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingTemplate ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>Simpan Template</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

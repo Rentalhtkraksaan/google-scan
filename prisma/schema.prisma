@@ -637,4 +637,34 @@ model PasswordResetOtp {
   @@map("password_reset_otps")
 }
 
+model ChatProspect {
+  id             String   @id @default(cuid())
+  outletName     String   @db.VarChar(191)
+  whatsappNumber String   @unique @db.VarChar(50)
+  savedByName    String?  @default("Admin") @db.VarChar(100)
+  status         String   @default("BARU") @db.VarChar(50)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([whatsappNumber])
+  @@index([outletName])
+  @@map("chat_prospects")
+}
+
+model ChatTemplate {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(191)
+  badge       String?  @default("Kustom") @db.VarChar(50)
+  badgeColor  String?  @default("bg-indigo-500/10 text-indigo-400 border-indigo-500/20") @db.VarChar(100)
+  content     String   @db.Text
+  orderNumber Int      @default(0)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderNumber])
+  @@map("chat_templates")
+}
+
 
