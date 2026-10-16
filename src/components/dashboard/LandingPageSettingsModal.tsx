@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X, Sparkles, MessageCircle, Globe, Loader2, Save, Info, Search } from "lucide-react";
+import { X, Sparkles, MessageCircle, Globe, Loader2, Save, Info, Search, ShoppingCart } from "lucide-react";
 import { updateSiteSettingAction } from "@/lib/actions/site-setting.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import { SiteSettingModel } from "@/types/models";
@@ -79,6 +79,9 @@ export function LandingPageSettingsModal({
 
   const [faviconUrl, setFaviconUrl] = useState(initialSetting?.faviconUrl || "");
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [showRetailOrderButtons, setShowRetailOrderButtons] = useState(
+    initialSetting?.showRetailOrderButtons !== false
+  );
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -141,6 +144,7 @@ export function LandingPageSettingsModal({
         formData.append("footerText", footerText);
         formData.append("seoTitle", seoTitle);
         formData.append("seoDescription", seoDescription);
+        formData.append("showRetailOrderButtons", String(showRetailOrderButtons));
         
         if (dashboardLogoFile) {
           formData.append("dashboardLogoFile", dashboardLogoFile);
@@ -164,7 +168,7 @@ export function LandingPageSettingsModal({
         if (res.success) {
           showSuccessAlert("Tersimpan!", res.message, 1800);
           if (onSaved) {
-            onSaved((res.data as Partial<SiteSettingModel>) || { appVersion });
+            onSaved((res.data as Partial<SiteSettingModel>) || { appVersion, showRetailOrderButtons });
           }
           router.refresh();
           onClose();
@@ -578,6 +582,40 @@ export function LandingPageSettingsModal({
                 placeholder="/c/c-001"
                 className="w-full px-3.5 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
               />
+            </div>
+
+            {/* Tombol Pesan Sekarang & Lacak Status Pesanan (Eceran / Publik) */}
+            <div className="pt-3 border-t border-slate-800/80">
+              <div className="p-3.5 rounded-xl bg-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-white">
+                      Tombol &quot;Pesan Sekarang&quot; &amp; &quot;Lacak Pesanan&quot;
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                      showRetailOrderButtons
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                        : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+                    }`}>
+                      {showRetailOrderButtons ? "ON (Tampil)" : "OFF (Disembunyikan)"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Menampilkan tombol &quot;Pesan Sekarang (Bisa Beli 1/Banyak)&quot; dan &quot;Lacak Status Pesanan&quot; di halaman utama. Matikan jika ingin menyembunyikan tombol pemesanan eceran publik.
+                  </p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={showRetailOrderButtons}
+                    onChange={(e) => setShowRetailOrderButtons(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
             </div>
           </div>
 

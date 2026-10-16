@@ -140,6 +140,9 @@ model SiteSetting {
   affiliateDefaultCommission Int      @default(5000) // Komisi default per pcs
   affiliateShippingDiscount  Int      @default(10000) // Potongan subsidi ongkir referral (Rp 10.000)
 
+  // Tombol Pesan Sekarang & Lacak Pesanan di Landing Page
+  showRetailOrderButtons     Boolean  @default(true) // Switch ON/OFF Tombol Pesan Sekarang & Lacak Status Pesanan
+
   updatedAt          DateTime @updatedAt
 
   @@map("site_settings")

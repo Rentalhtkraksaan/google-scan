@@ -67,6 +67,7 @@ export const getCachedSiteSetting = unstable_cache(
         resellerBankName: true,
         resellerAccountNumber: true,
         resellerAccountName: true,
+        showRetailOrderButtons: true,
         updatedAt: true,
       },
     });

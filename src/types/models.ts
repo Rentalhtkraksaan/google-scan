@@ -72,6 +72,7 @@ export interface SiteSettingModel {
   manualBniAccountHolder?: string;
   affiliateShippingDiscount?: number;
   affiliateDefaultCommission?: number;
+  showRetailOrderButtons?: boolean;
   updatedAt?: string | Date;
 }
 

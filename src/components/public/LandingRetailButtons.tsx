@@ -21,6 +21,10 @@ export function LandingRetailButtons({ siteSetting, variant = "hero" }: LandingR
     setIsTrackModalOpen(true);
   };
 
+  if (siteSetting?.showRetailOrderButtons === false) {
+    return null;
+  }
+
   if (variant === "navbar") {
     return (
       <>

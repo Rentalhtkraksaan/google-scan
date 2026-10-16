@@ -32,6 +32,7 @@ import {
   Trash2,
   Briefcase,
   BookOpen,
+  ShoppingCart,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert, showConfirmAlert } from "@/lib/swal";
 import {
@@ -141,6 +142,7 @@ export function MembershipManagementModal({
   const [resellerModuleTitle, setResellerModuleTitle] = useState(siteSetting?.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR");
   const [resellerModuleDesc, setResellerModuleDesc] = useState(siteSetting?.resellerModuleDesc || "");
   const [resellerModulePdfUrl, setResellerModulePdfUrl] = useState(siteSetting?.resellerModulePdfUrl || "");
+  const [showRetailOrderButtons, setShowRetailOrderButtons] = useState(siteSetting?.showRetailOrderButtons !== false);
 
   // Sub-modal: Atur Harga Khusus Outlet
   const [editingPriceOutlet, setEditingPriceOutlet] = useState<{
@@ -560,6 +562,7 @@ export function MembershipManagementModal({
           resellerModuleTitle: resellerModuleTitle.trim() || undefined,
           resellerModuleDesc: resellerModuleDesc.trim() || undefined,
           resellerModulePdfUrl: resellerModulePdfUrl.trim() || undefined,
+          showRetailOrderButtons,
         }),
       ]);
 
@@ -1664,6 +1667,38 @@ export function MembershipManagementModal({
 
                 <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
                   💼 <strong>Sistem Kemitraan & Diskon VIP</strong>: Super Admin mendaftarkan akun Admin Lapangan (Reseller). Reseller wajib membeli Modul Aktivasi Akun (atau dibuka manual oleh Super Admin). Setiap outlet yang didaftarkan reseller menjadi <strong>VIP Aktif</strong>, reseller mendapatkan reward diskon pembelian kartu berikutnya (1x klaim per outlet VIP).
+                </div>
+
+                {/* Switch ON/OFF Tombol Pesan Sekarang & Lacak Status Pesanan di Landing Page */}
+                <div className="p-4 rounded-xl bg-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="w-4 h-4 text-emerald-400" />
+                      <span className="text-xs font-bold text-white">
+                        Tombol &quot;Pesan Sekarang (Bisa Beli 1/Banyak)&quot; &amp; &quot;Lacak Status Pesanan&quot;
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                        showRetailOrderButtons
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                          : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+                      }`}>
+                        {showRetailOrderButtons ? "ON (Tampil di Landing Page)" : "OFF (Disembunyikan)"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Jika dimatikan (OFF), tombol pemesanan eceran dan pelacakan pesanan publik di halaman depan akan otomatis hilang.
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={showRetailOrderButtons}
+                      onChange={(e) => setShowRetailOrderButtons(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

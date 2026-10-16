@@ -159,9 +159,12 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
       cleanFallback = "https://" + cleanFallback;
     }
 
+    const hasShowRetail = formData.has("showRetailOrderButtons");
+    const showRetailOrderButtons = hasShowRetail ? formData.get("showRetailOrderButtons") === "true" : undefined;
+
     // To dynamically handle optional logo updates, we will use Prisma's ORM method instead of raw SQL
     // so we don't overwrite the logos with NULL if they aren't provided in the form data.
-    const updateData: Record<string, string> = {
+    const updateData: Record<string, any> = {
       appVersion: appVersion,
       whatsappNumber: cleanWa,
       globalFallbackUrl: cleanFallback,
@@ -184,6 +187,9 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
         "Platform SaaS Dynamic QR Code & NFC Card untuk meningkatkan rating dan ulasan Google Review outlet Anda secara otomatis dan instan.",
     };
 
+    if (showRetailOrderButtons !== undefined) {
+      updateData.showRetailOrderButtons = showRetailOrderButtons;
+    }
     if (dashboardLogoUrl !== undefined) {
       updateData.dashboardLogoUrl = dashboardLogoUrl;
     }
@@ -199,6 +205,7 @@ export async function updateSiteSettingAction(formData: FormData): Promise<Actio
       update: updateData,
       create: {
         id: 'default',
+        showRetailOrderButtons: showRetailOrderButtons ?? true,
         ...updateData
       }
     });

@@ -74,6 +74,7 @@ export async function updateResellerModuleSettingsAction(data: {
   resellerModuleTitle?: string;
   resellerModuleDesc?: string;
   resellerModulePdfUrl?: string;
+  showRetailOrderButtons?: boolean;
 }) {
   try {
     const session = await auth();
@@ -97,6 +98,7 @@ export async function updateResellerModuleSettingsAction(data: {
         resellerModuleTitle: data.resellerModuleTitle !== undefined ? data.resellerModuleTitle.trim() : undefined,
         resellerModuleDesc: data.resellerModuleDesc !== undefined ? data.resellerModuleDesc.trim() : undefined,
         resellerModulePdfUrl: data.resellerModulePdfUrl !== undefined ? data.resellerModulePdfUrl.trim() : undefined,
+        showRetailOrderButtons: data.showRetailOrderButtons !== undefined ? data.showRetailOrderButtons : undefined,
       },
       create: {
         id: "default",
@@ -113,6 +115,7 @@ export async function updateResellerModuleSettingsAction(data: {
         resellerModuleTitle: data.resellerModuleTitle || "Starter Kit & Modul Resmi Kemitraan Smart QR",
         resellerModuleDesc: data.resellerModuleDesc || "",
         resellerModulePdfUrl: data.resellerModulePdfUrl || "",
+        showRetailOrderButtons: data.showRetailOrderButtons ?? true,
       },
     });
 
