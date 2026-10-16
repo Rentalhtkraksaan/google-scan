@@ -11,15 +11,21 @@ export const metadata = {
   title: "Portal Klien Outlet",
 };
 
-export default async function PortalPage() {
+interface PortalPageProps {
+  searchParams?: Promise<{ outletId?: string }>;
+}
+
+export default async function PortalPage({ searchParams }: PortalPageProps) {
   const session = await auth();
 
   if (!session?.user) {
     redirect("/login");
   }
 
+  const resolvedParams = searchParams ? await searchParams : {};
+  const requestedOutletId = resolvedParams.outletId;
+
   // Parallel fetch: ambil data user outlet dan site setting serentak (Promise.all)
-  // Optimal: Hanya select kolom yang benar-benar dipakai untuk render portal (0ms lag, tanpa load riwayat feedback berlebih)
   const [user, siteSetting] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
@@ -29,7 +35,7 @@ export default async function PortalPage() {
         email: true,
         role: true,
         whatsappNumber: true,
-        outlet: {
+        outlets: {
           select: {
             id: true,
             name: true,
@@ -99,62 +105,78 @@ export default async function PortalPage() {
     redirect("/login");
   }
 
+  const userOutlets = user.outlets || [];
+
   // If user is Admin or Super Admin without outlet, redirect to their dashboard
-  if (!user.outlet && user.role === "SUPER_ADMIN") {
+  if (userOutlets.length === 0 && user.role === "SUPER_ADMIN") {
     redirect("/super-admin");
   }
-  if (!user.outlet && user.role === "ADMIN") {
+  if (userOutlets.length === 0 && user.role === "ADMIN") {
     redirect("/admin");
   }
 
+  // Pilih outlet aktif berdasarkan query param atau default ke outlet pertama
+  const activeRawOutlet =
+    (requestedOutletId ? userOutlets.find((o) => o.id === requestedOutletId) : null) ||
+    userOutlets[0] ||
+    null;
+
   // Auto-init staffPairingToken if null
-  if (user.outlet && !user.outlet.staffPairingToken) {
+  if (activeRawOutlet && !activeRawOutlet.staffPairingToken) {
     const generatedToken = "ksr_" + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
     await prisma.outlet.update({
-      where: { id: user.outlet.id },
+      where: { id: activeRawOutlet.id },
       data: { staffPairingToken: generatedToken },
     }).catch(() => {});
-    user.outlet.staffPairingToken = generatedToken;
+    activeRawOutlet.staffPairingToken = generatedToken;
   }
 
   // Prioritas Mitra Lapangan: Admin yang memegang salah satu kartu (assignedAdmin), jika tidak ada fallback ke pembuat akun (createdBy)
   const adminContact =
-    user.outlet?.qrCards?.find((c) => c.assignedAdmin)?.assignedAdmin || user.createdBy;
+    activeRawOutlet?.qrCards?.find((c) => c.assignedAdmin)?.assignedAdmin || user.createdBy;
 
-  const isMemberActive = isOutletMemberActive(user.outlet);
+  const isMemberActive = activeRawOutlet ? isOutletMemberActive(activeRawOutlet) : false;
 
-  const formattedOutlet = user.outlet
+  const formattedOutlet = activeRawOutlet
     ? {
-        id: user.outlet.id,
-        name: user.outlet.name,
-        logoUrl: user.outlet.logoUrl || null,
-        googleReviewUrl: user.outlet.googleReviewUrl,
+        id: activeRawOutlet.id,
+        name: activeRawOutlet.name,
+        logoUrl: activeRawOutlet.logoUrl || null,
+        googleReviewUrl: activeRawOutlet.googleReviewUrl,
         isMember: isMemberActive,
-        membershipStartedAt: user.outlet.membershipStartedAt,
-        membershipExpiresAt: user.outlet.membershipExpiresAt,
-        customVipPrice: user.outlet.customVipPrice,
-        vipPauseCount: user.outlet.vipPauseCount ?? 0,
-        isVipPaused: Boolean(user.outlet.isVipPaused),
-        soundNotification: user.outlet.soundNotification ?? true,
-        soundEffect: user.outlet.soundEffect || "BELL_DOUBLE",
-        customGreetingText: user.outlet.customGreetingText || null,
-        enableSmartFilter: user.outlet.enableSmartFilter !== false,
-        allowSmartFilter: Boolean(user.outlet.allowSmartFilter),
-        staffPairingToken: user.outlet.staffPairingToken || null,
-        instagramUrl: user.outlet.instagramUrl || null,
-        enableInstagram: user.outlet.enableInstagram ?? true,
-        tiktokUrl: user.outlet.tiktokUrl || null,
-        enableTiktok: user.outlet.enableTiktok ?? true,
-        menuUrl: user.outlet.menuUrl || null,
-        menuImages: user.outlet.menuImages || null,
-        menuTitle: user.outlet.menuTitle || "Buku Menu & Katalog Digital",
-        enableMenu: user.outlet.enableMenu ?? true,
-        hasPendingPayment: (user.outlet.membershipPayments?.length || 0) > 0,
-        qrCards: user.outlet.qrCards,
-        qrCard: user.outlet.qrCards[0] || null,
+        membershipStartedAt: activeRawOutlet.membershipStartedAt,
+        membershipExpiresAt: activeRawOutlet.membershipExpiresAt,
+        customVipPrice: activeRawOutlet.customVipPrice,
+        vipPauseCount: activeRawOutlet.vipPauseCount ?? 0,
+        isVipPaused: Boolean(activeRawOutlet.isVipPaused),
+        soundNotification: activeRawOutlet.soundNotification ?? true,
+        soundEffect: activeRawOutlet.soundEffect || "BELL_DOUBLE",
+        customGreetingText: activeRawOutlet.customGreetingText || null,
+        enableSmartFilter: activeRawOutlet.enableSmartFilter !== false,
+        allowSmartFilter: Boolean(activeRawOutlet.allowSmartFilter),
+        staffPairingToken: activeRawOutlet.staffPairingToken || null,
+        instagramUrl: activeRawOutlet.instagramUrl || null,
+        enableInstagram: activeRawOutlet.enableInstagram ?? true,
+        tiktokUrl: activeRawOutlet.tiktokUrl || null,
+        enableTiktok: activeRawOutlet.enableTiktok ?? true,
+        menuUrl: activeRawOutlet.menuUrl || null,
+        menuImages: activeRawOutlet.menuImages || null,
+        menuTitle: activeRawOutlet.menuTitle || "Buku Menu & Katalog Digital",
+        enableMenu: activeRawOutlet.enableMenu ?? true,
+        hasPendingPayment: (activeRawOutlet.membershipPayments?.length || 0) > 0,
+        qrCards: activeRawOutlet.qrCards,
+        qrCard: activeRawOutlet.qrCards[0] || null,
         feedbacks: [],
       }
     : null;
+
+  const allOutletsSummary = userOutlets.map((o) => ({
+    id: o.id,
+    name: o.name,
+    logoUrl: o.logoUrl || null,
+    isMember: isOutletMemberActive(o),
+    cardCount: o.qrCards?.length || 0,
+  }));
 
   return (
     <PortalClientView
@@ -165,6 +187,7 @@ export default async function PortalPage() {
         whatsappNumber: user.whatsappNumber,
       }}
       outlet={formattedOutlet}
+      allOutlets={allOutletsSummary}
       adminContact={adminContact}
       siteSetting={siteSetting as unknown as import("@/types/models").SiteSettingModel}
     />

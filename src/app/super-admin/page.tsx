@@ -83,7 +83,7 @@ export default async function SuperAdminPage() {
         },
         createdUsers: {
           where: { role: "USER" },
-          include: { outlet: true },
+          include: { outlets: true },
         },
       },
       orderBy: { createdAt: "desc" },

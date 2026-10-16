@@ -60,10 +60,12 @@ export default async function AdminPage() {
         OR: [
           { createdById: adminId },
           {
-            outlet: {
-              qrCards: {
-                some: {
-                  assignedAdminId: adminId,
+            outlets: {
+              some: {
+                qrCards: {
+                  some: {
+                    assignedAdminId: adminId,
+                  },
                 },
               },
             },
@@ -80,7 +82,7 @@ export default async function AdminPage() {
             isSuperAdminMaster: true,
           },
         },
-        outlet: {
+        outlets: {
           include: {
             qrCards: true,
           },
@@ -129,16 +131,20 @@ export default async function AdminPage() {
     getCachedSiteSetting(),
   ]);
 
-  const createdUsers = rawUsers.map((u) => ({
-    ...u,
-    outlet: u.outlet
-      ? {
-          ...u.outlet,
-          qrCards: u.outlet.qrCards,
-          qrCard: u.outlet.qrCards?.[0] || null,
-        }
-      : null,
-  }));
+  const createdUsers = rawUsers.map((u) => {
+    const primaryOutlet = u.outlets?.[0] || null;
+    return {
+      ...u,
+      outlet: primaryOutlet
+        ? {
+            ...primaryOutlet,
+            qrCards: primaryOutlet.qrCards,
+            qrCard: primaryOutlet.qrCards?.[0] || null,
+          }
+        : null,
+      outlets: u.outlets,
+    };
+  });
 
   const superAdminContact = currentAdminUser?.createdBy || masterSuperAdmin || {
     fullName: "Super Admin",
@@ -169,12 +175,12 @@ export default async function AdminPage() {
 
   // Hitung jumlah outlet binaan yang aktif VIP
   const now = Date.now();
-  const vipOutletsCount = rawUsers.filter(
-    (u) =>
-      u.outlet?.isMember &&
-      u.outlet?.membershipExpiresAt &&
-      new Date(u.outlet.membershipExpiresAt).getTime() > now
-  ).length;
+  const vipOutletsCount = rawUsers.reduce((count, u) => {
+    const vipInUser = (u.outlets || []).filter(
+      (o) => o.isMember && o.membershipExpiresAt && new Date(o.membershipExpiresAt).getTime() > now
+    ).length;
+    return count + vipInUser;
+  }, 0);
 
   return (
     <AdminDashboardClient

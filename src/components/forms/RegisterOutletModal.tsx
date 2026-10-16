@@ -70,7 +70,7 @@ export function RegisterOutletModal({
   // Step 2: Hanya Email (Gmail) & Password (Nama Pemilik & WA di-hide)
   const [email, setEmail] = useState("");
   const [emailCheckStatus, setEmailCheckStatus] = useState<
-    "IDLE" | "CHECKING" | "INVALID_FORMAT" | "TAKEN" | "AVAILABLE"
+    "IDLE" | "CHECKING" | "INVALID_FORMAT" | "TAKEN" | "AVAILABLE" | "AVAILABLE_EXISTING"
   >("IDLE");
   const [emailCheckMessage, setEmailCheckMessage] = useState<string>("");
 
@@ -127,8 +127,8 @@ export function RegisterOutletModal({
       try {
         const res = await checkEmailAvailabilityAction(trimmed);
         if (res.available) {
-          setEmailCheckStatus("AVAILABLE");
-          setEmailCheckMessage("Email tersedia dan siap digunakan!");
+          setEmailCheckStatus(res.existingUser ? "AVAILABLE_EXISTING" : "AVAILABLE");
+          setEmailCheckMessage(res.message || "Email tersedia dan siap digunakan!");
         } else {
           setEmailCheckStatus("TAKEN");
           setEmailCheckMessage(res.message || "Email ini sudah terdaftar di sistem! Gunakan email lain.");
@@ -736,6 +736,12 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                           Tersedia
                         </span>
                       )}
+                      {emailCheckStatus === "AVAILABLE_EXISTING" && (
+                        <span className="text-[11px] text-amber-300 font-semibold flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          Akun Terhubung (Multi-Bisnis)
+                        </span>
+                      )}
                       {emailCheckStatus === "TAKEN" && (
                         <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1">
                           <AlertCircle className="w-3 h-3 text-rose-400" />
@@ -758,7 +764,7 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="pemilik.toko@gmail.com"
                         className={`w-full pl-9 pr-10 py-2.5 bg-slate-900 border rounded-xl text-sm font-mono placeholder:text-slate-500 focus:outline-none transition-colors ${
-                          emailCheckStatus === "AVAILABLE"
+                          emailCheckStatus === "AVAILABLE" || emailCheckStatus === "AVAILABLE_EXISTING"
                             ? "border-emerald-500/70 bg-emerald-950/10 focus:border-emerald-500 text-emerald-300"
                             : emailCheckStatus === "TAKEN" || emailCheckStatus === "INVALID_FORMAT"
                             ? "border-rose-500/60 bg-rose-950/10 focus:border-rose-500 text-rose-200"
@@ -769,7 +775,7 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                         {emailCheckStatus === "CHECKING" && (
                           <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
                         )}
-                        {emailCheckStatus === "AVAILABLE" && (
+                        {(emailCheckStatus === "AVAILABLE" || emailCheckStatus === "AVAILABLE_EXISTING") && (
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                         )}
                         {emailCheckStatus === "TAKEN" && (
@@ -784,6 +790,8 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                         className={`text-[11px] mt-1.5 flex items-center gap-1.5 ${
                           emailCheckStatus === "AVAILABLE"
                             ? "text-emerald-400 font-medium"
+                            : emailCheckStatus === "AVAILABLE_EXISTING"
+                            ? "text-amber-400 font-medium"
                             : emailCheckStatus === "TAKEN"
                             ? "text-rose-400 font-semibold"
                             : emailCheckStatus === "INVALID_FORMAT"
@@ -972,7 +980,7 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
 
                   <button
                     type="submit"
-                    disabled={loading || emailCheckStatus !== "AVAILABLE" || !isPasswordValid}
+                    disabled={loading || (emailCheckStatus !== "AVAILABLE" && emailCheckStatus !== "AVAILABLE_EXISTING") || !isPasswordValid}
                     className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl shadow-lg shadow-emerald-600/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                   >
                     {loading ? (

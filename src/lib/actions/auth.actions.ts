@@ -317,7 +317,7 @@ export async function toggleUserActiveStatusAction(userId: string): Promise<Acti
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        outlet: {
+        outlets: {
           include: {
             qrCards: true,
           },
@@ -347,13 +347,16 @@ export async function toggleUserActiveStatusAction(userId: string): Promise<Acti
       }
     }
 
+    const userOutlets = targetUser.outlets || [];
+    const allUserCards = userOutlets.flatMap((o) => o.qrCards || []);
+
     // Validasi izin untuk Admin Lapangan
     if (session.user.role === Role.ADMIN) {
       if (targetUser.role !== Role.USER) {
         return { success: false, message: "Akses ditolak: Admin Lapangan hanya dapat mengelola status outlet binaannya." };
       }
       const isCreator = targetUser.createdById === session.user.id;
-      const isCardHolder = targetUser.outlet?.qrCards?.some((c) => c.assignedAdminId === session.user.id);
+      const isCardHolder = allUserCards.some((c) => c.assignedAdminId === session.user.id);
       if (!isCreator && !isCardHolder) {
         return { success: false, message: "Akses ditolak: Anda tidak memiliki izin untuk mengelola outlet ini." };
       }
@@ -369,9 +372,10 @@ export async function toggleUserActiveStatusAction(userId: string): Promise<Acti
 
     // 2. Jika targetUser memiliki outlet, sinkronkan status SEMUA kartu QR yang terhubung ke outlet tersebut!
     let connectedCardCount = 0;
-    if (targetUser.outlet?.id) {
+    const outletIds = userOutlets.map((o) => o.id);
+    if (outletIds.length > 0) {
       const cardResult = await prisma.qrCard.updateMany({
-        where: { outletId: targetUser.outlet.id },
+        where: { outletId: { in: outletIds } },
         data: { status: newStatus ? "ACTIVE" : "INACTIVE" },
       });
       connectedCardCount = cardResult.count;
@@ -393,13 +397,13 @@ export async function toggleUserActiveStatusAction(userId: string): Promise<Acti
       description: `${roleName} "${session.user.name || session.user.fullName}" ${
         newStatus ? "mengaktifkan kembali" : "menonaktifkan"
       } akun "${targetUser.fullName}" (${targetUser.role})${
-        targetUser.outlet
+        userOutlets.length > 0
           ? ` beserta ${connectedCardCount} kartu QR yang terhubung (${newStatus ? "kartu aktif kembali" : "semua kartu dinonaktifkan"})`
           : ""
       }.`,
       targetId: userId,
       targetName: targetUser.fullName,
-      outletId: targetUser.outlet?.id || undefined,
+      outletId: userOutlets[0]?.id || undefined,
       adminId: session.user.role === Role.ADMIN ? session.user.id : (targetUser.createdById || undefined),
       superAdminId: session.user.role === Role.SUPER_ADMIN ? session.user.id : undefined,
     });
@@ -805,10 +809,15 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       return { success: false, message: "Email login wajib menggunakan akun Google (@gmail.com)." };
     }
 
+    const isSuperAdmin = session.user.role === Role.SUPER_ADMIN;
+
     const existingUser = await prisma.user.findUnique({
       where: { email: cleanEmail },
+      include: { outlets: true },
     });
-    if (existingUser) {
+
+    // Hanya Super Admin yang diizinkan mendaftarkan banyak bisnis ke 1 Gmail
+    if (existingUser && !isSuperAdmin) {
       return { success: false, message: `Email "${email}" sudah terdaftar pada akun lain. Gunakan email berbeda.` };
     }
 
@@ -844,17 +853,38 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
     const trialDays = siteSetting?.trialDurationDays ?? 30;
     const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
-    // 4. Buat User + Outlet + Hubungkan ke Kartu QR secara berurutan dengan auto-rollback
-    const newUser = await prisma.user.create({
-      data: {
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        fullName: (fullName || "Pemilik Outlet").trim(),
-        whatsappNumber: safeWa,
-        role: Role.USER,
-        createdById: session.user.id,
-      },
-    });
+    // 4. Buat User baru ATAU sambungkan ke User yang sudah ada (Khusus Super Admin multi-bisnis)
+    let targetUser: any;
+    let isNewUserCreated = false;
+
+    if (existingUser && isSuperAdmin) {
+      const updateData: any = { isActive: true };
+      if (password && password.trim()) {
+        updateData.password = hashedPassword;
+      }
+      if (fullName && fullName.trim() && fullName !== "Pemilik Outlet") {
+        updateData.fullName = fullName.trim();
+      }
+      if (safeWa) {
+        updateData.whatsappNumber = safeWa;
+      }
+      targetUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: updateData,
+      });
+    } else {
+      targetUser = await prisma.user.create({
+        data: {
+          email: cleanEmail,
+          password: hashedPassword,
+          fullName: (fullName || "Pemilik Outlet").trim(),
+          whatsappNumber: safeWa,
+          role: Role.USER,
+          createdById: session.user.id,
+        },
+      });
+      isNewUserCreated = true;
+    }
 
     let newOutlet;
     let updatedCard;
@@ -862,13 +892,13 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
     try {
       newOutlet = await prisma.outlet.create({
         data: {
-          ownerId: newUser.id,
+          ownerId: targetUser.id,
           name: finalOutletName,
           googleReviewUrl: finalReviewUrl,
-          isMember: false,
-          membershipStartedAt: null,
-          membershipExpiresAt: null,
-          hasClaimedFreeTrial: false,
+          isMember: isAutoVip,
+          membershipStartedAt: isAutoVip ? new Date() : null,
+          membershipExpiresAt: isAutoVip ? trialExpiry : null,
+          hasClaimedFreeTrial: isAutoVip,
         },
       });
 
@@ -882,12 +912,14 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         },
       });
     } catch (creationError) {
-      // Auto-rollback user jika ada kegagalan pada outlet atau kartu
-      await prisma.user.delete({ where: { id: newUser.id } }).catch(() => {});
+      // Auto-rollback user jika baru dibuat
+      if (isNewUserCreated && targetUser?.id) {
+        await prisma.user.delete({ where: { id: targetUser.id } }).catch(() => {});
+      }
       throw creationError;
     }
 
-    const result = { user: newUser, outlet: newOutlet, card: updatedCard };
+    const result = { user: targetUser, outlet: newOutlet, card: updatedCard };
 
     try {
       await recordActivityLog({
@@ -895,8 +927,8 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
         userName: session.user.name || session.user.fullName,
         userRole: session.user.role,
         action: "REGISTER_OUTLET",
-        title: "Mendaftarkan Outlet Baru",
-        description: `${session.user.role === Role.ADMIN ? 'Admin Lapangan' : 'Super Admin'} "${session.user.name || session.user.fullName}" mendaftarkan outlet baru "${result.outlet.name}" dan menghubungkannya ke kartu "${code}".`,
+        title: existingUser ? "Menghubungkan Bisnis Baru ke Akun Pemilik" : "Mendaftarkan Outlet Baru",
+        description: `${session.user.role === Role.ADMIN ? 'Admin Lapangan' : 'Super Admin'} "${session.user.name || session.user.fullName}" ${existingUser ? 'menambahkan bisnis baru' : 'mendaftarkan outlet baru'} "${result.outlet.name}" ke akun "${targetUser.fullName}" (${cleanEmail}) dan menghubungkannya ke kartu "${code}".`,
         targetId: result.outlet.id,
         targetName: result.outlet.name,
         outletId: result.outlet.id,
@@ -972,7 +1004,7 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
  */
 export async function checkEmailAvailabilityAction(
   email: string
-): Promise<{ success: boolean; available: boolean; message: string }> {
+): Promise<{ success: boolean; available: boolean; message: string; existingUser?: boolean; userName?: string; outletCount?: number }> {
   try {
     const raw = (email || "").trim().toLowerCase();
     if (!raw) {
@@ -992,12 +1024,31 @@ export async function checkEmailAvailabilityAction(
       return { success: false, available: false, message: "Nama email terlalu pendek (minimal 3 karakter)." };
     }
 
+    const session = await auth().catch(() => null);
+    const isSuperAdmin = session?.user?.role === Role.SUPER_ADMIN;
+
     const existingUser = await prisma.user.findUnique({
       where: { email: raw },
-      select: { id: true },
+      select: {
+        id: true,
+        fullName: true,
+        role: true,
+        outlets: { select: { id: true, name: true } },
+      },
     });
 
     if (existingUser) {
+      if (isSuperAdmin) {
+        return {
+          success: true,
+          available: true,
+          existingUser: true,
+          userName: existingUser.fullName,
+          outletCount: existingUser.outlets.length,
+          message: `Akun ditemukan: "${existingUser.fullName}" (${existingUser.outlets.length} outlet). Bisnis baru akan otomatis dihubungkan ke akun ini!`,
+        };
+      }
+
       return {
         success: true,
         available: false,
@@ -1022,29 +1073,59 @@ export async function deleteOutletUserAction(userId: string): Promise<ActionResu
   try {
     const session = await getSession();
 
-    const targetUser = await prisma.user.findUnique({
+    // Cek apakah parameter userId adalah ID Outlet ATAU ID User
+    let targetOutlet = await prisma.outlet.findUnique({
       where: { id: userId },
       include: {
-        createdBy: {
+        owner: {
           include: {
-            createdBy: true,
-          },
-        },
-        outlet: {
-          include: {
-            qrCards: {
+            createdBy: {
+              include: { createdBy: true },
+            },
+            outlets: {
               include: {
-                assignedAdmin: {
+                qrCards: {
                   include: {
-                    createdBy: true,
+                    assignedAdmin: {
+                      include: { createdBy: true },
+                    },
                   },
                 },
               },
             },
           },
         },
+        qrCards: {
+          include: {
+            assignedAdmin: {
+              include: { createdBy: true },
+            },
+          },
+        },
       },
     });
+
+    let targetUser = targetOutlet
+      ? targetOutlet.owner
+      : await prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            createdBy: {
+              include: { createdBy: true },
+            },
+            outlets: {
+              include: {
+                qrCards: {
+                  include: {
+                    assignedAdmin: {
+                      include: { createdBy: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
 
     if (!targetUser) {
       return { success: false, message: "User/Outlet tidak ditemukan." };
@@ -1055,7 +1136,9 @@ export async function deleteOutletUserAction(userId: string): Promise<ActionResu
       select: { isSuperAdminMaster: true, role: true },
     });
 
-    const targetCards = targetUser.outlet?.qrCards || [];
+    const targetCards = targetOutlet
+      ? targetOutlet.qrCards
+      : (targetUser.outlets?.flatMap((o) => o.qrCards || []) || []);
 
     // Admin bisa hapus user yang dibuat oleh dirinya ATAU outlet yang terhubung ke kartu jatah admin tersebut
     if (session.user.role === Role.ADMIN) {
@@ -1114,22 +1197,44 @@ export async function deleteOutletUserAction(userId: string): Promise<ActionResu
     if (targetCards.length > 1) {
       return {
         success: false,
-        message: `Akses ditolak: Outlet "${targetUser.outlet?.name || targetUser.fullName}" memegang ${targetCards.length} kartu QR (lebih dari 1 kartu). Outlet tidak dapat dihapus, silakan nonaktifkan akun/outlet sebagai gantinya.`,
+        message: `Akses ditolak: Outlet "${targetOutlet?.name || targetUser.fullName}" memegang ${targetCards.length} kartu QR (lebih dari 1 kartu). Outlet tidak dapat dihapus, silakan nonaktifkan akun/outlet sebagai gantinya.`,
       };
     }
 
-    // Unlink semua kartu QR milik outlet ini jika ada
-    if (targetUser.outlet?.id) {
+    const outletNameDeleted = targetOutlet ? targetOutlet.name : (targetUser.outlets?.[0]?.name || targetUser.fullName);
+
+    // Kasus 1: Menghapus 1 outlet spesifik (jika user punya multi outlet atau parameter adalah outletId)
+    if (targetOutlet) {
       await prisma.qrCard.updateMany({
-        where: { outletId: targetUser.outlet.id },
+        where: { outletId: targetOutlet.id },
         data: { outletId: null },
       });
-    }
 
-    // Hapus user (onDelete: Cascade di Prisma akan menghapus Outlet secara otomatis)
-    await prisma.user.delete({
-      where: { id: userId },
-    });
+      await prisma.outlet.delete({
+        where: { id: targetOutlet.id },
+      });
+
+      // Jika user tidak punya outlet lain lagi, hapus juga akun user
+      const remainingOutletsCount = (targetUser.outlets || []).filter((o) => o.id !== targetOutlet!.id).length;
+      if (remainingOutletsCount === 0) {
+        await prisma.user.delete({
+          where: { id: targetUser.id },
+        }).catch(() => {});
+      }
+    } else {
+      // Kasus 2: Menghapus User beserta seluruh outlet miliknya
+      const userOutletIds = (targetUser.outlets || []).map((o) => o.id);
+      if (userOutletIds.length > 0) {
+        await prisma.qrCard.updateMany({
+          where: { outletId: { in: userOutletIds } },
+          data: { outletId: null },
+        });
+      }
+
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+    }
 
     await recordActivityLog({
       userId: session.user.id,
@@ -1137,10 +1242,10 @@ export async function deleteOutletUserAction(userId: string): Promise<ActionResu
       userRole: session.user.role,
       action: "DELETE_OUTLET",
       title: "Menghapus Outlet",
-      description: `${session.user.role === Role.ADMIN ? 'Admin Lapangan' : 'Super Admin'} "${session.user.name || session.user.fullName}" menghapus outlet "${targetUser.outlet?.name || targetUser.fullName}".`,
-      targetId: targetUser.outlet?.id || userId,
-      targetName: targetUser.outlet?.name || targetUser.fullName,
-      outletId: targetUser.outlet?.id || undefined,
+      description: `${session.user.role === Role.ADMIN ? 'Admin Lapangan' : 'Super Admin'} "${session.user.name || session.user.fullName}" menghapus outlet "${outletNameDeleted}".`,
+      targetId: targetOutlet ? targetOutlet.id : userId,
+      targetName: outletNameDeleted,
+      outletId: targetOutlet ? targetOutlet.id : (targetUser.outlets?.[0]?.id || undefined),
       adminId: session.user.role === Role.ADMIN ? session.user.id : undefined,
       superAdminId: session.user.role === Role.SUPER_ADMIN ? session.user.id : undefined,
     });
@@ -1150,7 +1255,7 @@ export async function deleteOutletUserAction(userId: string): Promise<ActionResu
 
     return {
       success: true,
-      message: `Outlet "${targetUser.outlet?.name || targetUser.fullName}" berhasil dihapus dan seluruh kartu QR telah dikembalikan ke status kosong.`,
+      message: `Outlet "${outletNameDeleted}" berhasil dihapus dan seluruh kartu QR telah dikembalikan ke status kosong.`,
     };
   } catch (error) {
     console.error("deleteOutletUserAction error:", error);
@@ -1380,7 +1485,7 @@ export async function deleteBatchOutletUsersAction(userIds: string[]): Promise<A
 
     const users = await prisma.user.findMany({
       where: { id: { in: userIds }, role: Role.USER },
-      include: { outlet: { include: { qrCards: true } } },
+      include: { outlets: { include: { qrCards: true } } },
     });
 
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
@@ -1391,7 +1496,7 @@ export async function deleteBatchOutletUsersAction(userIds: string[]): Promise<A
     let skippedOverQuotaCount = 0;
 
     for (const u of users) {
-      const userCards = u.outlet?.qrCards || [];
+      const userCards = (u.outlets || []).flatMap((o) => o.qrCards || []);
       const hasDemoCard = userCards.some((c) => {
         const cardCode = c.code.toLowerCase().trim();
         return cardCode === "c-001" || demoTarget.includes(cardCode);
@@ -1404,8 +1509,8 @@ export async function deleteBatchOutletUsersAction(userIds: string[]): Promise<A
         continue; // skip outlet with > 1 cards (hanya bisa dinonaktifkan)
       }
       allowedUserIds.push(u.id);
-      if (u.outlet?.id) {
-        outletIdsToUnlink.push(u.outlet.id);
+      for (const o of u.outlets || []) {
+        outletIdsToUnlink.push(o.id);
       }
     }
 
@@ -1425,7 +1530,9 @@ export async function deleteBatchOutletUsersAction(userIds: string[]): Promise<A
       });
     }
 
-    const outletNames = users.map((u) => u.outlet?.name || u.fullName).filter(Boolean);
+    const outletNames = users.flatMap((u) =>
+      u.outlets && u.outlets.length > 0 ? u.outlets.map((o) => o.name) : [u.fullName]
+    ).filter(Boolean);
     const outletSnippet = outletNames.length <= 4 ? outletNames.join(", ") : `${outletNames.slice(0, 4).join(", ")} dan ${outletNames.length - 4} lainnya`;
 
     await recordActivityLog({

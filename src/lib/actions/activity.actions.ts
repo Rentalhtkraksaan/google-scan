@@ -46,15 +46,15 @@ export async function recordActivityLog(params: CreateActivityLogParams): Promis
           role: true,
           createdById: true,
           createdBy: { select: { id: true, role: true, createdById: true } },
-          outlet: { select: { id: true } },
+          outlets: { select: { id: true }, take: 1 },
         },
       });
 
       if (user) {
         resolvedUserName = resolvedUserName || user.fullName;
         resolvedUserRole = resolvedUserRole || user.role;
-        if (!resolvedOutletId && user.outlet) {
-          resolvedOutletId = user.outlet.id;
+        if (!resolvedOutletId && user.outlets?.[0]) {
+          resolvedOutletId = user.outlets[0].id;
         }
 
         // Trace up the hierarchy if not explicitly provided
@@ -149,7 +149,7 @@ export async function getActivityLogsAction(
     const currentUser = await prisma.user.findUnique({
       where: { id: currentUserId },
       include: {
-        outlet: true,
+        outlets: true,
       },
     });
 
@@ -212,13 +212,14 @@ export async function getActivityLogsAction(
     } else {
       // 🏪 USER (Outlet Owner):
       // Pemilik outlet dapat melihat seluruh rekaman log yang terkait dengan outlet dan akunnya sendiri
-      const outlet = currentUser.outlet;
-      if (outlet) {
+      const userOutlets = currentUser.outlets || [];
+      const outletIds = userOutlets.map((o) => o.id);
+      if (outletIds.length > 0) {
         roleWhereClause = {
           OR: [
-            { outletId: outlet.id },
+            { outletId: { in: outletIds } },
             { userId: currentUser.id },
-            { targetId: outlet.id },
+            { targetId: { in: outletIds } },
           ],
         };
       } else {

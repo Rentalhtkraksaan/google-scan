@@ -136,10 +136,17 @@ interface PortalClientViewProps {
     role?: string;
     isSuperAdminMaster?: boolean;
   } | null;
+  allOutlets?: {
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    isMember?: boolean;
+    cardCount?: number;
+  }[];
   siteSetting?: SiteSettingModel;
 }
 
-export function PortalClientView({ user, outlet, adminContact, siteSetting }: PortalClientViewProps) {
+export function PortalClientView({ user, outlet, adminContact, allOutlets = [], siteSetting }: PortalClientViewProps) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<PortalTab>("OVERVIEW");
@@ -151,6 +158,7 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const [isVipExplainerExpanded, setIsVipExplainerExpanded] = useState(true);
+  const [isOutletSwitcherOpen, setIsOutletSwitcherOpen] = useState(false);
 
   // Real-time Outlet & Profile Completeness State
   const [currentOutletName, setCurrentOutletName] = useState(outlet?.name || "");
@@ -1201,9 +1209,66 @@ export function PortalClientView({ user, outlet, adminContact, siteSetting }: Po
                 <ChevronRight className="w-3 h-3 text-slate-600 shrink-0" />
                 <span className="text-slate-300 font-semibold truncate">{getTabTitle(activeTab)}</span>
               </div>
-              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-                {getTabTitle(activeTab)}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+                  {getTabTitle(activeTab)}
+                </h1>
+
+                {/* Multi-Outlet Switcher Badge / Dropdown */}
+                {allOutlets && allOutlets.length > 1 && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsOutletSwitcherOpen(!isOutletSwitcherOpen)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 text-[11px] font-bold transition-all cursor-pointer shadow-sm"
+                      title="Ganti Bisnis / Outlet"
+                    >
+                      <Store className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="truncate max-w-[120px] sm:max-w-[180px]">{outlet.name}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform ${isOutletSwitcherOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isOutletSwitcherOpen && (
+                      <div className="absolute left-0 mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
+                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800/80 mb-1 flex items-center justify-between">
+                          <span>Bisnis Anda ({allOutlets.length})</span>
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                        </div>
+                        <div className="max-h-56 overflow-y-auto space-y-1 custom-scrollbar">
+                          {allOutlets.map((item) => {
+                            const isCurrent = item.id === outlet.id;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setIsOutletSwitcherOpen(false);
+                                  router.push(`/portal?outletId=${item.id}`);
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                                  isCurrent
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                    : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <Store className={`w-3.5 h-3.5 shrink-0 ${isCurrent ? 'text-amber-400' : 'text-slate-500'}`} />
+                                  <span className="truncate">{item.name}</span>
+                                </div>
+                                {item.isMember && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/30 text-amber-300 font-bold shrink-0">
+                                    VIP
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

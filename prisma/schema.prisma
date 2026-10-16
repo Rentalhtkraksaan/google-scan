@@ -52,7 +52,7 @@ model User {
   isResellerUnlocked      Boolean @default(true) // True jika akun sudah dibuka/bayar modul
   resellerVipRewardsClaimed Int   @default(0)    // Total reward diskon kartu dari outlet VIP yang sudah terpakai
 
-  outlet Outlet?
+  outlets Outlet[]
 
   // Kartu QR yang dialokasikan ke Admin ini
   assignedCards QrCard[] @relation("AssignedCards")
@@ -147,7 +147,7 @@ model SiteSetting {
 
 model Outlet {
   id              String   @id @default(cuid())
-  ownerId         String   @unique
+  ownerId         String
   owner           User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name            String
   googleReviewUrl String   @db.Text
@@ -188,6 +188,7 @@ model Outlet {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([ownerId])
   @@index([isMember])
   @@index([isMember, membershipExpiresAt])
   @@index([createdAt])

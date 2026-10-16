@@ -1017,7 +1017,7 @@ export async function getResellerOrdersAction(adminIdFilter?: string) {
             role: true,
             whatsappNumber: true,
             avatarUrl: true,
-            outlet: {
+            outlets: {
               select: {
                 id: true,
                 name: true,
@@ -1516,12 +1516,12 @@ export async function activateRetailOrderAsOutletAction(data: {
     const targetEmail = data.email.toLowerCase().trim();
     const existingUser = await prisma.user.findUnique({
       where: { email: targetEmail },
-      include: { outlet: true },
+      include: { outlets: true },
     });
 
     // Validasi kartu apakah sudah dipakai outlet lain
     for (const card of targetCards) {
-      if (card.outletId && existingUser?.outlet?.id !== card.outletId) {
+      if (card.outletId && !existingUser?.outlets?.some((o) => o.id === card.outletId)) {
         return {
           success: false,
           message: `Kartu "${card.code}" saat ini sudah terpasang di outlet "${card.outlet?.name || card.outletId}". Silakan pilih kartu kosong lainnya.`,
@@ -1556,15 +1556,16 @@ export async function activateRetailOrderAsOutletAction(data: {
         },
       });
 
-      if (existingUser.outlet) {
-        finalOutletId = existingUser.outlet.id;
+      const primaryOutlet = existingUser.outlets?.[0];
+      if (primaryOutlet) {
+        finalOutletId = primaryOutlet.id;
         // Update data outlet
         await prisma.outlet.update({
-          where: { id: existingUser.outlet.id },
+          where: { id: primaryOutlet.id },
           data: {
             name: data.outletName.trim(),
             googleReviewUrl: data.googleReviewUrl.trim(),
-            ...(isAutoVip && !existingUser.outlet.isMember
+            ...(isAutoVip && !primaryOutlet.isMember
               ? {
                   isMember: true,
                   membershipStartedAt: new Date(),
