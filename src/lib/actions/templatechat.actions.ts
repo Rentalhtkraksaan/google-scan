@@ -2,23 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { normalizeWhatsappNumber } from "@/lib/whatsapp-utils";
 
 export type ActionResult<T = unknown> = {
   success: boolean;
   message: string;
   data?: T;
 };
-
-// Normalisasi nomor HP ke standar 628xxx
-export function normalizeWhatsappNumber(raw: string): string {
-  let clean = (raw || "").replace(/[^0-9]/g, "");
-  if (clean.startsWith("0")) {
-    clean = "62" + clean.slice(1);
-  } else if (clean.startsWith("8")) {
-    clean = "62" + clean;
-  }
-  return clean;
-}
 
 // ─── 1. Pengecekan Real-Time Database TiDB ──────────────────────────────────
 

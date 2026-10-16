@@ -42,8 +42,8 @@ import {
   updateChatTemplateAction,
   deleteChatTemplateAction,
   resetDefaultChatTemplatesAction,
-  normalizeWhatsappNumber,
 } from "@/lib/actions/templatechat.actions";
+import { normalizeWhatsappNumber } from "@/lib/whatsapp-utils";
 
 interface ChatTemplateItem {
   id: string;
