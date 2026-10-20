@@ -847,11 +847,10 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
       }
     }
 
-    // Periksa pengaturan otomatis Free Trial VIP untuk outlet baru
+    // Pengaturan Free Trial VIP: VIP TIDAK otomatis aktif saat aktivasi kartu (isMember = false).
+    // Pemilik outlet dapat mengaktifkan free trial secara mandiri dari portal jika diizinkan sistem.
     const siteSetting = await prisma.siteSetting.findUnique({ where: { id: "default" } });
-    const isAutoVip = siteSetting ? (siteSetting.autoVipTrialOnActivation ?? true) : true;
-    const trialDays = siteSetting?.trialDurationDays ?? 30;
-    const trialExpiry = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+    const allowFreeTrial = siteSetting ? (siteSetting.autoVipTrialOnActivation ?? false) : false;
 
     // 4. Buat User baru ATAU sambungkan ke User yang sudah ada (Khusus Super Admin multi-bisnis)
     let targetUser: any;
@@ -895,10 +894,10 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
           ownerId: targetUser.id,
           name: finalOutletName,
           googleReviewUrl: finalReviewUrl,
-          isMember: isAutoVip,
-          membershipStartedAt: isAutoVip ? new Date() : null,
-          membershipExpiresAt: isAutoVip ? trialExpiry : null,
-          hasClaimedFreeTrial: isAutoVip,
+          isMember: false,
+          membershipStartedAt: null,
+          membershipExpiresAt: null,
+          hasClaimedFreeTrial: !allowFreeTrial,
         },
       });
 

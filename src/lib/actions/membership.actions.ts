@@ -422,7 +422,7 @@ export async function updateMembershipSettingsAction(
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : undefined,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
         trialDurationDays: trialDurationDays !== undefined ? trialDurationDays : 30,
-        autoVipTrialOnActivation: autoVipTrialOnActivation !== undefined ? autoVipTrialOnActivation : true,
+        autoVipTrialOnActivation: autoVipTrialOnActivation !== undefined ? autoVipTrialOnActivation : false,
       },
       create: {
         id: "default",
@@ -441,7 +441,7 @@ export async function updateMembershipSettingsAction(
         midtransClientKey: midtransClientKey !== undefined ? midtransClientKey.trim() : null,
         midtransIsProduction: midtransIsProduction !== undefined ? midtransIsProduction : false,
         trialDurationDays: trialDurationDays !== undefined ? trialDurationDays : 30,
-        autoVipTrialOnActivation: autoVipTrialOnActivation !== undefined ? autoVipTrialOnActivation : true,
+        autoVipTrialOnActivation: autoVipTrialOnActivation !== undefined ? autoVipTrialOnActivation : false,
       },
     });
 

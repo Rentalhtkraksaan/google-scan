@@ -114,7 +114,7 @@ export function MembershipManagementModal({
   // Tab Settings State
   const [price, setPrice] = useState(siteSetting?.membershipPrice || 45000);
   const [trialDurationDays, setTrialDurationDays] = useState(siteSetting?.trialDurationDays ?? 30);
-  const [autoVipTrialOnActivation, setAutoVipTrialOnActivation] = useState(siteSetting?.autoVipTrialOnActivation ?? true);
+  const [autoVipTrialOnActivation, setAutoVipTrialOnActivation] = useState(siteSetting?.autoVipTrialOnActivation ?? false);
   const [bankName, setBankName] = useState(siteSetting?.membershipBankName || siteSetting?.resellerBankName || "BNI");
   const [accountNumber, setAccountNumber] = useState(siteSetting?.membershipAccountNumber || siteSetting?.resellerAccountNumber || "1234567890");
   const [accountName, setAccountName] = useState(siteSetting?.membershipAccountName || siteSetting?.resellerAccountName || "Smart QR Review");

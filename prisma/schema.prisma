@@ -116,7 +116,7 @@ model SiteSetting {
   midtransIsProduction     Boolean  @default(false)
   midtransAdminFee         Int      @default(4000) // Biaya Layanan / Admin Midtrans yang dibebankan ke pembeli (default Rp 4.000)
   trialDurationDays        Int      @default(30)
-  autoVipTrialOnActivation Boolean  @default(true)
+  autoVipTrialOnActivation Boolean  @default(false)
 
   // Reseller Module & Pricing Settings
   resellerModulePrice        Int      @default(150000)

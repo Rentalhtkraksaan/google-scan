@@ -1565,13 +1565,6 @@ export async function activateRetailOrderAsOutletAction(data: {
           data: {
             name: data.outletName.trim(),
             googleReviewUrl: data.googleReviewUrl.trim(),
-            ...(isAutoVip && !primaryOutlet.isMember
-              ? {
-                  isMember: true,
-                  membershipStartedAt: new Date(),
-                  membershipExpiresAt: trialExpiry,
-                }
-              : {}),
           },
         });
       } else {
