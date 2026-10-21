@@ -112,7 +112,7 @@ export function EditAdminModal({ admin, onClose, onSuccess }: EditAdminModalProp
               <input
                 type="email"
                 required
-                maxLength={30}
+                maxLength={50}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@email.com"

@@ -163,7 +163,7 @@ export function LoginForm() {
                 autoComplete="username"
                 type="email"
                 required
-                maxLength={30}
+                maxLength={50}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"

@@ -359,7 +359,7 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
                 <input
                   type="email"
                   required
-                  maxLength={30}
+                  maxLength={50}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="pemilik@gmail.com"

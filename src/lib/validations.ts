@@ -17,7 +17,7 @@ export const loginSchema = z.union([
     email: z
       .string()
       .email("Email tidak valid")
-      .max(30, "Email maksimal 30 karakter")
+      .max(50, "Email maksimal 50 karakter")
       .refine(
         (val) => !/[<>"'`;%${}()[\]\\]/.test(val) && !val.toLowerCase().includes(".php"),
         { message: "Format email tidak valid atau mengandung karakter dilarang" }
@@ -30,7 +30,7 @@ export const loginSchema = z.union([
   }),
   z.object({
     loginType: z.literal("password").optional(),
-    email: z.string().email("Email tidak valid").max(30, "Email maksimal 30 karakter"),
+    email: z.string().email("Email tidak valid").max(50, "Email maksimal 50 karakter"),
     password: z.string().min(1, "Password wajib diisi"),
   }),
 ]);
@@ -40,7 +40,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 // ─── Admin Creation ─────────────────────────────────────────────────────────
 
 export const createAdminSchema = z.object({
-  email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
+  email: z.string().email("Format email tidak valid").max(50, "Email maksimal 50 karakter"),
   password: strongPassword,
   fullName: z.string().min(2, "Nama minimal 2 karakter").max(100),
   whatsappNumber: z
@@ -55,7 +55,7 @@ export const createAdminSchema = z.object({
 export type CreateAdminInput = z.infer<typeof createAdminSchema>;
 
 export const createSuperAdminSchema = z.object({
-  email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
+  email: z.string().email("Format email tidak valid").max(50, "Email maksimal 50 karakter"),
   password: strongPassword,
   fullName: z.string().min(2, "Nama minimal 2 karakter").max(100),
   whatsappNumber: z
@@ -85,7 +85,7 @@ export const registerOutletSchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? val.trim() : "")),
-  email: z.string().email("Format email tidak valid").max(30, "Email maksimal 30 karakter"),
+  email: z.string().email("Format email tidak valid").max(50, "Email maksimal 50 karakter"),
   password: strongPassword,
   outletName: z
     .string()

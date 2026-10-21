@@ -759,7 +759,7 @@ Silakan login untuk melengkapi nama toko & nomor WhatsApp Anda, serta mengaktifk
                       <input
                         type="email"
                         required
-                        maxLength={30}
+                        maxLength={50}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="pemilik.toko@gmail.com"

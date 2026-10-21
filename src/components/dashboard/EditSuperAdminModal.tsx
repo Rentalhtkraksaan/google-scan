@@ -116,7 +116,7 @@ export function EditSuperAdminModal({ admin, onClose, onSuccess }: EditSuperAdmi
               <input
                 type="email"
                 required
-                maxLength={30}
+                maxLength={50}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin2@email.com"

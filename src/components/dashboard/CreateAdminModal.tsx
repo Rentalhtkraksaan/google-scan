@@ -118,7 +118,7 @@ export function CreateAdminModal({ onClose, onSuccess }: CreateAdminModalProps) 
                   type="email"
                   name="email"
                   required
-                  maxLength={30}
+                  maxLength={50}
                   placeholder="admin.jaksel@example.com"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
                 />
