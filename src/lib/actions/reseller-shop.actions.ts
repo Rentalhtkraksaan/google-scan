@@ -338,10 +338,11 @@ export async function createResellerOrderAction(data: {
   paymentMethod: "MIDTRANS_QRIS" | "MANUAL_BANK_BNI";
   receiptImageUrl?: string;
   affiliateCode?: string;
+  isPublicRegistration?: boolean;
 }) {
   try {
     const session = await auth();
-    const isAdminUser = session && session.user && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN");
+    const isAdminUser = !data.isPublicRegistration && session && session.user && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN");
 
     // Sanitasi input teks dari script injection / phishing PHP
     const sanitizedName = sanitizeInputText(data.customerName, 80);

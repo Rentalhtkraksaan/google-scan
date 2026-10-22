@@ -404,6 +404,7 @@ export function PublicResellerRegistrationModal({
         affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim() || undefined),
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
+        isPublicRegistration: true,
       });
 
       if (!res.success || !res.order) {
