@@ -20,7 +20,7 @@ export async function validateAffiliateReferralCodeAction(rawCode: string) {
       return { success: false, message: "Kode referral tidak boleh kosong." };
     }
 
-    const cleanCode = rawCode.trim().toUpperCase();
+    const cleanCode = rawCode.trim().slice(0, 12).toUpperCase();
     const affiliate = await prisma.affiliateAccount.findUnique({
       where: { referralCode: cleanCode },
     });
@@ -90,12 +90,12 @@ export async function registerAffiliateAccountAction(data: {
       return { success: false, message: "Email sudah terdaftar sebagai affiliate. Silakan gunakan email lain." };
     }
 
-    // Buat Kode Referral Unik jika tidak ditentukan
-    let referralCode = data.customReferralCode?.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") || "";
+    // Buat Kode Referral Unik jika tidak ditentukan (Maksimal 12 karakter)
+    let referralCode = data.customReferralCode?.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) || "";
     if (!referralCode) {
       const namePart = data.fullName.trim().replace(/[^a-zA-Z]/g, "").slice(0, 4).toUpperCase();
       const randNum = Math.floor(100 + Math.random() * 900);
-      referralCode = `${namePart}${randNum}`;
+      referralCode = `${namePart}${randNum}`.slice(0, 12);
     }
 
     // Pastikan kode referral unik
@@ -104,7 +104,7 @@ export async function registerAffiliateAccountAction(data: {
     });
 
     if (existingCode) {
-      referralCode = `${referralCode}${Math.floor(10 + Math.random() * 90)}`;
+      referralCode = `${referralCode.slice(0, 9)}${Math.floor(100 + Math.random() * 900)}`.slice(0, 12);
     }
 
     const followers = Number(data.followersCount) || 0;

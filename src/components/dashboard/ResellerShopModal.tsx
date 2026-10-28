@@ -104,65 +104,134 @@ export function ResellerShopModal({
     message?: string;
   } | null>(null);
 
-  // Ambil Lokasi Saat Ini (GPS) & Reverse Geocoding ke Alamat Singkat (Maks 75 karakter)
-  const handleGetCurrentLocation = () => {
+  // Ambil Alamat dari Koordinat via OpenStreetMap Nominatim
+  const fetchAddressFromCoords = async (lat: number, lon: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,
+        { headers: { "Accept-Language": "id" } }
+      );
+      if (!response.ok) return "";
+      const data = await response.json();
+      if (data.address) {
+        const addr = data.address;
+        const road = addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood || "";
+        const village = addr.village || addr.subdistrict || addr.city_district || "";
+        const city = addr.city || addr.town || addr.county || "";
+        const state = addr.state || "";
+        const post = addr.postcode ? ` ${addr.postcode}` : "";
+        const parts = [road, village, city, state].filter(Boolean);
+        return parts.join(", ") + post;
+      }
+      return data.display_name || "";
+    } catch {
+      return "";
+    }
+  };
+
+  // Fallback Geolocation dari Jaringan IP jika GPS browser ditolak atau tidak didukung
+  const fetchLocationFromIP = async (): Promise<{ address: string } | null> => {
+    try {
+      const res = await fetch("https://ipwho.is/");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success) {
+          if (data.latitude && data.longitude) {
+            const nominatimAddr = await fetchAddressFromCoords(data.latitude, data.longitude);
+            if (nominatimAddr) {
+              return { address: nominatimAddr };
+            }
+          }
+          const parts = [data.city, data.region, data.country].filter(Boolean);
+          const post = data.postal ? ` ${data.postal}` : "";
+          return { address: parts.join(", ") + post };
+        }
+      }
+    } catch (e) {
+      console.warn("ipwho fallback error:", e);
+    }
+
+    try {
+      const res2 = await fetch("https://ipapi.co/json/");
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (data2 && data2.city) {
+          const parts = [data2.city, data2.region, data2.country_name].filter(Boolean);
+          const post = data2.postal ? ` ${data2.postal}` : "";
+          return { address: parts.join(", ") + post };
+        }
+      }
+    } catch (e2) {
+      console.warn("ipapi fallback error:", e2);
+    }
+    return null;
+  };
+
+  // Ambil Lokasi Saat Ini (GPS Akurat dengan Fallback Otomatis ke Jaringan IP)
+  const handleGetCurrentLocation = async () => {
+    setIsLocating(true);
+
+    const applyAddress = (rawAddress: string, source: "GPS" | "IP") => {
+      const trimmed = rawAddress.slice(0, 150).trim();
+      setShippingAddress(trimmed);
+      if (source === "GPS") {
+        showSuccessAlert(
+          "Lokasi GPS Berhasil Terdeteksi 📍",
+          `Alamat otomatis diisi: "${trimmed}". Anda dapat melengkapi nomor jalan/rumah.`
+        );
+      } else {
+        showSuccessAlert(
+          "Lokasi Berhasil Terdeteksi 🌐",
+          `Alamat otomatis diisi: "${trimmed}". (Terdeteksi dari jaringan/sinyal. Silakan lengkapi nomor jalan jika perlu)`
+        );
+      }
+    };
+
+    const tryIpFallback = async () => {
+      try {
+        const ipResult = await fetchLocationFromIP();
+        if (ipResult && ipResult.address) {
+          applyAddress(ipResult.address, "IP");
+          return;
+        }
+      } catch (err) {
+        console.error("IP fallback error:", err);
+      }
+      showErrorAlert(
+        "Akses Lokasi Diblokir Browser 🔒",
+        "Browser atau perangkat memblokir izin lokasi. Silakan klik ikon gembok 🔒 di address bar browser untuk 'Izinkan Lokasi', atau ketik alamat secara manual."
+      );
+    };
+
     if (typeof window === "undefined" || !navigator.geolocation) {
-      showErrorAlert("GPS Tidak Didukung", "Browser perangkat Anda tidak mendukung akses lokasi GPS.");
+      await tryIpFallback();
+      setIsLocating(false);
       return;
     }
 
-    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
-            { headers: { "Accept-Language": "id" } }
-          );
-          if (!response.ok) throw new Error("Gagal mengambil data alamat");
-          const data = await response.json();
-
-          let addressStr = "";
-          if (data.address) {
-            const addr = data.address;
-            const road = addr.road || addr.pedestrian || addr.suburb || "";
-            const district = addr.subdistrict || addr.city_district || addr.village || "";
-            const city = addr.city || addr.town || addr.county || "";
-            const post = addr.postcode ? ` ${addr.postcode}` : "";
-            const parts = [road, district, city].filter(Boolean);
-            addressStr = parts.join(", ") + post;
-          }
-
-          if (!addressStr && data.display_name) {
-            addressStr = data.display_name;
-          }
-
-          if (addressStr) {
-            const trimmed = addressStr.slice(0, 75).trim();
-            setShippingAddress(trimmed);
-            showSuccessAlert("Lokasi Berhasil Terdeteksi 📍", `Alamat otomatis diisi: "${trimmed}"`);
+          const address = await fetchAddressFromCoords(latitude, longitude);
+          if (address) {
+            applyAddress(address, "GPS");
           } else {
-            showErrorAlert("Lokasi Ditemukan", "Tidak dapat membaca nama jalan, silakan ketik alamat manual.");
+            await tryIpFallback();
           }
-        } catch (err) {
-          console.error("Geocoding error:", err);
-          showErrorAlert("Gagal Menemukan Alamat", "Tidak dapat mengonversi koordinat GPS ke alamat. Silakan ketik manual.");
+        } catch {
+          await tryIpFallback();
         } finally {
           setIsLocating(false);
         }
       },
-      (error) => {
+      async (error) => {
+        console.warn("Geolocation GPS error:", error.code, error.message);
+        // Jika izin lokasi ditolak browser/perangkat atau timeout, langsung gunakan fallback IP agar pengguna tidak gagal!
+        await tryIpFallback();
         setIsLocating(false);
-        let errMsg = "Pastikan izin akses lokasi/GPS diaktifkan di browser HP Anda.";
-        if (error.code === error.PERMISSION_DENIED) {
-          errMsg = "Izin akses lokasi ditolak oleh browser/pengguna.";
-        } else if (error.code === error.TIMEOUT) {
-          errMsg = "Waktu pencarian lokasi habis (timeout).";
-        }
-        showErrorAlert("Gagal Mengambil Lokasi", errMsg);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
     );
   };
 
@@ -195,7 +264,7 @@ export function ResellerShopModal({
       showErrorAlert("Input Ditolak ⚠️", "Alamat tidak boleh mengandung format skrip atau kode PHP berbahaya.");
       return;
     }
-    setShippingAddress(val.replace(/<[^>]*>?/gm, "").slice(0, 75));
+    setShippingAddress(val.replace(/<[^>]*>?/gm, "").slice(0, 150));
   };
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,7 +277,7 @@ export function ResellerShopModal({
   };
 
   const handleReferralChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase().slice(0, 20);
+    const val = e.target.value.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase().slice(0, 12);
     setReferralCode(val);
     if (referralStatus) setReferralStatus(null);
   };
@@ -531,9 +600,9 @@ export function ResellerShopModal({
         customerPhone: finalPhone.slice(0, 16),
         customerEmail: finalEmail.slice(0, 50),
         province: province || "Pengiriman Ditanggung Pembeli (COD)",
-        shippingAddress: shippingAddress.trim().slice(0, 75) || undefined,
+        shippingAddress: shippingAddress.trim().slice(0, 150) || undefined,
         notes: notes.trim().slice(0, 50) || undefined,
-        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim().slice(0, 20) || undefined),
+        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim().slice(0, 12) || undefined),
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
       });
@@ -1039,7 +1108,7 @@ export function ResellerShopModal({
                         <div className="sm:col-span-2 space-y-1">
                           <div className="flex items-center justify-between">
                             <label className="text-[11px] font-semibold text-slate-300">
-                              Alamat Lengkap Pengiriman * <span className="text-[10px] text-slate-400">(Maks 75 huruf)</span>
+                              Alamat Lengkap Pengiriman * <span className="text-[10px] text-slate-400">(Maks 150 huruf)</span>
                             </label>
                             <button
                               type="button"
@@ -1055,7 +1124,7 @@ export function ResellerShopModal({
                               ) : (
                                 <>
                                   <MapPin className="w-3 h-3 text-indigo-400" />
-                                  <span>📍 Ambil Lokasi Saat Ini (GPS)</span>
+                                  <span>📍 Ambil Lokasi Saat Ini (GPS/IP)</span>
                                 </>
                               )}
                             </button>
@@ -1064,16 +1133,16 @@ export function ResellerShopModal({
                             <textarea
                               required
                               rows={2}
-                              maxLength={75}
+                              maxLength={150}
                               value={shippingAddress}
                               onChange={handleAddressChange}
-                              placeholder="Ketik alamat atau klik Ambil Lokasi GPS (Maksimal 75 karakter)"
+                              placeholder="Ketik alamat atau klik Ambil Lokasi (Maksimal 150 karakter)"
                               className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
                             />
                             <span className={`absolute right-2.5 bottom-2 text-[10px] font-mono ${
-                              shippingAddress.length >= 70 ? "text-amber-400 font-bold" : "text-slate-500"
+                              shippingAddress.length >= 140 ? "text-amber-400 font-bold" : "text-slate-500"
                             }`}>
-                              {shippingAddress.length}/75
+                              {shippingAddress.length}/150
                             </span>
                           </div>
                         </div>
@@ -1348,12 +1417,10 @@ export function ResellerShopModal({
                         <div className="flex gap-2">
                           <input
                             type="text"
+                            maxLength={12}
                             value={referralCode}
-                            onChange={(e) => {
-                              setReferralCode(e.target.value.toUpperCase());
-                              if (referralStatus) setReferralStatus(null);
-                            }}
-                            placeholder="Masukkan kode referral jika ada..."
+                            onChange={handleReferralChange}
+                            placeholder="Masukkan kode referral (Maks 12 huruf)..."
                             className="flex-1 px-3 py-2 bg-slate-900 border border-slate-800 focus:border-purple-500 rounded-xl text-xs text-white font-mono uppercase placeholder-slate-600 outline-none"
                           />
                           <button

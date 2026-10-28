@@ -395,7 +395,7 @@ export async function createResellerOrderAction(data: {
     const sanitizedName = sanitizeInputText(data.customerName, 50);
     const sanitizedPhone = sanitizeInputText(data.customerPhone, 16).replace(/[^0-9+]/g, "");
     const sanitizedEmail = sanitizeInputText(data.customerEmail, 50).toLowerCase();
-    const sanitizedAddress = sanitizeInputText(data.shippingAddress, 75);
+    const sanitizedAddress = sanitizeInputText(data.shippingAddress, 150);
     const sanitizedNotes = sanitizeInputText(data.notes, 50);
 
     if (data.receiptImageUrl && !validateReceiptImage(data.receiptImageUrl)) {
@@ -485,7 +485,7 @@ export async function createResellerOrderAction(data: {
     let shippingDiscount = 0;
 
     if (data.affiliateCode && data.affiliateCode.trim()) {
-      const cleanRef = data.affiliateCode.trim().toUpperCase();
+      const cleanRef = data.affiliateCode.trim().slice(0, 12).toUpperCase();
       const affiliate = await prisma.affiliateAccount.findUnique({
         where: { referralCode: cleanRef },
       });
