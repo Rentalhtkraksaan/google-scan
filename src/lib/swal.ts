@@ -372,5 +372,40 @@ export const showWelcomeAlert = (fullName: string, roleName: string) => {
   });
 };
 
+/**
+ * Pop-up hasil deteksi lokasi GPS / Jaringan dengan instruksi untuk melengkapi secara manual
+ */
+export const showLocationSuccessModal = (detectedAddress: string) => {
+  return Swal.fire({
+    icon: "info",
+    title: "📍 Lokasi Berhasil Dideteksi!",
+    html: `
+      <div style="text-align: left; line-height: 1.6; font-size: 13px; color: #cbd5e1; margin-top: 6px;">
+        <div style="background: rgba(15,23,42,0.85); padding: 12px 14px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 12px;">
+          <span style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 3px; font-weight: 600;">Alamat Terisi Otomatis:</span>
+          <strong style="color: #38bdf8; word-break: break-word; font-size: 12px; line-height: 1.5; display: block;">"${detectedAddress}"</strong>
+        </div>
+        <div style="background: rgba(245,158,11,0.12); padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(245,158,11,0.35); color: #fde68a;">
+          <strong style="color: #fbbf24; font-size: 12.5px; display: block; margin-bottom: 4px;">⚠️ Harap Periksa & Lengkapi:</strong>
+          <p style="margin: 0; font-size: 11.5px; line-height: 1.5; color: #fef3c7;">
+            Deteksi otomatis koordinat GPS terkadang kurang presisi atau belum mencakup nomor rumah. <strong>Silakan cek dan sesuaikan secara manual</strong> (tambahkan No. Rumah, RT/RW, atau Patokan terdekat) agar kurir dapat mengantar paket dengan tepat.
+          </p>
+        </div>
+      </div>
+    `,
+    confirmButtonText: "Siap, Saya Cek & Lengkapi 👍",
+    confirmButtonColor: "#4f46e5",
+    background: "#0f172a",
+    color: "#f8fafc",
+    iconColor: "#38bdf8",
+    backdrop: `rgba(15, 23, 42, 0.8)`,
+    customClass: {
+      popup: "border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl",
+      title: "text-base font-bold text-slate-100",
+      confirmButton: "px-6 py-2.5 rounded-xl font-bold text-xs cursor-pointer shadow-lg",
+    },
+  });
+};
+
 export default Swal;
 

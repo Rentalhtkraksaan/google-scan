@@ -31,7 +31,7 @@ import {
   ShieldCheck,
   Tag,
 } from "lucide-react";
-import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
+import { showSuccessAlert, showErrorAlert, showLocationSuccessModal } from "@/lib/swal";
 import {
   getResellerProductsAction,
   createResellerOrderAction,
@@ -98,12 +98,14 @@ export function PublicResellerRegistrationModal({
       const data = await response.json();
       if (data.address) {
         const addr = data.address;
-        const road = addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood || "";
+        const houseNum = addr.house_number ? `No. ${addr.house_number}` : "";
+        const road = addr.road || addr.street || addr.pedestrian || addr.suburb || addr.neighbourhood || "";
+        const roadFull = [road, houseNum].filter(Boolean).join(" ");
         const village = addr.village || addr.subdistrict || addr.city_district || "";
         const city = addr.city || addr.town || addr.county || "";
         const state = addr.state || "";
         const post = addr.postcode ? ` ${addr.postcode}` : "";
-        const parts = [road, village, city, state].filter(Boolean);
+        const parts = [roadFull, village, city, state].filter(Boolean);
         return parts.join(", ") + post;
       }
       return data.display_name || "";
@@ -150,31 +152,21 @@ export function PublicResellerRegistrationModal({
     return null;
   };
 
-  // Ambil Lokasi Saat Ini (GPS Akurat dengan Fallback Otomatis ke Jaringan IP)
+  // Ambil Lokasi Saat Ini (GPS Akurat Presisi Tinggi dengan Fallback Otomatis ke Jaringan IP)
   const handleGetCurrentLocation = async () => {
     setIsLocating(true);
 
-    const applyAddress = (rawAddress: string, source: "GPS" | "IP") => {
+    const applyAddress = (rawAddress: string) => {
       const trimmed = rawAddress.slice(0, 150).trim();
       setShippingAddress(trimmed);
-      if (source === "GPS") {
-        showSuccessAlert(
-          "Lokasi GPS Berhasil Terdeteksi 📍",
-          `Alamat otomatis diisi: "${trimmed}". Anda dapat melengkapi nomor jalan/rumah.`
-        );
-      } else {
-        showSuccessAlert(
-          "Lokasi Berhasil Terdeteksi 🌐",
-          `Alamat otomatis diisi: "${trimmed}". (Terdeteksi dari jaringan/sinyal. Silakan lengkapi nomor jalan jika perlu)`
-        );
-      }
+      showLocationSuccessModal(trimmed);
     };
 
     const tryIpFallback = async () => {
       try {
         const ipResult = await fetchLocationFromIP();
         if (ipResult && ipResult.address) {
-          applyAddress(ipResult.address, "IP");
+          applyAddress(ipResult.address);
           return;
         }
       } catch (err) {
@@ -198,7 +190,7 @@ export function PublicResellerRegistrationModal({
           const { latitude, longitude } = position.coords;
           const address = await fetchAddressFromCoords(latitude, longitude);
           if (address) {
-            applyAddress(address, "GPS");
+            applyAddress(address);
           } else {
             await tryIpFallback();
           }
@@ -214,7 +206,7 @@ export function PublicResellerRegistrationModal({
         await tryIpFallback();
         setIsLocating(false);
       },
-      { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -1153,22 +1145,22 @@ export function PublicResellerRegistrationModal({
                     </div>
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300">Wilayah Tujuan (Pengiriman Ditanggung Pembeli) *</label>
-                    <select
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
-                    >
-                      <option value="Jawa Timur & Bali (Ongkir Ditanggung Pembeli)">🚚 Jawa Timur & Bali (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
-                      <option value="Jawa Tengah & DIY (Ongkir Ditanggung Pembeli)">🚚 Jawa Tengah & D.I. Yogyakarta (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
-                      <option value="Jawa Barat, DKI & Banten (Ongkir Ditanggung Pembeli)">🚚 Jawa Barat, DKI Jakarta & Banten (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
-                      <option value="Luar Pulau Jawa (Ongkir Ditanggung Pembeli)">🚚 Luar Pulau Jawa (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
-                      <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Ambil Sendiri / Bayar Ongkir Langsung ke Kurir (COD)</option>
-                    </select>
-                    <p className="text-[10px] text-amber-400/90 mt-0.5">
-                      ℹ️ Ongkos kirim sepenuhnya ditanggung pembeli dan dibayarkan langsung saat paket tiba (COD).
-                    </p>
+                  {/* Keterangan Ongkir Ditanggung Pembeli (COD) */}
+                  <div className="sm:col-span-2 p-3.5 bg-indigo-500/10 border border-indigo-500/25 rounded-2xl flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white">Biaya Ongkos Kirim (COD)</span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Sepenuhnya Ditanggung Pembeli
+                        </span>
+                      </div>
+                      <p className="text-slate-400 text-[11px] leading-relaxed">
+                        Ongkos kirim sepenuhnya ditanggung oleh pembeli dan dibayarkan secara langsung ke pihak kurir ekspedisi saat paket tiba di alamat tujuan.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="sm:col-span-2 space-y-1">
@@ -1211,6 +1203,12 @@ export function PublicResellerRegistrationModal({
                         {shippingAddress.length}/150
                       </span>
                     </div>
+                    <p className="text-[11px] text-amber-400/90 flex items-start gap-1.5 mt-1 leading-relaxed">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
+                      <span>
+                        <strong>Catatan:</strong> Deteksi lokasi otomatis kadang kurang presisi. Silakan cek & lengkapi manual (tambahkan No. Rumah, RT/RW, atau Patokan terdekat).
+                      </span>
+                    </p>
                   </div>
 
                   <div className="sm:col-span-2 space-y-1">
