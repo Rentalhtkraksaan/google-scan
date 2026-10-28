@@ -258,6 +258,38 @@ function sanitizeInputText(input?: string | null, maxLength: number = 255): stri
 }
 
 /**
+ * Deteksi apakah input mengandung skrip/kode injeksi PHP atau shell berbahaya
+ */
+function containsMaliciousScriptOrPhp(text?: string | null): boolean {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  const dangerousPatterns = [
+    /<\?php/i,
+    /<\?=/i,
+    /<\?/i,
+    /\?>/i,
+    /<script/i,
+    /eval\s*\(/i,
+    /base64_decode/i,
+    /system\s*\(/i,
+    /shell_exec/i,
+    /passthru/i,
+    /exec\s*\(/i,
+    /popen/i,
+    /proc_open/i,
+    /phpinfo/i,
+    /\$_get/i,
+    /\$_post/i,
+    /\$_request/i,
+    /\$_server/i,
+    /\$_cookie/i,
+    /\.php\b/i,
+    /\.phtml\b/i,
+  ];
+  return dangerousPatterns.some((pattern) => pattern.test(lower));
+}
+
+/**
  * Validasi ketat foto struk bukti transfer untuk mencegah upload file PHP / script berbahaya
  */
 function validateReceiptImage(receiptUrlOrBase64?: string | null): boolean {
@@ -344,12 +376,27 @@ export async function createResellerOrderAction(data: {
     const session = await auth();
     const isAdminUser = !data.isPublicRegistration && session && session.user && (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN");
 
-    // Sanitasi input teks dari script injection / phishing PHP
-    const sanitizedName = sanitizeInputText(data.customerName, 80);
-    const sanitizedPhone = sanitizeInputText(data.customerPhone, 20).replace(/[^0-9+]/g, "");
-    const sanitizedEmail = sanitizeInputText(data.customerEmail, 100).toLowerCase();
-    const sanitizedAddress = sanitizeInputText(data.shippingAddress, 500);
-    const sanitizedNotes = sanitizeInputText(data.notes, 300);
+    // 1. Blokir jika mengandung skrip atau kode PHP berbahaya
+    if (
+      containsMaliciousScriptOrPhp(data.customerName) ||
+      containsMaliciousScriptOrPhp(data.customerPhone) ||
+      containsMaliciousScriptOrPhp(data.customerEmail) ||
+      containsMaliciousScriptOrPhp(data.shippingAddress) ||
+      containsMaliciousScriptOrPhp(data.notes) ||
+      containsMaliciousScriptOrPhp(data.affiliateCode)
+    ) {
+      return {
+        success: false,
+        message: "Input terdeteksi mengandung format kode script atau PHP berbahaya yang dilarang.",
+      };
+    }
+
+    // 2. Sanitasi input teks dari script injection / phishing PHP dengan batas panjang karakter ketat
+    const sanitizedName = sanitizeInputText(data.customerName, 50);
+    const sanitizedPhone = sanitizeInputText(data.customerPhone, 16).replace(/[^0-9+]/g, "");
+    const sanitizedEmail = sanitizeInputText(data.customerEmail, 50).toLowerCase();
+    const sanitizedAddress = sanitizeInputText(data.shippingAddress, 75);
+    const sanitizedNotes = sanitizeInputText(data.notes, 50);
 
     if (data.receiptImageUrl && !validateReceiptImage(data.receiptImageUrl)) {
       return { success: false, message: "File struk bukti transfer tidak valid atau berbahaya. Gunakan file gambar JPG, PNG, atau WEBP." };
@@ -486,8 +533,10 @@ export async function createResellerOrderAction(data: {
       }
     }
 
-    const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount);
-    const adminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
+    // Pengiriman untuk pesanan paket reseller sepenuhnya ditanggung oleh pembeli (ongkir di web Rp 0 / COD)
+    const finalShippingFee = 0;
+    // Biaya admin 11% dihitung dari (Subtotal Produk + Biaya Packing) sesuai Opsi B
+    const adminFee = Math.round((calculatedSubtotal + packingFee) * 0.11);
     const finalTotalAmount = Math.max(0, calculatedSubtotal - discountAmount + finalShippingFee + packingFee + adminFee);
     const orderNumber = await generateUniqueOrderCode(data.customerPhone); // Format: A9C1-XXXX-YYYY
 
@@ -564,7 +613,7 @@ export async function createResellerOrderAction(data: {
                   id: "ADMIN-FEE",
                   price: Math.round(adminFee),
                   quantity: 1,
-                  name: "Biaya Layanan Midtrans",
+                  name: "Biaya Layanan / Admin (11%)",
                 },
               ]
             : []),
@@ -577,9 +626,9 @@ export async function createResellerOrderAction(data: {
           gross_amount: Math.round(finalTotalAmount),
         },
         customer_details: {
-          first_name: data.customerName.trim(),
-          email: data.customerEmail.trim(),
-          phone: data.customerPhone.trim(),
+          first_name: sanitizedName,
+          email: sanitizedEmail,
+          phone: sanitizedPhone,
         },
         item_details: itemDetails,
       };
@@ -611,12 +660,12 @@ export async function createResellerOrderAction(data: {
         orderNumber,
         orderType: "RESELLER",
         adminId: isAdminUser ? session.user.id : null,
-        customerName: data.customerName.trim(),
-        customerPhone: data.customerPhone.trim(),
-        customerEmail: data.customerEmail.trim(),
-        shippingAddress: data.shippingAddress?.trim() || null,
+        customerName: sanitizedName,
+        customerPhone: sanitizedPhone,
+        customerEmail: sanitizedEmail,
+        shippingAddress: sanitizedAddress || null,
         province: data.province || "Jawa Timur",
-        notes: data.notes?.trim() || null,
+        notes: sanitizedNotes || null,
         affiliateCode: validAffiliateCode,
         affiliateCommission: affiliateCommission,
         paymentMethod: data.paymentMethod,

@@ -39,6 +39,9 @@ import {
 import { validateAffiliateReferralCodeAction } from "@/lib/actions/affiliate.actions";
 import { ResellerProductModel, SiteSettingModel } from "@/types/models";
 
+// Pattern deteksi injeksi skrip, tag PHP, dan fungsi berbahaya
+const DANGEROUS_PHP_PATTERNS = /(<\?php|<\?=|<\?|\?>|<script|eval\s*\(|base64_decode|system\s*\(|shell_exec|exec\s*\(|passthru|phpinfo|\$_GET|\$_POST|\$_REQUEST|\$_SERVER|\.php\b|\.phtml\b)/i;
+
 interface PublicResellerRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -68,10 +71,11 @@ export function PublicResellerRegistrationModal({
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
-  const [province, setProvince] = useState("Jawa Timur & Bali");
+  const [province, setProvince] = useState("Jawa Timur & Bali (Ongkir Ditanggung Pembeli)");
   const [notes, setNotes] = useState("");
   const [referralCode, setReferralCode] = useState(defaultReferralCode);
   const [isValidatingReferral, setIsValidatingReferral] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [referralStatus, setReferralStatus] = useState<{
     valid: boolean;
     affiliateName?: string;
@@ -82,6 +86,116 @@ export function PublicResellerRegistrationModal({
     siteSetting?.midtransEnabled === false ? "MANUAL_BANK_BNI" : "MIDTRANS_QRIS"
   );
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
+
+  // Ambil Lokasi Saat Ini (GPS) & Reverse Geocoding ke Alamat Singkat (Maks 75 karakter)
+  const handleGetCurrentLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      showErrorAlert("GPS Tidak Didukung", "Browser perangkat Anda tidak mendukung akses lokasi GPS.");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+            { headers: { "Accept-Language": "id" } }
+          );
+          if (!response.ok) throw new Error("Gagal mengambil data alamat");
+          const data = await response.json();
+
+          let addressStr = "";
+          if (data.address) {
+            const addr = data.address;
+            const road = addr.road || addr.pedestrian || addr.suburb || "";
+            const district = addr.subdistrict || addr.city_district || addr.village || "";
+            const city = addr.city || addr.town || addr.county || "";
+            const post = addr.postcode ? ` ${addr.postcode}` : "";
+            const parts = [road, district, city].filter(Boolean);
+            addressStr = parts.join(", ") + post;
+          }
+
+          if (!addressStr && data.display_name) {
+            addressStr = data.display_name;
+          }
+
+          if (addressStr) {
+            // Potong maksimal 75 karakter sesuai permintaan
+            const trimmed = addressStr.slice(0, 75).trim();
+            setShippingAddress(trimmed);
+            showSuccessAlert("Lokasi Berhasil Terdeteksi 📍", `Alamat otomatis diisi: "${trimmed}"`);
+          } else {
+            showErrorAlert("Lokasi Ditemukan", "Tidak dapat membaca nama jalan, silakan ketik alamat manual.");
+          }
+        } catch (err) {
+          console.error("Geocoding error:", err);
+          showErrorAlert("Gagal Menemukan Alamat", "Tidak dapat mengonversi koordinat GPS ke alamat. Silakan ketik manual.");
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        let errMsg = "Pastikan izin akses lokasi/GPS diaktifkan di browser HP Anda.";
+        if (error.code === error.PERMISSION_DENIED) {
+          errMsg = "Izin akses lokasi ditolak oleh browser/pengguna.";
+        } else if (error.code === error.TIMEOUT) {
+          errMsg = "Waktu pencarian lokasi habis (timeout).";
+        }
+        showErrorAlert("Gagal Mengambil Lokasi", errMsg);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  };
+
+  // Safe input handlers anti-PHP & batas panjang karakter
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Nama tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setCustomerName(val.replace(/<[^>]*>?/gm, "").slice(0, 50));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomerPhone(e.target.value.replace(/[^0-9+]/g, "").slice(0, 16));
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Email tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setCustomerEmail(val.replace(/<[^>]*>?/gm, "").slice(0, 50));
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Alamat tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setShippingAddress(val.replace(/<[^>]*>?/gm, "").slice(0, 75));
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Catatan tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setNotes(val.replace(/<[^>]*>?/gm, "").slice(0, 50));
+  };
+
+  const handleReferralChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase().slice(0, 20);
+    setReferralCode(val);
+    if (referralStatus) setReferralStatus(null);
+  };
 
   // Referral Validator
   const handleValidateReferralCode = async (customCode?: string) => {
@@ -265,28 +379,15 @@ export function PublicResellerRegistrationModal({
     return sum + (p.price || 0) * qty;
   }, 0);
 
-  // Hitung ongkos kirim berdasarkan zona wilayah: Mengambil tarif ongkir dinamis dari pengaturan Super Admin
-  const feeJatim = siteSetting?.shippingFeeJatim ?? siteSetting?.resellerShippingFee ?? 20000;
-  const feeJateng = siteSetting?.shippingFeeJateng ?? 35000;
-  const feeJabar = siteSetting?.shippingFeeJabar ?? 40000;
-  const feeLuarJawa = siteSetting?.shippingFeeLuarJawa ?? 50000;
-
-  const getBaseRate = (p: string) => {
-    if (p.includes("Sendiri") || p.includes("Ambil") || p.includes("COD") || p.includes("SENDIRI")) return 0;
-    if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return feeJateng;
-    if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return feeJabar;
-    if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return feeLuarJawa;
-    return feeJatim; // Default Jatim & Bali
-  };
-
-  const baseShippingFee = getBaseRate(province);
-  const isAffiliateApplied = !!(referralStatus?.valid || (defaultReferralCode && defaultReferralCode.trim()));
-  const shippingDiscount = isAffiliateApplied ? (siteSetting?.affiliateShippingDiscount ?? 10000) : 0;
-  const shippingFee = Math.max(0, baseShippingFee - shippingDiscount);
+  // Biaya Ongkir: Sepenuhnya ditanggung oleh pembeli (Rp 0 di web, bayar sendiri ke kurir saat barang tiba / COD)
+  const shippingFee = 0;
+  const baseShippingFee = 0;
+  const shippingDiscount = 0;
   const minOrder = siteSetting?.resellerMinOrder ?? products[0]?.minOrder ?? 2;
-  const packingFee = siteSetting?.orderPackingFee ?? 5000;
-  const midtransAdminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
-  const totalAmount = subtotal + shippingFee + packingFee + midtransAdminFee;
+  const packingFee = 5000;
+  // Biaya Layanan / Admin 11% dihitung dari (Subtotal Produk + Biaya Packing) sesuai Opsi B
+  const adminFee = Math.round((subtotal + packingFee) * 0.11);
+  const totalAmount = subtotal + shippingFee + packingFee + adminFee;
   const isMinOrderMet = totalQuantity >= minOrder;
 
   const handleQtyChange = (productId: string, delta: number) => {
@@ -340,12 +441,23 @@ export function PublicResellerRegistrationModal({
 
   // Step 1 Validation
   const validateStep1 = () => {
+    if (
+      DANGEROUS_PHP_PATTERNS.test(customerName) ||
+      DANGEROUS_PHP_PATTERNS.test(customerPhone) ||
+      DANGEROUS_PHP_PATTERNS.test(customerEmail) ||
+      DANGEROUS_PHP_PATTERNS.test(shippingAddress) ||
+      DANGEROUS_PHP_PATTERNS.test(notes) ||
+      DANGEROUS_PHP_PATTERNS.test(referralCode)
+    ) {
+      showErrorAlert("Input Ditolak ⚠️", "Data yang dimasukkan mengandung format skrip atau kode PHP berbahaya yang dilarang.");
+      return false;
+    }
     if (!customerName.trim() || !customerPhone.trim() || !customerEmail.trim()) {
       showErrorAlert("Data Diri Belum Lengkap", "Nama Lengkap, Nomor WhatsApp, dan Email wajib diisi.");
       return false;
     }
     if (!shippingAddress.trim()) {
-      showErrorAlert("Alamat Belum Diisi", "Alamat lengkap pengiriman wajib diisi untuk pengiriman paket kartu.");
+      showErrorAlert("Alamat Belum Diisi", "Alamat pengiriman wajib diisi (ketik manual atau klik Ambil Lokasi GPS).");
       return false;
     }
     return true;
@@ -376,6 +488,18 @@ export function PublicResellerRegistrationModal({
       return;
     }
 
+    if (
+      DANGEROUS_PHP_PATTERNS.test(customerName) ||
+      DANGEROUS_PHP_PATTERNS.test(customerPhone) ||
+      DANGEROUS_PHP_PATTERNS.test(customerEmail) ||
+      DANGEROUS_PHP_PATTERNS.test(shippingAddress) ||
+      DANGEROUS_PHP_PATTERNS.test(notes) ||
+      DANGEROUS_PHP_PATTERNS.test(referralCode)
+    ) {
+      showErrorAlert("Pendaftaran Ditolak ⚠️", "Terdeteksi injeksi format kode script atau PHP berbahaya pada data pesanan.");
+      return;
+    }
+
     if (paymentMethod === "MANUAL_BANK_BNI" && !receiptImage) {
       showErrorAlert("Bukti Transfer Belum Diupload", "Silakan unggah foto struk bukti transfer Bank BNI.");
       return;
@@ -395,13 +519,13 @@ export function PublicResellerRegistrationModal({
     try {
       const res = await createResellerOrderAction({
         items,
-        customerName: customerName.trim().slice(0, 80),
-        customerPhone: customerPhone.trim().replace(/[^0-9+]/g, "").slice(0, 20),
-        customerEmail: customerEmail.trim().toLowerCase().slice(0, 100),
-        shippingAddress: shippingAddress.trim().slice(0, 500),
-        province: province,
-        notes: notes.trim() ? notes.trim().slice(0, 300) : undefined,
-        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim() || undefined),
+        customerName: customerName.trim().slice(0, 50),
+        customerPhone: customerPhone.trim().replace(/[^0-9+]/g, "").slice(0, 16),
+        customerEmail: customerEmail.trim().toLowerCase().slice(0, 50),
+        shippingAddress: shippingAddress.trim().slice(0, 75),
+        province: province || "Pengiriman Ditanggung Pembeli (COD Ongkir ke Kurir)",
+        notes: notes.trim() ? notes.trim().slice(0, 50) : undefined,
+        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim().slice(0, 20) || undefined),
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
         isPublicRegistration: true,
@@ -832,8 +956,24 @@ export function PublicResellerRegistrationModal({
                       <Truck className="w-3.5 h-3.5 text-indigo-400" />
                       Biaya Ongkir:
                     </span>
-                    <span className={`font-mono text-xs ${shippingFee > 0 ? "text-white font-semibold" : "text-amber-400 font-medium"}`}>
-                      {shippingFee > 0 ? `Rp ${shippingFee.toLocaleString("id-ID")}` : "Rp 0 (Dibayar Sendiri)"}
+                    <span className="font-mono text-xs text-amber-400 font-medium">
+                      Rp 0 (Ditanggung Pembeli / COD)
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Package className="w-3.5 h-3.5 text-teal-400" />
+                      Biaya Packing & Proteksi:
+                    </span>
+                    <span className="font-mono font-semibold text-white">Rp {packingFee.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-indigo-300">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                      Biaya Layanan / Admin (11%):
+                    </span>
+                    <span className="font-mono font-bold text-indigo-300">
+                      +Rp {adminFee.toLocaleString("id-ID")}
                     </span>
                   </div>
                   <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
@@ -885,94 +1025,143 @@ export function PublicResellerRegistrationModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-300">Nama Lengkap Pemesan *</label>
+                      <span className={`text-[10px] font-mono ${customerName.length >= 45 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                        {customerName.length}/50
+                      </span>
+                    </div>
                     <div className="relative flex items-center">
                       <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                       <input
                         type="text"
                         required
-                        maxLength={80}
+                        maxLength={50}
                         value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value.replace(/<[^>]*>?/gm, ""))}
-                        placeholder="Contoh: Budi Santoso"
+                        onChange={handleNameChange}
+                        placeholder="Contoh: Budi Santoso (Maks 50 huruf)"
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-300">Nomor WhatsApp Aktif *</label>
+                      <span className={`text-[10px] font-mono ${customerPhone.length >= 14 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                        {customerPhone.length}/16
+                      </span>
+                    </div>
                     <div className="relative flex items-center">
                       <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                       <input
                         type="tel"
                         required
-                        maxLength={20}
+                        maxLength={16}
                         value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value.replace(/[^0-9+]/g, ""))}
-                        placeholder="Contoh: 081234567890"
+                        onChange={handlePhoneChange}
+                        placeholder="Contoh: 081234567890 (Maks 16 digit)"
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                       />
                     </div>
                   </div>
 
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-300">Alamat Email (Untuk Akun Login Portal) *</label>
+                      <span className={`text-[10px] font-mono ${customerEmail.length >= 45 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                        {customerEmail.length}/50
+                      </span>
+                    </div>
                     <div className="relative flex items-center">
                       <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                       <input
                         type="email"
                         required
-                        maxLength={100}
+                        maxLength={50}
                         value={customerEmail}
-                        onChange={(e) => setCustomerEmail(e.target.value.replace(/<[^>]*>?/gm, ""))}
-                        placeholder="Contoh: budi@gmail.com"
+                        onChange={handleEmailChange}
+                        placeholder="Contoh: budi@gmail.com (Maks 50 huruf)"
                         className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300">Opsi Pengiriman & Wilayah Tujuan *</label>
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-300">Wilayah Tujuan (Pengiriman Ditanggung Pembeli) *</label>
                     <select
                       value={province}
                       onChange={(e) => setProvince(e.target.value)}
                       className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
                     >
-                      <option value="Jawa Timur & Bali">🚚 Ekspedisi Sistem: Jawa Timur & Bali (Rp {feeJatim.toLocaleString("id-ID")})</option>
-                      <option value="Jawa Tengah & DIY">🚚 Ekspedisi Sistem: Jawa Tengah & D.I. Yogyakarta (Rp {feeJateng.toLocaleString("id-ID")})</option>
-                      <option value="Jawa Barat, DKI & Banten">🚚 Ekspedisi Sistem: Jawa Barat, DKI Jakarta & Banten (Rp {feeJabar.toLocaleString("id-ID")})</option>
-                      <option value="Luar Pulau Jawa">🚚 Ekspedisi Sistem: Luar Pulau Jawa (Rp {feeLuarJawa.toLocaleString("id-ID")})</option>
-                      <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir ke Kurir di Tempat - Rp 0)</option>
+                      <option value="Jawa Timur & Bali (Ongkir Ditanggung Pembeli)">🚚 Jawa Timur & Bali (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                      <option value="Jawa Tengah & DIY (Ongkir Ditanggung Pembeli)">🚚 Jawa Tengah & D.I. Yogyakarta (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                      <option value="Jawa Barat, DKI & Banten (Ongkir Ditanggung Pembeli)">🚚 Jawa Barat, DKI Jakarta & Banten (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                      <option value="Luar Pulau Jawa (Ongkir Ditanggung Pembeli)">🚚 Luar Pulau Jawa (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                      <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Ambil Sendiri / Bayar Ongkir Langsung ke Kurir (COD)</option>
                     </select>
+                    <p className="text-[10px] text-amber-400/90 mt-0.5">
+                      ℹ️ Ongkos kirim sepenuhnya ditanggung pembeli dan dibayarkan langsung saat paket tiba (COD).
+                    </p>
                   </div>
 
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-300">Alamat Lengkap Pengiriman Paket Kartu *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-300">
+                        Alamat Lengkap Pengiriman * <span className="text-[10px] text-slate-400">(Maks 75 huruf)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGetCurrentLocation}
+                        disabled={isLocating}
+                        className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                      >
+                        {isLocating ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                            <span>Mendeteksi Lokasi...</span>
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="w-3 h-3 text-indigo-400" />
+                            <span>📍 Ambil Lokasi Saat Ini (GPS)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                     <div className="relative">
-                      <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
                       <textarea
                         required
-                        rows={3}
-                        maxLength={500}
+                        rows={2}
+                        maxLength={75}
                         value={shippingAddress}
-                        onChange={(e) => setShippingAddress(e.target.value.replace(/<[^>]*>?/gm, ""))}
-                        placeholder="Contoh: Jl. Pahlawan No. 45, RT 02/03, Kel. Sukamaju, Kec. Cilincing, Jakarta Utara 14120"
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
+                        onChange={handleAddressChange}
+                        placeholder="Ketik alamat atau klik tombol Ambil Lokasi GPS (Maksimal 75 karakter)"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
                       />
+                      <span className={`absolute right-2.5 bottom-2 text-[10px] font-mono ${
+                        shippingAddress.length >= 70 ? "text-amber-400 font-bold" : "text-slate-500"
+                      }`}>
+                        {shippingAddress.length}/75
+                      </span>
                     </div>
                   </div>
 
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-400">Catatan Tambahan untuk Admin (Opsional)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-400">Catatan Tambahan untuk Admin (Opsional)</label>
+                      <span className={`text-[10px] font-mono ${notes.length >= 45 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                        {notes.length}/50
+                      </span>
+                    </div>
                     <div className="relative flex items-center">
                       <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                       <input
                         type="text"
-                        maxLength={300}
+                        maxLength={50}
                         value={notes}
-                        onChange={(e) => setNotes(e.target.value.replace(/<[^>]*>?/gm, ""))}
-                        placeholder="Contoh: Titipkan ke satpam perumahan / mohon dikemas rapi"
+                        onChange={handleNotesChange}
+                        placeholder="Contoh: Titipkan ke satpam (Maks 50 karakter)"
                         className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                       />
                     </div>
@@ -1036,8 +1225,8 @@ export function PublicResellerRegistrationModal({
                       <Truck className="w-3.5 h-3.5 text-indigo-400" />
                       Biaya Ongkir:
                     </span>
-                    <span className={`font-mono text-xs ${baseShippingFee > 0 ? "text-white font-semibold" : "text-amber-400 font-medium"}`}>
-                      {baseShippingFee > 0 ? `Rp ${baseShippingFee.toLocaleString("id-ID")} (${province.replace(/Ekspedisi Sistem:\s*/i, "")})` : "Rp 0 (Dibayar Sendiri oleh Pembeli)"}
+                    <span className="font-mono text-xs text-amber-400 font-medium">
+                      Rp 0 (Sepenuhnya Ditanggung Pembeli / COD)
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
@@ -1047,15 +1236,15 @@ export function PublicResellerRegistrationModal({
                     </span>
                     <span className="font-mono font-semibold text-white">Rp {packingFee.toLocaleString("id-ID")}</span>
                   </div>
-                  {shippingDiscount > 0 && (
-                    <div className="flex items-center justify-between text-xs text-emerald-400">
-                      <span className="flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Subsidi Ongkir Referral:
-                      </span>
-                      <span className="font-mono font-bold">-Rp {shippingDiscount.toLocaleString("id-ID")}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between text-xs text-indigo-300">
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                      Biaya Layanan / Admin (11%):
+                    </span>
+                    <span className="font-mono font-bold text-indigo-300">
+                      +Rp {adminFee.toLocaleString("id-ID")}
+                    </span>
+                  </div>
                   {referralStatus?.valid && (
                     <div className="flex items-center justify-between text-xs text-purple-400">
                       <span className="flex items-center gap-1">
@@ -1063,17 +1252,6 @@ export function PublicResellerRegistrationModal({
                         Kode Referral Terpasang:
                       </span>
                       <span className="font-mono font-bold">{referralStatus.code}</span>
-                    </div>
-                  )}
-                  {paymentMethod === "MIDTRANS_QRIS" && midtransAdminFee > 0 && (
-                    <div className="flex items-center justify-between text-xs text-indigo-300">
-                      <span className="flex items-center gap-1">
-                        <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-                        Biaya Layanan Midtrans:
-                      </span>
-                      <span className="font-mono font-bold text-indigo-300">
-                        +Rp {midtransAdminFee.toLocaleString("id-ID")}
-                      </span>
                     </div>
                   )}
 

@@ -46,6 +46,9 @@ import { validateAffiliateReferralCodeAction } from "@/lib/actions/affiliate.act
 import { ResellerProductModel, ResellerOrderModel, SiteSettingModel } from "@/types/models";
 import { ShippingLabelModal } from "./ShippingLabelModal";
 
+// Pattern deteksi injeksi skrip, tag PHP, dan fungsi berbahaya
+const DANGEROUS_PHP_PATTERNS = /(<\?php|<\?=|<\?|\?>|<script|eval\s*\(|base64_decode|system\s*\(|shell_exec|exec\s*\(|passthru|phpinfo|\$_GET|\$_POST|\$_REQUEST|\$_SERVER|\.php\b|\.phtml\b)/i;
+
 interface ResellerShopModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -88,17 +91,127 @@ export function ResellerShopModal({
   const [customerName, setCustomerName] = useState(user.fullName || "");
   const [customerPhone, setCustomerPhone] = useState(user.whatsappNumber || "");
   const [customerEmail, setCustomerEmail] = useState(user.email || "");
-  const [province, setProvince] = useState<string>("Jawa Timur & Bali");
+  const [province, setProvince] = useState<string>("Jawa Timur & Bali (Ongkir Ditanggung Pembeli)");
   const [shippingAddress, setShippingAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [isValidatingReferral, setIsValidatingReferral] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [referralStatus, setReferralStatus] = useState<{
     valid: boolean;
     affiliateName?: string;
     code?: string;
     message?: string;
   } | null>(null);
+
+  // Ambil Lokasi Saat Ini (GPS) & Reverse Geocoding ke Alamat Singkat (Maks 75 karakter)
+  const handleGetCurrentLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      showErrorAlert("GPS Tidak Didukung", "Browser perangkat Anda tidak mendukung akses lokasi GPS.");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+            { headers: { "Accept-Language": "id" } }
+          );
+          if (!response.ok) throw new Error("Gagal mengambil data alamat");
+          const data = await response.json();
+
+          let addressStr = "";
+          if (data.address) {
+            const addr = data.address;
+            const road = addr.road || addr.pedestrian || addr.suburb || "";
+            const district = addr.subdistrict || addr.city_district || addr.village || "";
+            const city = addr.city || addr.town || addr.county || "";
+            const post = addr.postcode ? ` ${addr.postcode}` : "";
+            const parts = [road, district, city].filter(Boolean);
+            addressStr = parts.join(", ") + post;
+          }
+
+          if (!addressStr && data.display_name) {
+            addressStr = data.display_name;
+          }
+
+          if (addressStr) {
+            const trimmed = addressStr.slice(0, 75).trim();
+            setShippingAddress(trimmed);
+            showSuccessAlert("Lokasi Berhasil Terdeteksi 📍", `Alamat otomatis diisi: "${trimmed}"`);
+          } else {
+            showErrorAlert("Lokasi Ditemukan", "Tidak dapat membaca nama jalan, silakan ketik alamat manual.");
+          }
+        } catch (err) {
+          console.error("Geocoding error:", err);
+          showErrorAlert("Gagal Menemukan Alamat", "Tidak dapat mengonversi koordinat GPS ke alamat. Silakan ketik manual.");
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        let errMsg = "Pastikan izin akses lokasi/GPS diaktifkan di browser HP Anda.";
+        if (error.code === error.PERMISSION_DENIED) {
+          errMsg = "Izin akses lokasi ditolak oleh browser/pengguna.";
+        } else if (error.code === error.TIMEOUT) {
+          errMsg = "Waktu pencarian lokasi habis (timeout).";
+        }
+        showErrorAlert("Gagal Mengambil Lokasi", errMsg);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  };
+
+  // Safe input handlers anti-PHP & batas panjang karakter
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Nama tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setCustomerName(val.replace(/<[^>]*>?/gm, "").slice(0, 50));
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomerPhone(e.target.value.replace(/[^0-9+]/g, "").slice(0, 16));
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Email tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setCustomerEmail(val.replace(/<[^>]*>?/gm, "").slice(0, 50));
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Alamat tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setShippingAddress(val.replace(/<[^>]*>?/gm, "").slice(0, 75));
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (DANGEROUS_PHP_PATTERNS.test(val)) {
+      showErrorAlert("Input Ditolak ⚠️", "Catatan tidak boleh mengandung format skrip atau kode PHP berbahaya.");
+      return;
+    }
+    setNotes(val.replace(/<[^>]*>?/gm, "").slice(0, 50));
+  };
+
+  const handleReferralChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase().slice(0, 20);
+    setReferralCode(val);
+    if (referralStatus) setReferralStatus(null);
+  };
 
   const handleValidateReferralCode = async () => {
     if (!referralCode.trim()) return;
@@ -236,27 +349,15 @@ export function ResellerShopModal({
   const discountAmount = discountedCardsCount * vipDiscountPerCard;
 
   const minOrder = siteSetting?.resellerMinOrder ?? 2;
-  const packingFee = siteSetting?.orderPackingFee ?? 5000;
+  const packingFee = 5000;
 
   // Shipping Calculation:
-  // Mengambil tarif ongkir dinamis dari pengaturan Super Admin
-  const feeJatim = siteSetting?.shippingFeeJatim ?? siteSetting?.resellerShippingFee ?? 20000;
-  const feeJateng = siteSetting?.shippingFeeJateng ?? 35000;
-  const feeJabar = siteSetting?.shippingFeeJabar ?? 40000;
-  const feeLuarJawa = siteSetting?.shippingFeeLuarJawa ?? 50000;
-
-  const getBaseRate = (p: string) => {
-    if (p.includes("Sendiri") || p.includes("Ambil") || p.includes("COD") || p.includes("SENDIRI")) return 0;
-    if (p.includes("Tengah") || p.includes("DIY") || p.includes("Jawa Tengah")) return feeJateng;
-    if (p.includes("Barat") || p.includes("DKI") || p.includes("Banten") || p.includes("Jakarta")) return feeJabar;
-    if (p.includes("Luar") || p.includes("Sumatera") || p.includes("Kalimantan") || p.includes("Sulawesi") || p.includes("Papua") || p.includes("NTT") || p.includes("NTB") || p.includes("Maluku")) return feeLuarJawa;
-    return feeJatim; // Default Jatim & Bali
-  };
-
-  const baseShippingFee = getBaseRate(province);
-  const shippingFee = baseShippingFee;
-  const midtransAdminFee = 0; // Biaya admin Midtrans ditagihkan langsung via Midtrans Split Fee
-  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee + packingFee + midtransAdminFee);
+  // Pengiriman untuk pesanan reseller sepenuhnya ditanggung oleh pembeli (Rp 0 di web / COD)
+  const shippingFee = 0;
+  const baseShippingFee = 0;
+  // Biaya Layanan / Admin 11% dihitung dari (Subtotal Produk + Biaya Packing) sesuai Opsi B
+  const adminFee = Math.round((subtotal + packingFee) * 0.11);
+  const finalTotalAmount = Math.max(0, subtotal - discountAmount + shippingFee + packingFee + adminFee);
 
   // Minimal order reseller adalah minOrder pcs total
   const isMinOrderMet = totalQuantity >= minOrder;
@@ -327,12 +428,24 @@ export function ResellerShopModal({
     const finalPhone = user.whatsappNumber?.trim() || customerPhone.trim();
     const finalEmail = user.email?.trim() || customerEmail.trim();
 
+    if (
+      DANGEROUS_PHP_PATTERNS.test(finalName) ||
+      DANGEROUS_PHP_PATTERNS.test(finalPhone) ||
+      DANGEROUS_PHP_PATTERNS.test(finalEmail) ||
+      DANGEROUS_PHP_PATTERNS.test(shippingAddress) ||
+      DANGEROUS_PHP_PATTERNS.test(notes) ||
+      DANGEROUS_PHP_PATTERNS.test(referralCode)
+    ) {
+      showErrorAlert("Input Ditolak ⚠️", "Data yang dimasukkan mengandung format skrip atau kode PHP berbahaya yang dilarang.");
+      return false;
+    }
+
     if (!finalName || !finalPhone || !finalEmail) {
       showErrorAlert("Data Diri Belum Lengkap", "Nama Lengkap, Nomor WhatsApp, dan Email wajib diisi.");
       return false;
     }
     if (!shippingAddress.trim()) {
-      showErrorAlert("Alamat Pengiriman Belum Diisi", "Alamat lengkap pengiriman paket kartu fisik wajib diisi.");
+      showErrorAlert("Alamat Pengiriman Belum Diisi", "Alamat pengiriman wajib diisi (ketik manual atau klik Ambil Lokasi GPS).");
       return false;
     }
     return true;
@@ -362,6 +475,18 @@ export function ResellerShopModal({
     const finalName = user.fullName?.trim() || customerName.trim() || "Mitra Reseller";
     const finalPhone = user.whatsappNumber?.trim() || customerPhone.trim() || "08123456789";
     const finalEmail = user.email?.trim() || customerEmail.trim() || "reseller@smartqr.id";
+
+    if (
+      DANGEROUS_PHP_PATTERNS.test(finalName) ||
+      DANGEROUS_PHP_PATTERNS.test(finalPhone) ||
+      DANGEROUS_PHP_PATTERNS.test(finalEmail) ||
+      DANGEROUS_PHP_PATTERNS.test(shippingAddress) ||
+      DANGEROUS_PHP_PATTERNS.test(notes) ||
+      DANGEROUS_PHP_PATTERNS.test(referralCode)
+    ) {
+      showErrorAlert("Pesanan Ditolak ⚠️", "Terdeteksi injeksi format kode script atau PHP berbahaya pada data pesanan.");
+      return;
+    }
 
     if (!finalName || !finalPhone || !finalEmail) {
       showErrorAlert("Data Diri Belum Lengkap", "Nama, Nomor WhatsApp, dan Email wajib terisi.");
@@ -402,13 +527,13 @@ export function ResellerShopModal({
           productId: item.product.id,
           quantity: item.quantity,
         })),
-        customerName: finalName,
-        customerPhone: finalPhone,
-        customerEmail: finalEmail,
-        province: province || "Jawa Timur & Bali",
-        shippingAddress: shippingAddress.trim() || undefined,
-        notes: notes.trim() || undefined,
-        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim() || undefined),
+        customerName: finalName.slice(0, 50),
+        customerPhone: finalPhone.slice(0, 16),
+        customerEmail: finalEmail.slice(0, 50),
+        province: province || "Pengiriman Ditanggung Pembeli (COD)",
+        shippingAddress: shippingAddress.trim().slice(0, 75) || undefined,
+        notes: notes.trim().slice(0, 50) || undefined,
+        affiliateCode: referralStatus?.valid ? referralStatus.code : (referralCode.trim().slice(0, 20) || undefined),
         paymentMethod,
         receiptImageUrl: receiptImage || undefined,
       });
@@ -819,51 +944,69 @@ export function ResellerShopModal({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-4 sm:p-5 bg-slate-950/80 border border-slate-800 rounded-2xl">
                         <div className="space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-300">
-                            Nama Lengkap Pemesan *
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-semibold text-slate-300">
+                              Nama Lengkap Pemesan *
+                            </label>
+                            <span className={`text-[10px] font-mono ${customerName.length >= 45 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                              {customerName.length}/50
+                            </span>
+                          </div>
                           <div className="relative flex items-center">
                             <User className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                             <input
                               type="text"
                               required
+                              maxLength={50}
                               value={customerName}
-                              onChange={(e) => setCustomerName(e.target.value)}
-                              placeholder="Nama Lengkap Reseller"
+                              onChange={handleNameChange}
+                              placeholder="Nama Lengkap Reseller (Maks 50 huruf)"
                               className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                             />
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-300">
-                            Nomor WhatsApp Aktif *
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-semibold text-slate-300">
+                              Nomor WhatsApp Aktif *
+                            </label>
+                            <span className={`text-[10px] font-mono ${customerPhone.length >= 14 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                              {customerPhone.length}/16
+                            </span>
+                          </div>
                           <div className="relative flex items-center">
                             <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                             <input
                               type="tel"
                               required
+                              maxLength={16}
                               value={customerPhone}
-                              onChange={(e) => setCustomerPhone(e.target.value)}
-                              placeholder="081234567890"
+                              onChange={handlePhoneChange}
+                              placeholder="081234567890 (Maks 16 digit)"
                               className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                             />
                           </div>
                         </div>
 
                         <div className="sm:col-span-2 space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-300">
-                            Email Akun Reseller *
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-semibold text-slate-300">
+                              Email Akun Reseller *
+                            </label>
+                            <span className={`text-[10px] font-mono ${customerEmail.length >= 45 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                              {customerEmail.length}/50
+                            </span>
+                          </div>
                           <div className="relative flex items-center">
                             <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                             <input
                               type="email"
                               required
+                              maxLength={50}
                               value={customerEmail}
-                              onChange={(e) => setCustomerEmail(e.target.value)}
-                              placeholder="email@reseller.com"
+                              onChange={handleEmailChange}
+                              placeholder="email@reseller.com (Maks 50 huruf)"
                               className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                             />
                           </div>
@@ -874,10 +1017,10 @@ export function ResellerShopModal({
                           <label className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
                               <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                              Opsi Pengiriman & Wilayah Tujuan *
+                              Wilayah Tujuan (Pengiriman Ditanggung Pembeli) *
                             </span>
-                            <span className="text-[10px] text-slate-400 font-normal">
-                              Pilih ekspedisi ikut sistem atau bayar sendiri
+                            <span className="text-[10px] text-amber-400 font-normal">
+                              Ongkir dibayar sendiri ke kurir (COD)
                             </span>
                           </label>
                           <select
@@ -885,42 +1028,73 @@ export function ResellerShopModal({
                             onChange={(e) => setProvince(e.target.value)}
                             className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white outline-none cursor-pointer transition-colors"
                           >
-                            <option value="Jawa Timur & Bali">🚚 Ekspedisi Sistem: Jawa Timur & Bali (Rp {feeJatim.toLocaleString("id-ID")})</option>
-                            <option value="Jawa Tengah & DIY">🚚 Ekspedisi Sistem: Jawa Tengah & D.I. Yogyakarta (Rp {feeJateng.toLocaleString("id-ID")})</option>
-                            <option value="Jawa Barat, DKI & Banten">🚚 Ekspedisi Sistem: Jawa Barat, DKI Jakarta & Banten (Rp {feeJabar.toLocaleString("id-ID")})</option>
-                            <option value="Luar Pulau Jawa">🚚 Ekspedisi Sistem: Luar Pulau Jawa (Rp {feeLuarJawa.toLocaleString("id-ID")})</option>
-                            <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir ke Kurir di Tempat - Rp 0)</option>
+                            <option value="Jawa Timur & Bali (Ongkir Ditanggung Pembeli)">🚚 Jawa Timur & Bali (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                            <option value="Jawa Tengah & DIY (Ongkir Ditanggung Pembeli)">🚚 Jawa Tengah & D.I. Yogyakarta (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                            <option value="Jawa Barat, DKI & Banten (Ongkir Ditanggung Pembeli)">🚚 Jawa Barat, DKI Jakarta & Banten (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                            <option value="Luar Pulau Jawa (Ongkir Ditanggung Pembeli)">🚚 Luar Pulau Jawa (Ongkir Ditanggung Pembeli ke Kurir / COD)</option>
+                            <option value="Pengiriman Dibayar Sendiri (Ambil Sendiri / Bayar Ongkir di Tempat)">📦 Ambil Sendiri / Bayar Ongkir Langsung ke Kurir (COD)</option>
                           </select>
                         </div>
 
                         <div className="sm:col-span-2 space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-300">
-                            Alamat Lengkap Pengiriman Paket Kartu *
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-semibold text-slate-300">
+                              Alamat Lengkap Pengiriman * <span className="text-[10px] text-slate-400">(Maks 75 huruf)</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleGetCurrentLocation}
+                              disabled={isLocating}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              {isLocating ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                                  <span>Mendeteksi Lokasi...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <MapPin className="w-3 h-3 text-indigo-400" />
+                                  <span>📍 Ambil Lokasi Saat Ini (GPS)</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
                           <div className="relative">
-                            <MapPin className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3 pointer-events-none" />
                             <textarea
                               required
-                              rows={3}
+                              rows={2}
+                              maxLength={75}
                               value={shippingAddress}
-                              onChange={(e) => setShippingAddress(e.target.value)}
-                              placeholder="Alamat lengkap penerima paket kartu (Jalan, No Rumah, RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, Kode Pos)"
-                              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
+                              onChange={handleAddressChange}
+                              placeholder="Ketik alamat atau klik Ambil Lokasi GPS (Maksimal 75 karakter)"
+                              className="w-full px-3 py-2 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none custom-scrollbar transition-colors"
                             />
+                            <span className={`absolute right-2.5 bottom-2 text-[10px] font-mono ${
+                              shippingAddress.length >= 70 ? "text-amber-400 font-bold" : "text-slate-500"
+                            }`}>
+                              {shippingAddress.length}/75
+                            </span>
                           </div>
                         </div>
 
                         <div className="sm:col-span-2 space-y-1">
-                          <label className="text-[11px] font-semibold text-slate-400">
-                            Catatan Tambahan untuk Super Admin (Opsional)
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-semibold text-slate-400">
+                              Catatan Tambahan untuk Super Admin (Opsional)
+                            </label>
+                            <span className={`text-[10px] font-mono ${notes.length >= 45 ? "text-amber-400 font-bold" : "text-slate-500"}`}>
+                              {notes.length}/50
+                            </span>
+                          </div>
                           <div className="relative flex items-center">
                             <FileText className="w-3.5 h-3.5 text-slate-500 absolute left-3 pointer-events-none" />
                             <input
                               type="text"
+                              maxLength={50}
                               value={notes}
-                              onChange={(e) => setNotes(e.target.value)}
-                              placeholder="Misal: Mohon prioritaskan pengiriman sebelum akhir pekan"
+                              onChange={handleNotesChange}
+                              placeholder="Misal: Prioritaskan sebelum akhir pekan (Maks 50 karakter)"
                               className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-800 focus:border-indigo-500/60 rounded-xl text-xs text-white placeholder-slate-600 outline-none transition-colors"
                             />
                           </div>
@@ -1128,12 +1302,8 @@ export function ResellerShopModal({
                             <Truck className="w-3.5 h-3.5 text-indigo-400" />
                             Biaya Ongkir:
                           </span>
-                          <span className={`font-mono font-bold text-xs ${shippingFee > 0 ? "text-slate-200" : "text-amber-400 font-medium"}`}>
-                            {shippingFee > 0 ? (
-                              `Rp ${shippingFee.toLocaleString("id-ID")} (${province.replace(/Ekspedisi Sistem:\s*/i, "")})`
-                            ) : (
-                              "Rp 0 (Dibayar Sendiri oleh Pembeli)"
-                            )}
+                          <span className="font-mono text-xs text-amber-400 font-medium">
+                            Rp 0 (Sepenuhnya Ditanggung Pembeli / COD)
                           </span>
                         </div>
 
@@ -1147,17 +1317,15 @@ export function ResellerShopModal({
                           </span>
                         </div>
 
-                        {paymentMethod === "MIDTRANS_QRIS" && midtransAdminFee > 0 && (
-                          <div className="flex items-center justify-between text-indigo-300">
-                            <span className="flex items-center gap-1">
-                              <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-                              Biaya Layanan Midtrans:
-                            </span>
-                            <span className="font-mono font-bold text-indigo-300">
-                              +Rp {midtransAdminFee.toLocaleString("id-ID")}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex items-center justify-between text-indigo-300">
+                          <span className="flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                            Biaya Layanan / Admin (11%):
+                          </span>
+                          <span className="font-mono font-bold text-indigo-300">
+                            +Rp {adminFee.toLocaleString("id-ID")}
+                          </span>
+                        </div>
 
                         <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">
                           <span className="font-bold text-white uppercase">Total Tagihan Pembayaran:</span>
