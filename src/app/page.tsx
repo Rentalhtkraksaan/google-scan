@@ -196,8 +196,8 @@ export default async function LandingPage({
       <div className="absolute top-[480px] -right-32 w-[450px] h-[450px] bg-amber-200/35 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="absolute top-[950px] -left-32 w-[450px] h-[450px] bg-teal-200/35 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* ─── Floating Glass Navbar ────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-white/80 bg-white/75 backdrop-blur-2xl shadow-[0_4px_30px_rgba(15,23,42,0.03)]">
+      {/* ─── Fixed Top Header (Tetap Kokoh di Atas Saat Di-Scroll) ──── */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-2xl shadow-[0_4px_24px_rgba(15,23,42,0.05)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {siteSetting?.landingPageLogoUrl ? (
@@ -253,7 +253,7 @@ export default async function LandingPage({
       </header>
 
       {/* ─── Hero Section (Centered Modern & Kece) ────────────────────── */}
-      <section className="pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+      <section className="pt-28 pb-16 sm:pt-36 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
         <FadeIn delay={0}>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 text-indigo-700 border border-indigo-200/80 text-xs sm:text-sm font-extrabold shadow-sm shadow-indigo-500/5 mb-6">
             <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
