@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import jsQR from "jsqr";
 import { useRouter } from "next/navigation";
 import {
-  Camera,
   X,
   RefreshCw,
   ShieldAlert,

@@ -185,7 +185,7 @@ export default async function LandingPage({
 
   return (
     <div
-      className="min-h-screen bg-[#DCE3EE] text-slate-800 selection:bg-indigo-600 selection:text-white relative overflow-x-hidden font-sans"
+      className="min-h-screen bg-slate-200 text-slate-800 selection:bg-indigo-600 selection:text-white relative overflow-x-hidden font-sans"
       style={{
         backgroundImage:
           "radial-gradient(rgba(99, 102, 241, 0.14) 1px, transparent 1px), linear-gradient(180deg, #D5DFED 0%, #E2E8F0 45%, #D8E1EE 100%)",
@@ -200,11 +200,11 @@ export default async function LandingPage({
 
       {/* Soft Ambient Color Glows */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-gradient-to-b from-indigo-300/45 via-sky-200/30 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[500px] -right-32 w-[450px] h-[450px] bg-amber-300/25 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[980px] -left-32 w-[450px] h-[450px] bg-teal-300/25 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-[500px] -right-32 w-96 h-96 bg-amber-300/25 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-[980px] -left-32 w-96 h-96 bg-teal-300/25 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* ─── Fixed Top Header (Tetap Kokoh di Atas & Kontras Tegas) ──── */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b-2 border-slate-300/90 bg-white/95 backdrop-blur-2xl shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b-2 border-slate-300 bg-white/95 backdrop-blur-2xl shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {siteSetting?.landingPageLogoUrl ? (
@@ -212,7 +212,7 @@ export default async function LandingPage({
               <img
                 src={siteSetting.landingPageLogoUrl}
                 alt="QR-INAJA Logo"
-                className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-xs shrink-0"
+                className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-sm shrink-0"
               />
             ) : (
               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
@@ -235,7 +235,7 @@ export default async function LandingPage({
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/reseller"
-              className="hidden md:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 shadow-xs transition-all hover:scale-[1.02]"
+              className="hidden md:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 shadow-sm transition-all hover:scale-[1.02]"
             >
               <Store className="w-3.5 h-3.5 text-emerald-600" />
               <span>Kemitraan Reseller</span>
@@ -262,14 +262,14 @@ export default async function LandingPage({
       {/* ─── Hero Section (Kontras Jelas & Tidak Nyatu dari Jauh) ────── */}
       <section className="pt-28 pb-16 sm:pt-36 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
         <FadeIn delay={0}>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-indigo-800 border-2 border-indigo-300 text-xs sm:text-sm font-extrabold shadow-[0_6px_20px_rgba(79,70,229,0.14)] mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-indigo-800 border-2 border-indigo-300 text-xs sm:text-sm font-extrabold shadow-md shadow-indigo-500/10 mb-6">
             <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
             <span>{heroBadge}</span>
           </div>
         </FadeIn>
 
         <FadeIn delay={0.1}>
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 max-w-4xl mx-auto leading-[1.14] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 max-w-4xl mx-auto leading-[1.14] drop-shadow-sm">
             {heroHeadline}
           </h1>
         </FadeIn>
@@ -283,15 +283,15 @@ export default async function LandingPage({
         {/* Pill Keunggulan Cepat dengan Tepi Tegas & Bayangan Timbul */}
         <FadeIn delay={0.25}>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm font-extrabold text-slate-800">
-            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-emerald-300 shadow-[0_6px_16px_rgba(16,185,129,0.12)]">
+            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-emerald-300 shadow-md shadow-emerald-500/10">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               Tanpa Aplikasi Tambahan
             </span>
-            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-indigo-300 shadow-[0_6px_16px_rgba(99,102,241,0.12)]">
+            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-indigo-300 shadow-md shadow-indigo-500/10">
               <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
               100% Resmi Google Maps
             </span>
-            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-amber-300 shadow-[0_6px_16px_rgba(245,158,11,0.12)]">
+            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-amber-300 shadow-md shadow-amber-500/10">
               <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0" />
               Akrilik Tebal & Elegan
             </span>
@@ -308,7 +308,7 @@ export default async function LandingPage({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3.5 px-4 py-4 rounded-2xl bg-white hover:bg-emerald-50 border-2 border-emerald-400/90 hover:border-emerald-500 text-left transition-all shadow-[0_10px_25px_-5px_rgba(16,185,129,0.2)] hover:shadow-[0_14px_30px_-5px_rgba(16,185,129,0.3)] hover:-translate-y-0.5"
+                className="group flex items-center gap-3.5 px-4 py-4 rounded-2xl bg-white hover:bg-emerald-50 border-2 border-emerald-400 hover:border-emerald-500 text-left transition-all shadow-lg shadow-emerald-500/15 hover:shadow-xl hover:-translate-y-0.5"
               >
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 shrink-0 group-hover:scale-105 transition-transform">
                   <MessageCircle className="w-5 h-5" />
@@ -333,7 +333,7 @@ export default async function LandingPage({
                 href={ctaSecondaryUrl}
                 target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
                 rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="group flex items-center gap-3.5 px-4 py-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-400/90 hover:border-indigo-500 text-left transition-all shadow-[0_10px_25px_-5px_rgba(79,70,229,0.2)] hover:shadow-[0_14px_30px_-5px_rgba(79,70,229,0.3)] hover:-translate-y-0.5"
+                className="group flex items-center gap-3.5 px-4 py-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-400 hover:border-indigo-500 text-left transition-all shadow-lg shadow-indigo-500/15 hover:shadow-xl hover:-translate-y-0.5"
               >
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/30 shrink-0 group-hover:scale-105 transition-transform">
                   <Smartphone className="w-5 h-5" />
@@ -357,8 +357,8 @@ export default async function LandingPage({
         {/* Visual Showcase Banner: 3 Kartu Timbul dengan Tepi Berwarna */}
         <FadeIn delay={0.4}>
           <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 max-w-4xl mx-auto text-left">
-            <div className="bg-white border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-[0_12px_30px_-8px_rgba(15,23,42,0.14)] flex items-center gap-4 hover:-translate-y-1 transition-transform">
-              <div className="w-13 h-13 rounded-2xl bg-amber-100 border-2 border-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+            <div className="bg-white border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-lg shadow-slate-900/10 flex items-center gap-4 hover:-translate-y-1 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-amber-300 flex items-center justify-center shrink-0 shadow-sm">
                 <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
               </div>
               <div>
@@ -369,8 +369,8 @@ export default async function LandingPage({
               </div>
             </div>
 
-            <div className="bg-white border-2 border-indigo-300 rounded-3xl p-5 sm:p-6 shadow-[0_12px_30px_-8px_rgba(15,23,42,0.14)] flex items-center gap-4 hover:-translate-y-1 transition-transform">
-              <div className="w-13 h-13 rounded-2xl bg-indigo-100 border-2 border-indigo-300 flex items-center justify-center shrink-0 shadow-xs">
+            <div className="bg-white border-2 border-indigo-300 rounded-3xl p-5 sm:p-6 shadow-lg shadow-slate-900/10 flex items-center gap-4 hover:-translate-y-1 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 border-2 border-indigo-300 flex items-center justify-center shrink-0 shadow-sm">
                 <Zap className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
@@ -381,8 +381,8 @@ export default async function LandingPage({
               </div>
             </div>
 
-            <div className="bg-white border-2 border-emerald-300 rounded-3xl p-5 sm:p-6 shadow-[0_12px_30px_-8px_rgba(15,23,42,0.14)] flex items-center gap-4 hover:-translate-y-1 transition-transform">
-              <div className="w-13 h-13 rounded-2xl bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center shrink-0 shadow-xs">
+            <div className="bg-white border-2 border-emerald-300 rounded-3xl p-5 sm:p-6 shadow-lg shadow-slate-900/10 flex items-center gap-4 hover:-translate-y-1 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center shrink-0 shadow-sm">
                 <Award className="w-6 h-6 text-emerald-600" />
               </div>
               <div>
@@ -401,7 +401,7 @@ export default async function LandingPage({
         <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-8">
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-rose-600 border-2 border-rose-300 text-xs font-extrabold shadow-xs mb-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-rose-600 border-2 border-rose-300 text-xs font-extrabold shadow-sm mb-2">
                 🔥 Promo Spesial Terbatas
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -423,7 +423,7 @@ export default async function LandingPage({
               );
               return (
                 <FadeIn key={promo.id} delay={i * 0.1}>
-                  <div className="relative bg-white border-2 border-amber-400 rounded-3xl overflow-hidden shadow-[0_14px_35px_-8px_rgba(245,158,11,0.22)]">
+                  <div className="relative bg-white border-2 border-amber-400 rounded-3xl overflow-hidden shadow-xl shadow-amber-500/20">
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                       {/* Info Promo */}
                       <div className="flex-1 p-6 sm:p-8 md:border-r-2 border-slate-200">
@@ -498,7 +498,7 @@ export default async function LandingPage({
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-indigo-700 border-2 border-indigo-300 text-xs font-extrabold shadow-xs mb-3">
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-indigo-700 border-2 border-indigo-300 text-xs font-extrabold shadow-sm mb-3">
               Sangat Mudah & Praktis
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-slate-950 tracking-tight">
@@ -513,7 +513,7 @@ export default async function LandingPage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Step 1 */}
           <FadeIn delay={0.1} direction="up">
-            <div className="bg-white border-2 border-indigo-300/90 rounded-3xl p-7 h-full shadow-[0_12px_30px_-8px_rgba(15,23,42,0.12)] hover:shadow-[0_18px_35px_-8px_rgba(79,70,229,0.2)] hover:border-indigo-500 hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-white border-2 border-indigo-300 rounded-3xl p-7 h-full shadow-lg shadow-slate-900/10 hover:shadow-xl hover:border-indigo-500 hover:-translate-y-1 transition-all duration-300">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-indigo-500/25">
                 01
               </div>
@@ -524,7 +524,7 @@ export default async function LandingPage({
 
           {/* Step 2 */}
           <FadeIn delay={0.2} direction="up">
-            <div className="bg-white border-2 border-sky-300/90 rounded-3xl p-7 h-full shadow-[0_12px_30px_-8px_rgba(15,23,42,0.12)] hover:shadow-[0_18px_35px_-8px_rgba(14,165,233,0.2)] hover:border-sky-500 hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-white border-2 border-sky-300 rounded-3xl p-7 h-full shadow-lg shadow-slate-900/10 hover:shadow-xl hover:border-sky-500 hover:-translate-y-1 transition-all duration-300">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-cyan-400 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-sky-500/25">
                 02
               </div>
@@ -535,7 +535,7 @@ export default async function LandingPage({
 
           {/* Step 3 */}
           <FadeIn delay={0.3} direction="up">
-            <div className="bg-white border-2 border-emerald-300/90 rounded-3xl p-7 h-full shadow-[0_12px_30px_-8px_rgba(15,23,42,0.12)] hover:shadow-[0_18px_35px_-8px_rgba(16,185,129,0.2)] hover:border-emerald-500 hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-white border-2 border-emerald-300 rounded-3xl p-7 h-full shadow-lg shadow-slate-900/10 hover:shadow-xl hover:border-emerald-500 hover:-translate-y-1 transition-all duration-300">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-emerald-500/25">
                 03
               </div>
@@ -551,7 +551,7 @@ export default async function LandingPage({
         <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <FadeIn>
             <div className="text-center mb-10">
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-sky-700 border-2 border-sky-300 text-xs font-extrabold shadow-xs mb-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-sky-700 border-2 border-sky-300 text-xs font-extrabold shadow-sm mb-2">
                 Galeri Produk Fisik
               </span>
               <h2 className="text-2xl sm:text-4xl font-black text-slate-950 tracking-tight">
@@ -570,7 +570,7 @@ export default async function LandingPage({
             >
               {productPhotos.map((photo, i) => (
                 <FadeIn key={photo.id} delay={i * 0.05}>
-                  <div className="snap-center shrink-0 w-64 sm:w-76 rounded-3xl overflow-hidden border-2 border-slate-300 bg-white shadow-[0_12px_28px_-6px_rgba(15,23,42,0.14)] hover:shadow-xl hover:border-indigo-400 transition-all group">
+                  <div className="snap-center shrink-0 w-64 sm:w-72 rounded-3xl overflow-hidden border-2 border-slate-300 bg-white shadow-lg shadow-slate-900/10 hover:shadow-xl hover:border-indigo-400 transition-all group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.imageData}
@@ -598,7 +598,7 @@ export default async function LandingPage({
 
       {/* ─── Keunggulan Teknologi (Bento Grid Timbul & Tegas) ─────────── */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="bg-white border-2 border-slate-300 rounded-[36px] p-7 sm:p-12 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.12)]">
+        <div className="bg-white border-2 border-slate-300 rounded-3xl p-7 sm:p-12 shadow-xl shadow-slate-900/10">
           <FadeIn>
             <div className="text-center max-w-2xl mx-auto mb-12">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border-2 border-indigo-300 text-xs font-extrabold mb-2">
@@ -683,7 +683,7 @@ export default async function LandingPage({
       {/* ─── CTA Bottom Banner (Ramah & Mengundang) ───────────────────── */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
         <FadeIn direction="up">
-          <div className="bg-gradient-to-r from-indigo-600 via-sky-600 to-teal-500 border-2 border-indigo-400/50 rounded-[36px] p-8 sm:p-12 shadow-2xl shadow-indigo-950/20 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 via-sky-600 to-teal-500 border-2 border-indigo-400/50 rounded-3xl p-8 sm:p-12 shadow-2xl shadow-indigo-950/20 text-white relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold mb-4">

@@ -111,33 +111,30 @@ export function WebsiteReviewWidgetModal({
             <button
               type="button"
               onClick={() => setWidgetStyle("pill")}
-              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                widgetStyle === "pill"
+              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${widgetStyle === "pill"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                   : "bg-slate-950/70 text-slate-400 hover:text-white border border-slate-800"
-              }`}
+                }`}
             >
               Floating Pill
             </button>
             <button
               type="button"
               onClick={() => setWidgetStyle("dark")}
-              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                widgetStyle === "dark"
+              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${widgetStyle === "dark"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                   : "bg-slate-950/70 text-slate-400 hover:text-white border border-slate-800"
-              }`}
+                }`}
             >
               Luxury Card
             </button>
             <button
               type="button"
               onClick={() => setWidgetStyle("gold")}
-              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                widgetStyle === "gold"
+              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${widgetStyle === "gold"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                   : "bg-slate-950/70 text-slate-400 hover:text-white border border-slate-800"
-              }`}
+                }`}
             >
               Gold Ribbon
             </button>

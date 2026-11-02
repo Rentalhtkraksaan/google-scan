@@ -19,7 +19,7 @@ import {
   QrCode,
   Camera,
 } from "lucide-react";
-import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
+import { showErrorAlert } from "@/lib/swal";
 import { getLoginRedirectPath } from "@/lib/actions/auth.actions";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 import { CashierQrLoginModal } from "./CashierQrLoginModal";
@@ -290,11 +290,11 @@ export function LoginForm() {
 
           {/* Divider Atau Masuk Kasir */}
           <div className="relative flex items-center py-1">
-            <div className="flex-grow border-t border-slate-800" />
-            <span className="flex-shrink mx-3 text-[11px] font-medium text-slate-500 uppercase tracking-wider">
+            <div className="grow border-t border-slate-800" />
+            <span className="shrink mx-3 text-[11px] font-medium text-slate-500 uppercase tracking-wider">
               Khusus Staf / Kasir Toko
             </span>
-            <div className="flex-grow border-t border-slate-800" />
+            <div className="grow border-t border-slate-800" />
           </div>
 
           {/* Tombol Login via Kasir (Langsung Buka Kamera Scan QR Outlet) */}
