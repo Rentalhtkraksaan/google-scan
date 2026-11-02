@@ -16,10 +16,13 @@ import {
   HelpCircle,
   RefreshCw,
   ShieldCheck,
+  QrCode,
+  Camera,
 } from "lucide-react";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import { getLoginRedirectPath } from "@/lib/actions/auth.actions";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import { CashierQrLoginModal } from "./CashierQrLoginModal";
 
 export function LoginForm() {
   const router = useRouter();
@@ -33,6 +36,7 @@ export function LoginForm() {
   const [captchaCode, setCaptchaCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isCashierQrOpen, setIsCashierQrOpen] = useState(false);
 
   // Prefetch dashboard routes on load for 0-lag instant transition
   useEffect(() => {
@@ -284,6 +288,27 @@ export function LoginForm() {
             )}
           </button>
 
+          {/* Divider Atau Masuk Kasir */}
+          <div className="relative flex items-center py-1">
+            <div className="flex-grow border-t border-slate-800" />
+            <span className="flex-shrink mx-3 text-[11px] font-medium text-slate-500 uppercase tracking-wider">
+              Khusus Staf / Kasir Toko
+            </span>
+            <div className="flex-grow border-t border-slate-800" />
+          </div>
+
+          {/* Tombol Login via Kasir (Langsung Buka Kamera Scan QR Outlet) */}
+          <button
+            type="button"
+            onClick={() => setIsCashierQrOpen(true)}
+            suppressHydrationWarning
+            className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 hover:border-amber-500/50 font-bold text-xs sm:text-sm rounded-xl transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+          >
+            <Camera className="w-4 h-4 text-amber-400" />
+            <span>Login via Kasir (Scan Barcode Outlet)</span>
+            <QrCode className="w-4 h-4 text-amber-400" />
+          </button>
+
           {/* Tombol Cepat Kembali ke Beranda */}
           <div className="pt-2 text-center">
             <Link
@@ -311,6 +336,14 @@ export function LoginForm() {
           isOpen={isForgotPasswordOpen}
           initialEmail={email}
           onClose={() => setIsForgotPasswordOpen(false)}
+        />
+      )}
+
+      {/* Modal Kamera Scan QR Khusus Login Kasir Outlet */}
+      {isCashierQrOpen && (
+        <CashierQrLoginModal
+          isOpen={isCashierQrOpen}
+          onClose={() => setIsCashierQrOpen(false)}
         />
       )}
     </>

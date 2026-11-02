@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { sendWebPushToSuperAdmins } from "@/lib/web-push";
-import { getDefaultSeptember30Expiry, formatMembershipExpiry } from "@/lib/membership-utils";
+import { getDefaultSeptember30Expiry, formatMembershipExpiry, isOutletMemberActive } from "@/lib/membership-utils";
 /**
  * Outlet mengunggah bukti transfer pembayaran membership
  */
@@ -1030,6 +1030,115 @@ export async function resetStaffPairingTokenAction(outletId: string) {
     return {
       success: false,
       message: (err as Error)?.message || "Gagal mereset token kasir.",
+    };
+  }
+}
+
+/**
+ * Validasi Ketat Login Kasir via Scan QR (Hanya mengizinkan Barcode Pairing Kasir dari Akun Outlet)
+ */
+export async function verifyCashierPairingQrAction(rawScannedText: string): Promise<{
+  success: boolean;
+  reason?: "CUSTOMER_CARD" | "INVALID_FORMAT" | "NOT_FOUND" | "INACTIVE_OWNER" | "VIP_EXPIRED" | "ERROR";
+  message: string;
+  token?: string;
+  outletName?: string;
+  redirectUrl?: string;
+}> {
+  try {
+    const trimmed = (rawScannedText || "").trim();
+    if (!trimmed) {
+      return {
+        success: false,
+        reason: "INVALID_FORMAT",
+        message: "Barcode tidak terbaca atau kosong.",
+      };
+    }
+
+    // 1. Tolak jika yang di-scan adalah Kartu Meja Pelanggan (/c/...)
+    if (/\/c\/[a-zA-Z0-9_-]+/i.test(trimmed)) {
+      return {
+        success: false,
+        reason: "CUSTOMER_CARD",
+        message:
+          "Barcode Ditolak! Ini adalah QR Kartu Meja Pelanggan, bukan Barcode Pairing Kasir. Silakan scan QR Pairing Kasir yang ada di dalam Dashboard Akun Outlet.",
+      };
+    }
+
+    // 2. Ekstrak token khusus kasir (/kasir/ksr_... atau langsung ksr_...)
+    let extractedToken: string | null = null;
+    const urlMatch = trimmed.match(/\/kasir\/(ksr_[a-zA-Z0-9_-]+)/i);
+    if (urlMatch && urlMatch[1]) {
+      extractedToken = urlMatch[1];
+    } else if (/^ksr_[a-zA-Z0-9_-]+$/i.test(trimmed)) {
+      extractedToken = trimmed;
+    }
+
+    if (!extractedToken) {
+      return {
+        success: false,
+        reason: "INVALID_FORMAT",
+        message:
+          "Barcode Ditolak! Sistem memblokir semua barcode luar. Hanya Barcode Pairing Kasir resmi dari Akun Outlet yang diizinkan.",
+      };
+    }
+
+    // 3. Cek ke database apakah token benar-benar milik Outlet terdaftar
+    const outlet = await prisma.outlet.findUnique({
+      where: { staffPairingToken: extractedToken },
+      select: {
+        id: true,
+        name: true,
+        isMember: true,
+        membershipStartedAt: true,
+        membershipExpiresAt: true,
+        isVipPaused: true,
+        owner: {
+          select: {
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    if (!outlet) {
+      return {
+        success: false,
+        reason: "NOT_FOUND",
+        message:
+          "Barcode Kasir tidak ditemukan atau telah direset oleh pemilik toko. Silakan scan QR Pairing Kasir terbaru di akun Outlet.",
+      };
+    }
+
+    if (outlet.owner?.isActive === false) {
+      return {
+        success: false,
+        reason: "INACTIVE_OWNER",
+        message: `Akun outlet "${outlet.name}" sedang dinonaktifkan.`,
+      };
+    }
+
+    if (!isOutletMemberActive(outlet)) {
+      return {
+        success: false,
+        reason: "VIP_EXPIRED",
+        message: `Masa aktif Member VIP untuk outlet "${outlet.name}" sedang dijeda atau telah berakhir. Hubungi pemilik toko untuk mengaktifkan VIP.`,
+      };
+    }
+
+    return {
+      success: true,
+      token: extractedToken,
+      outletName: outlet.name,
+      redirectUrl: `/kasir/${extractedToken}`,
+      message: `Berhasil terhubung ke layar kasir ${outlet.name}!`,
+    };
+  } catch (err) {
+    console.error("Error verifyCashierPairingQrAction:", err);
+    return {
+      success: false,
+      reason: "ERROR",
+      message: "Terjadi gangguan koneksi saat memverifikasi barcode outlet.",
     };
   }
 }
