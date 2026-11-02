@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Store, User, Phone, Mail, Loader2, KeyRound, Eye, EyeOff, Upload, Trash2, Sparkles } from "lucide-react";
 import { updateOutletAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
@@ -156,7 +156,9 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            title="Tutup"
             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -237,6 +239,7 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
                 <input
                   ref={fileInputRef}
                   type="file"
+                  title="Pilih file logo outlet"
                   accept="image/png,image/jpeg,image/webp,image/jpg"
                   className="hidden"
                   onChange={handleLogoSelect}
@@ -345,6 +348,7 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Nama lengkap pemilik"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
                 />
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Store, Search, MapPin, CheckCircle2, Loader2, Sparkles, ExternalLink, ClipboardCheck, Map } from "lucide-react";
 import { searchPlacesAction, resolveReviewUrlAction, PlaceSearchResult } from "@/lib/actions/places.actions";
 import { formatGoogleReviewUrl } from "@/lib/google-url";
@@ -154,7 +154,7 @@ export function GooglePlaceSearchInput({
     <div className="space-y-3.5" ref={containerRef}>
       {/* 1. Outlet Name Input with Live Search */}
       <div className="relative">
-        <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+        <label className="text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
           <span>Nama Outlet / Bisnis <span className="text-rose-400">*</span></span>
           <span className="text-[11px] text-indigo-400 font-normal flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-indigo-400" />

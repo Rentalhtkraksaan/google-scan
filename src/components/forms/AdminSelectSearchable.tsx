@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { ShieldCheck, Search, Check, ChevronDown, Crown, Briefcase, Users, X } from "lucide-react";
 
 export interface AdminSelectItem {

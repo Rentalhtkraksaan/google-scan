@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/ui/FadeIn";
 import { auth } from "@/lib/auth";
