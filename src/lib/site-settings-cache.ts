@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import type { SiteSettingModel } from "@/types/models";
 
 /**
  * Cached fetch untuk siteSetting (Super Ringan, < 2KB).
@@ -11,7 +12,7 @@ import { prisma } from "@/lib/prisma";
  * - Halaman terbuka seketika dalam < 100ms!
  */
 export const getCachedSiteSetting = unstable_cache(
-  async () => {
+  async (): Promise<SiteSettingModel | null> => {
     const setting = await prisma.siteSetting.findUnique({
       where: { id: "default" },
       select: {
@@ -77,7 +78,7 @@ export const getCachedSiteSetting = unstable_cache(
     const v = setting.updatedAt ? new Date(setting.updatedAt).getTime() : 1;
 
     return {
-      ...setting,
+      ...(setting as unknown as SiteSettingModel),
       dashboardLogoUrl: setting.dashboardLogoUrl ? `/api/logo/dashboard?v=${v}` : null,
       landingPageLogoUrl: setting.landingPageLogoUrl ? `/api/logo/landing?v=${v}` : null,
       faviconUrl: setting.faviconUrl ? `/api/logo/favicon?v=${v}` : "/favicon.ico",

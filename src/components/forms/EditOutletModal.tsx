@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Store, User, Phone, Mail, Loader2, KeyRound, Eye, EyeOff, Camera, Upload, Trash2, Sparkles, Image as ImageIcon } from "lucide-react";
+import { X, Store, User, Phone, Mail, Loader2, KeyRound, Eye, EyeOff, Upload, Trash2, Sparkles } from "lucide-react";
 import { updateOutletAction } from "@/lib/actions/auth.actions";
 import { showSuccessAlert, showErrorAlert } from "@/lib/swal";
 import { GooglePlaceSearchInput } from "./GooglePlaceSearchInput";
@@ -387,7 +387,7 @@ export function EditOutletModal({ outlet, onClose, onSuccess }: EditOutletModalP
 
           {/* Ubah Password Akun Pemilik */}
           <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2">
-            <label className="block text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
               <span>Ubah Password Akun Pemilik (Opsional)</span>
               <span className="text-[11px] text-slate-500 font-normal">Kosongkan jika tidak ingin diubah</span>
             </label>
