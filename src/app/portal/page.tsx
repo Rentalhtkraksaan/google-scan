@@ -144,6 +144,11 @@ export default async function PortalPage({ searchParams }: PortalPageProps) {
         logoUrl: activeRawOutlet.logoUrl || null,
         googleReviewUrl: activeRawOutlet.googleReviewUrl,
         isMember: isMemberActive,
+        hasClaimedFreeTrial: Boolean(
+          activeRawOutlet.hasClaimedFreeTrial &&
+            (activeRawOutlet.membershipStartedAt !== null ||
+              activeRawOutlet.membershipExpiresAt !== null)
+        ),
         membershipStartedAt: activeRawOutlet.membershipStartedAt,
         membershipExpiresAt: activeRawOutlet.membershipExpiresAt,
         customVipPrice: activeRawOutlet.customVipPrice,

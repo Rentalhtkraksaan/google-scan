@@ -897,7 +897,7 @@ export async function registerOutletAndClaimCardAction(formData: FormData): Prom
           isMember: false,
           membershipStartedAt: null,
           membershipExpiresAt: null,
-          hasClaimedFreeTrial: !allowFreeTrial,
+          hasClaimedFreeTrial: false,
         },
       });
 

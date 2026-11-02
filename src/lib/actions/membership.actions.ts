@@ -1275,8 +1275,12 @@ export async function claimFreeTrialVipAction(outletId: string) {
       return { success: false, message: "Akses ditolak: Anda bukan pemilik outlet ini." };
     }
 
-    // Periksa apakah trial sudah pernah diklaim atau outlet sudah aktif VIP
-    if (outlet.hasClaimedFreeTrial) {
+    // Periksa apakah trial benar-benar sudah pernah diklaim (memiliki riwayat tanggal mulai/berakhir VIP)
+    const hasReallyUsedTrial =
+      outlet.hasClaimedFreeTrial &&
+      (outlet.membershipStartedAt !== null || outlet.membershipExpiresAt !== null);
+
+    if (hasReallyUsedTrial) {
       return { success: false, message: "Jatah Free Trial VIP 30 Hari sudah pernah digunakan untuk outlet ini." };
     }
 
