@@ -336,7 +336,7 @@ export function RegisterOutletModal({
     const portalUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}/login`
-        : "https://qr-inaja.vercel.app/login";
+        : "https://qr-inaja.biz.id/login";
 
     const text = `Halo! Selamat datang di kemitraan Smart QR Review 👋
 Kartu Smart QR Google Review toko Anda telah *BERHASIL DIAKTIFKAN* dan siap digunakan.

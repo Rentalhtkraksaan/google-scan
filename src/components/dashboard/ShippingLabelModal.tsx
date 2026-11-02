@@ -93,7 +93,7 @@ export function ShippingLabelModal({
     const trackingUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}/reseller?track=${order.orderNumber}`
-        : `https://qr-inaja.vercel.app/reseller?track=${order.orderNumber}`;
+        : `https://qr-inaja.biz.id/reseller?track=${order.orderNumber}`;
 
     QRCode.toDataURL(trackingUrl, {
       margin: 1,

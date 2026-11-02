@@ -443,7 +443,7 @@ export function ResellerOrdersManagerModal({
 `Halo *${res.data.fullName}*, selamat datang di kemitraan QR-INAJA 👋
 Silakan login menggunakan:
 
-Link : qr-inaja.vercel.app/login
+Link : qr-inaja.biz.id/login
 Email: ${res.data.email}
 Pw : ${res.data.password}
 
@@ -1126,7 +1126,7 @@ Salam hangat`
                 <div className="pt-1">
                   <a
                     href={`https://wa.me/${trackingModalOrder.customerPhone.replace(/[^0-9]/g, "").startsWith("08") ? "62" + trackingModalOrder.customerPhone.replace(/[^0-9]/g, "").slice(1) : trackingModalOrder.customerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                      `Halo Kak ${trackingModalOrder.customerName}, paket pesanan Smart QR Anda #${trackingModalOrder.orderNumber} telah dikirim melalui *${inputCourierName}*.\n\n📦 *No. Resi:* ${inputTrackingNumber.trim()}\n🌐 *Lacak Pesanan:* https://qr-inaja.vercel.app/reseller\n\nTerimakasih telah bermitra dengan kami! 🙏`
+                      `Halo Kak ${trackingModalOrder.customerName}, paket pesanan Smart QR Anda #${trackingModalOrder.orderNumber} telah dikirim melalui *${inputCourierName}*.\n\n📦 *No. Resi:* ${inputTrackingNumber.trim()}\n🌐 *Lacak Pesanan:* https://qr-inaja.biz.id/reseller\n\nTerimakasih telah bermitra dengan kami! 🙏`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"

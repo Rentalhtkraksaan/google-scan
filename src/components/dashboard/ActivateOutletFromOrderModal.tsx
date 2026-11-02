@@ -262,7 +262,7 @@ export function ActivateOutletFromOrderModal({
     const message = `Halo *${data.fullName}*, selamat datang di kemitraan QR-INAJA 👋
 Silakan login menggunakan:
 
-Link : qr-inaja.vercel.app/login
+Link : qr-inaja.biz.id/login
 Email: ${data.email}
 Pw : ${data.password || "Outlet123!"}
 
@@ -276,7 +276,7 @@ Salam hangat`;
     const portalUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}/login`
-        : "https://qr-inaja.vercel.app/login";
+        : "https://qr-inaja.biz.id/login";
 
     const text = `Detail Akun Portal Outlet:
 Outlet: ${data.outletName}

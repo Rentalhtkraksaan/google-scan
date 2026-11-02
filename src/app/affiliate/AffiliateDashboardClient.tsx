@@ -129,7 +129,7 @@ export function AffiliateDashboardClient({
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
 
   // Referral links (Satuan & Reseller)
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://qr-inaja.vercel.app";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://qr-inaja.biz.id";
   const referralLink = `${origin}?ref=${affiliate.referralCode}`;
   const retailReferralLink = `${origin}?ref=${affiliate.referralCode}&buy=retail`;
   const resellerReferralLink = `${origin}?ref=${affiliate.referralCode}&buy=reseller`;

@@ -413,7 +413,7 @@ export function LandingPageSettingsModal({
                   <div className="w-3.5 h-3.5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[9px] font-bold">
                     G
                   </div>
-                  <span className="truncate text-slate-400 text-[11px]">https://qr-inaja.vercel.app</span>
+                  <span className="truncate text-slate-400 text-[11px]">https://qr-inaja.biz.id</span>
                 </div>
                 <div className="text-sm font-semibold text-sky-400 hover:underline cursor-pointer truncate">
                   {seoTitle || "Smart QR Review — Akselerasi Ulasan Bintang 5 Google Bisnis"}

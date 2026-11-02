@@ -1312,7 +1312,7 @@ export function SuperAdminDashboardClient({
     if (!waNumber) return "#";
     let clean = waNumber.replace(/[^0-9]/g, "");
     if (clean.startsWith("08")) clean = "62" + clean.slice(1);
-    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.vercel.app/login";
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/login` : "https://qr-inaja.biz.id/login";
     const reviewUrl = cardCode && typeof window !== "undefined" ? `${window.location.origin}/c/${cardCode}` : "";
     const msg = 
 `Halo Kak ${ownerName || ""} dari *${outletName || "Outlet"}*! 👋✨

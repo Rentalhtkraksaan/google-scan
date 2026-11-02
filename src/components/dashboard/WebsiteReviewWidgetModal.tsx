@@ -34,7 +34,7 @@ export function WebsiteReviewWidgetModal({
 
   if (!isOpen) return null;
 
-  const targetUrl = reviewUrl || `https://qr-inaja.vercel.app/c/${cardCode}`;
+  const targetUrl = reviewUrl || `https://qr-inaja.biz.id/c/${cardCode}`;
 
   // Generate lightweight HTML code
   const getEmbedCode = () => {
