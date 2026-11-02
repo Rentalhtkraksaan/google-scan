@@ -184,20 +184,27 @@ export default async function LandingPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F4F7FF] via-[#FAFCFF] to-[#F1F5F9] text-slate-800 selection:bg-indigo-600 selection:text-white relative overflow-x-hidden font-sans">
+    <div
+      className="min-h-screen bg-[#DCE3EE] text-slate-800 selection:bg-indigo-600 selection:text-white relative overflow-x-hidden font-sans"
+      style={{
+        backgroundImage:
+          "radial-gradient(rgba(99, 102, 241, 0.14) 1px, transparent 1px), linear-gradient(180deg, #D5DFED 0%, #E2E8F0 45%, #D8E1EE 100%)",
+        backgroundSize: "24px 24px, 100% 100%",
+      }}
+    >
       {/* Instant PWA & Stored Session Auto-Redirect */}
       <PwaInstantRedirect />
 
       {/* Auto Order & Referral Link Listener (?ref=..., ?buy=..., ?order=..., ?track=...) */}
       <LandingAutoOrderHandler siteSetting={siteSetting || undefined} />
 
-      {/* Soft Modern Mesh Gradient Orbs (Ramah di Mata & Kece) */}
-      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1200px] h-[650px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-200/60 via-sky-100/40 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[480px] -right-32 w-[450px] h-[450px] bg-amber-200/35 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[950px] -left-32 w-[450px] h-[450px] bg-teal-200/35 rounded-full blur-3xl pointer-events-none -z-10" />
+      {/* Soft Ambient Color Glows */}
+      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-gradient-to-b from-indigo-300/45 via-sky-200/30 to-transparent blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-[500px] -right-32 w-[450px] h-[450px] bg-amber-300/25 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-[980px] -left-32 w-[450px] h-[450px] bg-teal-300/25 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* ─── Fixed Top Header (Tetap Kokoh di Atas Saat Di-Scroll) ──── */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-2xl shadow-[0_4px_24px_rgba(15,23,42,0.05)]">
+      {/* ─── Fixed Top Header (Tetap Kokoh di Atas & Kontras Tegas) ──── */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b-2 border-slate-300/90 bg-white/95 backdrop-blur-2xl shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {siteSetting?.landingPageLogoUrl ? (
@@ -208,18 +215,18 @@ export default async function LandingPage({
                 className="w-10 h-10 sm:w-11 sm:h-11 object-contain drop-shadow-xs shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
                 <QrCode className="w-5 h-5" />
               </div>
             )}
             <div className="flex flex-col">
               <span className="font-black text-base sm:text-xl tracking-tight text-slate-900 flex items-center gap-2">
                 QR-INAJA
-                <span className="text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-50 to-sky-50 text-indigo-600 border border-indigo-200/70 font-extrabold">
+                <span className="text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 font-extrabold">
                   Smart QR
                 </span>
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
+              <span className="text-[11px] text-slate-600 font-semibold">
                 Google Review Accelerator Resmi
               </span>
             </div>
@@ -228,7 +235,7 @@ export default async function LandingPage({
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/reseller"
-              className="hidden md:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold text-emerald-700 bg-emerald-50/90 hover:bg-emerald-100 border border-emerald-200/80 transition-all hover:scale-[1.02]"
+              className="hidden md:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 shadow-xs transition-all hover:scale-[1.02]"
             >
               <Store className="w-3.5 h-3.5 text-emerald-600" />
               <span>Kemitraan Reseller</span>
@@ -237,7 +244,7 @@ export default async function LandingPage({
             <Link
               href={getPortalHref()}
               prefetch={true}
-              className="px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-sky-600 rounded-2xl transition-all flex items-center gap-1.5 shadow-md shadow-slate-900/10 hover:shadow-indigo-500/25 hover:scale-[1.02]"
+              className="px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-slate-900 to-slate-800 hover:from-indigo-600 hover:to-sky-600 rounded-2xl transition-all flex items-center gap-1.5 shadow-md shadow-slate-900/20 hover:shadow-indigo-500/30 hover:scale-[1.02]"
             >
               {session?.user ? (
                 <>
@@ -252,71 +259,71 @@ export default async function LandingPage({
         </div>
       </header>
 
-      {/* ─── Hero Section (Centered Modern & Kece) ────────────────────── */}
-      <section className="pt-28 pb-16 sm:pt-36 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
+      {/* ─── Hero Section (Kontras Jelas & Tidak Nyatu dari Jauh) ────── */}
+      <section className="pt-28 pb-16 sm:pt-36 sm:pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto text-center">
         <FadeIn delay={0}>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 text-indigo-700 border border-indigo-200/80 text-xs sm:text-sm font-extrabold shadow-sm shadow-indigo-500/5 mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-indigo-800 border-2 border-indigo-300 text-xs sm:text-sm font-extrabold shadow-[0_6px_20px_rgba(79,70,229,0.14)] mb-6">
             <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
             <span>{heroBadge}</span>
           </div>
         </FadeIn>
 
         <FadeIn delay={0.1}>
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 max-w-4xl mx-auto leading-[1.14]">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-950 max-w-4xl mx-auto leading-[1.14] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
             {heroHeadline}
           </h1>
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <p className="mt-5 text-base sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed font-normal">
+          <p className="mt-5 text-base sm:text-xl text-slate-700 max-w-2xl mx-auto leading-relaxed font-medium">
             {heroSubheadline}
           </p>
         </FadeIn>
 
-        {/* Pill Keunggulan Cepat */}
+        {/* Pill Keunggulan Cepat dengan Tepi Tegas & Bayangan Timbul */}
         <FadeIn delay={0.25}>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 text-xs sm:text-sm font-bold text-slate-700">
-            <span className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm font-extrabold text-slate-800">
+            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-emerald-300 shadow-[0_6px_16px_rgba(16,185,129,0.12)]">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               Tanpa Aplikasi Tambahan
             </span>
-            <span className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-2xs">
-              <CheckCircle2 className="w-4 h-4 text-indigo-500 shrink-0" />
+            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-indigo-300 shadow-[0_6px_16px_rgba(99,102,241,0.12)]">
+              <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
               100% Resmi Google Maps
             </span>
-            <span className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200/90 shadow-2xs">
+            <span className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border-2 border-amber-300 shadow-[0_6px_16px_rgba(245,158,11,0.12)]">
               <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0" />
               Akrilik Tebal & Elegan
             </span>
           </div>
         </FadeIn>
 
-        {/* Tombol Utama & Konsultasi */}
+        {/* Tombol Utama & Konsultasi (Timbul Tegas dari Background) */}
         <FadeIn delay={0.3}>
-          <div className="mt-8 space-y-3.5 max-w-xl mx-auto">
+          <div className="mt-8 space-y-4 max-w-xl mx-auto">
             <LandingRetailButtons siteSetting={siteSetting || undefined} variant="hero" />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white hover:bg-emerald-50/70 border border-slate-200/90 hover:border-emerald-300 text-left transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                className="group flex items-center gap-3.5 px-4 py-4 rounded-2xl bg-white hover:bg-emerald-50 border-2 border-emerald-400/90 hover:border-emerald-500 text-left transition-all shadow-[0_10px_25px_-5px_rgba(16,185,129,0.2)] hover:shadow-[0_14px_30px_-5px_rgba(16,185,129,0.3)] hover:-translate-y-0.5"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-sm shadow-emerald-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 shrink-0 group-hover:scale-105 transition-transform">
                   <MessageCircle className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-emerald-800 truncate">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-emerald-900 truncate">
                       {ctaPrimaryText}
                     </span>
-                    <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="relative flex h-2.5 w-2.5 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 group-hover:text-emerald-700 block truncate">
+                  <span className="text-[11px] font-medium text-slate-600 group-hover:text-emerald-700 block truncate">
                     Chat CS & gratis setting toko
                   </span>
                 </div>
@@ -326,19 +333,19 @@ export default async function LandingPage({
                 href={ctaSecondaryUrl}
                 target={ctaSecondaryUrl.startsWith("http") ? "_blank" : undefined}
                 rel={ctaSecondaryUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white hover:bg-indigo-50/70 border border-slate-200/90 hover:border-indigo-300 text-left transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                className="group flex items-center gap-3.5 px-4 py-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-400/90 hover:border-indigo-500 text-left transition-all shadow-[0_10px_25px_-5px_rgba(79,70,229,0.2)] hover:shadow-[0_14px_30px_-5px_rgba(79,70,229,0.3)] hover:-translate-y-0.5"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center shadow-sm shadow-indigo-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/30 shrink-0 group-hover:scale-105 transition-transform">
                   <Smartphone className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs sm:text-sm font-extrabold text-slate-900 group-hover:text-indigo-800 truncate">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-indigo-900 truncate">
                       {ctaSecondaryText}
                     </span>
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 shrink-0" />
+                    <ExternalLink className="w-3.5 h-3.5 text-indigo-500 group-hover:text-indigo-700 shrink-0" />
                   </div>
-                  <span className="text-[11px] text-slate-500 group-hover:text-indigo-600 block truncate">
+                  <span className="text-[11px] font-medium text-slate-600 group-hover:text-indigo-700 block truncate">
                     Klik untuk coba simulasi scan
                   </span>
                 </div>
@@ -347,40 +354,40 @@ export default async function LandingPage({
           </div>
         </FadeIn>
 
-        {/* Visual Showcase Banner: 3 Kartu Preview Bersih & Elegan */}
+        {/* Visual Showcase Banner: 3 Kartu Timbul dengan Tepi Berwarna */}
         <FadeIn delay={0.4}>
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto text-left">
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-lg shadow-slate-900/[0.03] flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center shrink-0">
-                <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 max-w-4xl mx-auto text-left">
+            <div className="bg-white border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-[0_12px_30px_-8px_rgba(15,23,42,0.14)] flex items-center gap-4 hover:-translate-y-1 transition-transform">
+              <div className="w-13 h-13 rounded-2xl bg-amber-100 border-2 border-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+                <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
               </div>
               <div>
                 <div className="text-lg font-black text-slate-900">Rating 4.9+ ⭐</div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
                   Meningkatkan kepercayaan pelanggan baru di Google Maps
                 </p>
               </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-lg shadow-slate-900/[0.03] flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center shrink-0">
+            <div className="bg-white border-2 border-indigo-300 rounded-3xl p-5 sm:p-6 shadow-[0_12px_30px_-8px_rgba(15,23,42,0.14)] flex items-center gap-4 hover:-translate-y-1 transition-transform">
+              <div className="w-13 h-13 rounded-2xl bg-indigo-100 border-2 border-indigo-300 flex items-center justify-center shrink-0 shadow-xs">
                 <Zap className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
                 <div className="text-lg font-black text-slate-900">Hanya 3 Detik</div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
                   Scan kamera HP langsung buka pop-up ulasan bintang 5
                 </p>
               </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-lg shadow-slate-900/[0.03] flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0">
+            <div className="bg-white border-2 border-emerald-300 rounded-3xl p-5 sm:p-6 shadow-[0_12px_30px_-8px_rgba(15,23,42,0.14)] flex items-center gap-4 hover:-translate-y-1 transition-transform">
+              <div className="w-13 h-13 rounded-2xl bg-emerald-100 border-2 border-emerald-300 flex items-center justify-center shrink-0 shadow-xs">
                 <Award className="w-6 h-6 text-emerald-600" />
               </div>
               <div>
                 <div className="text-lg font-black text-slate-900">Sekali Beli</div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
                   Kartu fisik awet bertahun-tahun untuk meja & kasir toko
                 </p>
               </div>
@@ -394,10 +401,10 @@ export default async function LandingPage({
         <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
           <FadeIn>
             <div className="text-center mb-8">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold mb-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-rose-600 border-2 border-rose-300 text-xs font-extrabold shadow-xs mb-2">
                 🔥 Promo Spesial Terbatas
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 Penawaran Hemat untuk Outlet Anda
               </h2>
             </div>
@@ -416,18 +423,18 @@ export default async function LandingPage({
               );
               return (
                 <FadeIn key={promo.id} delay={i * 0.1}>
-                  <div className="relative bg-white border-2 border-amber-300/90 rounded-3xl overflow-hidden shadow-xl shadow-amber-500/10">
+                  <div className="relative bg-white border-2 border-amber-400 rounded-3xl overflow-hidden shadow-[0_14px_35px_-8px_rgba(245,158,11,0.22)]">
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                       {/* Info Promo */}
-                      <div className="flex-1 p-6 sm:p-8 md:border-r border-slate-100">
+                      <div className="flex-1 p-6 sm:p-8 md:border-r-2 border-slate-200">
                         <div className="flex items-center gap-2 flex-wrap mb-3">
                           {isExpiringSoon && promo.expiredAt && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-300 text-rose-600 text-xs font-bold">
                               ⏰ Segera Berakhir!
                             </span>
                           )}
                           {savedPct > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-bold">
                               Hemat {savedPct}%
                             </span>
                           )}
@@ -443,7 +450,7 @@ export default async function LandingPage({
                         )}
 
                         {promo.expiredAt && (
-                          <p className="text-xs text-slate-500 font-medium">
+                          <p className="text-xs text-slate-500 font-semibold">
                             📅 Berlaku s/d{" "}
                             {new Date(promo.expiredAt).toLocaleDateString("id-ID", {
                               day: "numeric",
@@ -455,7 +462,7 @@ export default async function LandingPage({
                       </div>
 
                       {/* Harga & Tombol Klaim */}
-                      <div className="shrink-0 p-6 sm:px-10 sm:py-8 bg-gradient-to-b from-amber-50/70 to-amber-50/30 flex flex-col items-center justify-center text-center min-w-[250px]">
+                      <div className="shrink-0 p-6 sm:px-10 sm:py-8 bg-gradient-to-b from-amber-50 to-amber-100/50 flex flex-col items-center justify-center text-center min-w-[250px]">
                         <span className="text-slate-400 line-through text-base font-semibold">
                           Rp {promo.originalPrice} {promo.priceUnit}
                         </span>
@@ -491,13 +498,13 @@ export default async function LandingPage({
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200/80 text-xs font-bold mb-2">
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-indigo-700 border-2 border-indigo-300 text-xs font-extrabold shadow-xs mb-3">
               Sangat Mudah & Praktis
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-black text-slate-950 tracking-tight">
               Bagaimana Cara Kerja Kartu QR-INAJA?
             </h2>
-            <p className="text-sm sm:text-base text-slate-600 mt-2">
+            <p className="text-sm sm:text-base text-slate-700 font-medium mt-2">
               3 langkah mudah dan nyaman bagi setiap pelanggan toko Anda
             </p>
           </div>
@@ -506,8 +513,8 @@ export default async function LandingPage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Step 1 */}
           <FadeIn delay={0.1} direction="up">
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 h-full shadow-md shadow-slate-900/[0.02] hover:shadow-xl hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-indigo-500/20">
+            <div className="bg-white border-2 border-indigo-300/90 rounded-3xl p-7 h-full shadow-[0_12px_30px_-8px_rgba(15,23,42,0.12)] hover:shadow-[0_18px_35px_-8px_rgba(79,70,229,0.2)] hover:border-indigo-500 hover:-translate-y-1 transition-all duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-indigo-500/25">
                 01
               </div>
               <h3 className="text-lg font-extrabold text-slate-900 mb-2">{step1Title}</h3>
@@ -517,8 +524,8 @@ export default async function LandingPage({
 
           {/* Step 2 */}
           <FadeIn delay={0.2} direction="up">
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 h-full shadow-md shadow-slate-900/[0.02] hover:shadow-xl hover:border-sky-300 hover:-translate-y-1 transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-cyan-400 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-sky-500/20">
+            <div className="bg-white border-2 border-sky-300/90 rounded-3xl p-7 h-full shadow-[0_12px_30px_-8px_rgba(15,23,42,0.12)] hover:shadow-[0_18px_35px_-8px_rgba(14,165,233,0.2)] hover:border-sky-500 hover:-translate-y-1 transition-all duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-cyan-400 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-sky-500/25">
                 02
               </div>
               <h3 className="text-lg font-extrabold text-slate-900 mb-2">{step2Title}</h3>
@@ -528,8 +535,8 @@ export default async function LandingPage({
 
           {/* Step 3 */}
           <FadeIn delay={0.3} direction="up">
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-7 h-full shadow-md shadow-slate-900/[0.02] hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-emerald-500/20">
+            <div className="bg-white border-2 border-emerald-300/90 rounded-3xl p-7 h-full shadow-[0_12px_30px_-8px_rgba(15,23,42,0.12)] hover:shadow-[0_18px_35px_-8px_rgba(16,185,129,0.2)] hover:border-emerald-500 hover:-translate-y-1 transition-all duration-300">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center mb-5 font-black text-lg shadow-md shadow-emerald-500/25">
                 03
               </div>
               <h3 className="text-lg font-extrabold text-slate-900 mb-2">{step3Title}</h3>
@@ -544,13 +551,13 @@ export default async function LandingPage({
         <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <FadeIn>
             <div className="text-center mb-10">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold mb-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-sky-700 border-2 border-sky-300 text-xs font-extrabold shadow-xs mb-2">
                 Galeri Produk Fisik
               </span>
-              <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-4xl font-black text-slate-950 tracking-tight">
                 Tampilan Standee & Kartu Akrilik Kami
               </h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="text-sm text-slate-700 font-medium mt-1">
                 Desain estetik, bahan akrilik tebal tahan air, siap mempercantik meja kasir Anda
               </p>
             </div>
@@ -563,7 +570,7 @@ export default async function LandingPage({
             >
               {productPhotos.map((photo, i) => (
                 <FadeIn key={photo.id} delay={i * 0.05}>
-                  <div className="snap-center shrink-0 w-64 sm:w-76 rounded-3xl overflow-hidden border border-slate-200/90 bg-white shadow-md hover:shadow-xl transition-all group">
+                  <div className="snap-center shrink-0 w-64 sm:w-76 rounded-3xl overflow-hidden border-2 border-slate-300 bg-white shadow-[0_12px_28px_-6px_rgba(15,23,42,0.14)] hover:shadow-xl hover:border-indigo-400 transition-all group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.imageData}
@@ -571,8 +578,8 @@ export default async function LandingPage({
                       className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {photo.caption && (
-                      <div className="px-4 py-3.5 bg-white">
-                        <p className="text-xs sm:text-sm text-slate-700 text-center font-semibold">
+                      <div className="px-4 py-3.5 bg-white border-t border-slate-100">
+                        <p className="text-xs sm:text-sm text-slate-800 text-center font-bold">
                           {photo.caption}
                         </p>
                       </div>
@@ -583,24 +590,24 @@ export default async function LandingPage({
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-400 font-medium mt-2">
+          <p className="text-center text-xs text-slate-600 font-semibold mt-2">
             ← Geser ke samping untuk melihat foto lainnya →
           </p>
         </section>
       )}
 
-      {/* ─── Keunggulan Teknologi (Bento Grid Ramah & Bersih) ─────────── */}
+      {/* ─── Keunggulan Teknologi (Bento Grid Timbul & Tegas) ─────────── */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="bg-white border border-slate-200/90 rounded-[36px] p-7 sm:p-12 shadow-xl shadow-slate-900/[0.03]">
+        <div className="bg-white border-2 border-slate-300 rounded-[36px] p-7 sm:p-12 shadow-[0_16px_40px_-10px_rgba(15,23,42,0.12)]">
           <FadeIn>
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold mb-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border-2 border-indigo-300 text-xs font-extrabold mb-2">
                 Keunggulan Teknologi
               </span>
               <h2 className="text-2xl sm:text-4xl font-black text-slate-900">
                 Kenapa Memilih Kartu Smart QR-INAJA?
               </h2>
-              <p className="text-sm text-slate-600 mt-2">
+              <p className="text-sm text-slate-600 font-medium mt-2">
                 Dirancang khusus untuk mendongkrak reputasi Cafe, Resto, Barbershop, Klinik, hingga UMKM
               </p>
             </div>
@@ -608,8 +615,8 @@ export default async function LandingPage({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <FadeIn delay={0.1}>
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-indigo-50/50 to-white border border-indigo-100 h-full space-y-3 hover:shadow-md transition-all">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <div className="p-6 rounded-3xl bg-indigo-50/60 border-2 border-indigo-200 h-full space-y-3 hover:border-indigo-400 hover:shadow-md transition-all">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25">
                   <MapPin className="w-6 h-6" />
                 </div>
                 <h4 className="font-extrabold text-base text-slate-900">
@@ -622,8 +629,8 @@ export default async function LandingPage({
             </FadeIn>
 
             <FadeIn delay={0.2}>
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-sky-50/50 to-white border border-sky-100 h-full space-y-3 hover:shadow-md transition-all">
-                <div className="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-500/20">
+              <div className="p-6 rounded-3xl bg-sky-50/60 border-2 border-sky-200 h-full space-y-3 hover:border-sky-400 hover:shadow-md transition-all">
+                <div className="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-500/25">
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <h4 className="font-extrabold text-base text-slate-900">
@@ -636,8 +643,8 @@ export default async function LandingPage({
             </FadeIn>
 
             <FadeIn delay={0.3}>
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-emerald-50/50 to-white border border-emerald-100 h-full space-y-3 hover:shadow-md transition-all">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <div className="p-6 rounded-3xl bg-emerald-50/60 border-2 border-emerald-200 h-full space-y-3 hover:border-emerald-400 hover:shadow-md transition-all">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25">
                   <Globe className="w-6 h-6" />
                 </div>
                 <h4 className="font-extrabold text-base text-slate-900">
@@ -650,8 +657,8 @@ export default async function LandingPage({
             </FadeIn>
 
             <FadeIn delay={0.4}>
-              <div className="p-6 rounded-3xl bg-gradient-to-b from-amber-50/50 to-white border border-amber-100 h-full space-y-3 hover:shadow-md transition-all">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+              <div className="p-6 rounded-3xl bg-amber-50/60 border-2 border-amber-200 h-full space-y-3 hover:border-amber-400 hover:shadow-md transition-all">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <h4 className="font-extrabold text-base text-slate-900">
@@ -676,10 +683,10 @@ export default async function LandingPage({
       {/* ─── CTA Bottom Banner (Ramah & Mengundang) ───────────────────── */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
         <FadeIn direction="up">
-          <div className="bg-gradient-to-r from-indigo-600 via-sky-600 to-teal-500 rounded-[36px] p-8 sm:p-12 shadow-2xl shadow-indigo-900/15 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 via-sky-600 to-teal-500 border-2 border-indigo-400/50 rounded-[36px] p-8 sm:p-12 shadow-2xl shadow-indigo-950/20 text-white relative overflow-hidden">
             <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-bold mb-4">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold mb-4">
                 <HeartHandshake className="w-4 h-4" />
                 <span>Siap Membantu Pertumbuhan Bisnis Anda</span>
               </div>
@@ -703,7 +710,7 @@ export default async function LandingPage({
 
                 <Link
                   href="/reseller"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 bg-white/15 hover:bg-white/25 text-white border border-white/30 font-bold text-sm sm:text-base rounded-2xl transition-all backdrop-blur-md"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 bg-white/15 hover:bg-white/25 text-white border-2 border-white/40 font-bold text-sm sm:text-base rounded-2xl transition-all backdrop-blur-md"
                 >
                   <Store className="w-5 h-5" />
                   <span>Program Kemitraan Reseller</span>
@@ -715,15 +722,15 @@ export default async function LandingPage({
       </section>
 
       {/* ─── Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t border-slate-200/80 bg-white/90 py-10 px-4 text-center text-xs text-slate-500">
-        <div className="flex items-center justify-center gap-3 sm:gap-5 flex-wrap mb-4 font-semibold text-slate-600">
+      <footer className="border-t-2 border-slate-300 bg-white py-10 px-4 text-center text-xs text-slate-600">
+        <div className="flex items-center justify-center gap-3 sm:gap-5 flex-wrap mb-4 font-bold text-slate-700">
           <Link href="/login" className="hover:text-indigo-600 transition-colors">
             Login Portal
           </Link>
           <span>•</span>
           <Link
             href="/reseller"
-            className="text-emerald-700 hover:text-emerald-600 font-bold transition-colors"
+            className="text-emerald-700 hover:text-emerald-600 font-extrabold transition-colors"
           >
             Kemitraan Reseller (Grosir)
           </Link>
@@ -739,7 +746,7 @@ export default async function LandingPage({
             WhatsApp CS
           </a>
         </div>
-        <p className="text-slate-400">
+        <p className="text-slate-500 font-medium">
           &copy; {new Date().getFullYear()} {footerText}
         </p>
       </footer>
